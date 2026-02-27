@@ -4,6 +4,8 @@ const path = require('path');
 // Steam overlay compatibility: disable GPU sandbox
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('no-sandbox');
+// Game has no network needs — disable network service to prevent Chromium crash logs
+app.commandLine.appendSwitch('disable-features', 'NetworkService');
 
 // Keep a global reference to avoid garbage collection
 let mainWindow = null;
