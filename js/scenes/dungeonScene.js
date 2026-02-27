@@ -409,15 +409,26 @@ const DungeonScene = {
     },
 
     returnToVillage() {
-        if (Game.state.currentFloor > 1 && Math.random() < 0.3) {
+        const escaped = Game.state.currentFloor > 1;
+        if (escaped && Math.random() < 0.3) {
             Game.state.village.resolveRaid(Game.state.currentFloor);
         }
         Game.state.village.refreshRecruits();
         Audio.startMusic('village');
+        if (escaped) {
+            Game.notify('Escaped the dungeon safely.', '#40e0e0');
+            Game.save();
+        }
         Game.switchScene('village');
     },
 
     render(r) {
+        // Floor select: no map exists yet, render panel on black
+        if (this.mode === 'floorSelect') {
+            r.drawFloorSelectPanel(this._floorOptions, this._floorSelectIndex);
+            return;
+        }
+
         const player = Game.state.player;
 
         // ── Tile layer ──
@@ -702,11 +713,6 @@ const DungeonScene = {
             ctx.fillText('Press [E] ' + (evDef ? evDef.name : ''), r.canvas.width / 2, 557);
             ctx.textAlign = 'left';
             ctx.restore();
-        }
-
-        // ── Floor select panel ──
-        if (this.mode === 'floorSelect') {
-            r.drawFloorSelectPanel(this._floorOptions, this._floorSelectIndex);
         }
 
         // ── Escape confirmation overlay ──
