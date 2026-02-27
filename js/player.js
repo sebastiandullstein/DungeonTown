@@ -1,3 +1,21 @@
+// ── Tavern Buffs (last until death) ──────────────────────────────────────────
+const TAVERN_BUFFS = {
+    liquidCourage:  { name: 'Liquid Courage',    desc: '+20% ATK for next dungeon run',   cost: 5,  atkMult: 0.2 },
+    heartyStew:     { name: 'Hearty Stew',       desc: 'Start next run with +25% max HP', cost: 8,  hpMult: 0.25 },
+    thievsBrew:     { name: "Thief's Brew",      desc: '+30% gold find for next run',     cost: 6,  goldMult: 0.3 },
+    berserkerMead:  { name: "Berserker's Mead",  desc: '+40% ATK but -20% DEF',           cost: 4,  atkMult: 0.4, defMult: -0.2 },
+};
+
+// ── Temple Blessings (permanent, bought with Soul Shards) ────────────────────
+const TEMPLE_BLESSINGS = {
+    bloodPact:      { name: 'Blood Pact',      desc: 'Gain 2 HP per kill',               cost: 15, hpPerKill: 2 },
+    ironWill:       { name: 'Iron Will',       desc: '+10 max HP permanently',            cost: 20, maxHpBonus: 10 },
+    swiftStrikes:   { name: 'Swift Strikes',   desc: 'Attack speed +15% permanently',     cost: 25, atkSpeedMult: 0.15 },
+    deathsEmbrace:  { name: "Death's Embrace", desc: 'Lose 30% less gold on death',       cost: 10, deathGoldSave: 0.3 },
+    dungeonSense:   { name: 'Dungeon Sense',   desc: 'FOV radius +1 tile permanently',    cost: 15, fovBonus: 1 },
+    cursedStrength: { name: 'Cursed Strength',  desc: '+5 ATK permanently but -5 max HP', cost: 12, atkBonus: 5, maxHpPenalty: 5 },
+};
+
 // Player Entity
 class Player {
     constructor() {
@@ -18,6 +36,15 @@ class Player {
 
         // Personal gold earned in dungeons — spent in village shops
         this.gold = 20;
+
+        // Permanent currency — never lost on death
+        this.soulShards = 0;
+
+        // Tavern buffs: array of buff IDs (cleared on death)
+        this.tavernBuffs = [];
+
+        // Temple blessings: { blessingId: true } (permanent)
+        this.blessings = {};
 
         this.equipment = {
             weapon: null,
@@ -76,6 +103,17 @@ class Player {
         let atk = str;
         if (this.equipment.weapon) atk += this.equipment.weapon.stats.atk || 0;
         if (this.equipment.ring && this.equipment.ring.stats.atk) atk += this.equipment.ring.stats.atk;
+        // Blessing: Cursed Strength
+        if (this.blessings && this.blessings.cursedStrength) atk += 5;
+        // Tavern buff multipliers
+        let atkMult = 0;
+        if (this.tavernBuffs) {
+            for (const id of this.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b && b.atkMult) atkMult += b.atkMult;
+            }
+        }
+        if (atkMult > 0) atk = Math.floor(atk * (1 + atkMult));
         return atk;
     }
 
@@ -87,11 +125,33 @@ class Player {
                 def += this.equipment[slot].stats.def;
             }
         }
+        // Tavern buff multipliers
+        let defMult = 0;
+        if (this.tavernBuffs) {
+            for (const id of this.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b && b.defMult) defMult += b.defMult;
+            }
+        }
+        if (defMult !== 0) def = Math.max(0, Math.floor(def * (1 + defMult)));
         return def;
     }
 
     getMaxHp() {
-        return 30 + this.stats.vit * 4 + this.level * 5;
+        let hp = 30 + this.stats.vit * 4 + this.level * 5;
+        // Blessings
+        if (this.blessings) {
+            if (this.blessings.ironWill) hp += 10;
+            if (this.blessings.cursedStrength) hp -= 5;
+        }
+        // Tavern buff: Hearty Stew
+        if (this.tavernBuffs) {
+            for (const id of this.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b && b.hpMult) hp = Math.floor(hp * (1 + b.hpMult));
+            }
+        }
+        return Math.max(1, hp);
     }
 
     getMaxMp() {
@@ -103,7 +163,35 @@ class Player {
     }
 
     getAttackSpeed() {
-        return Math.max(0.15, 0.4 - this.stats.dex * 0.01);
+        let speed = Math.max(0.15, 0.4 - this.stats.dex * 0.01);
+        // Blessing: Swift Strikes
+        if (this.blessings && this.blessings.swiftStrikes) speed *= 0.85;
+        return speed;
+    }
+
+    getGoldFindBonus() {
+        let bonus = 0;
+        if (this.tavernBuffs) {
+            for (const id of this.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b && b.goldMult) bonus += b.goldMult;
+            }
+        }
+        return bonus;
+    }
+
+    getDeathGoldSavePercent() {
+        if (this.blessings && this.blessings.deathsEmbrace) return 0.3;
+        return 0;
+    }
+
+    getFOVBonus() {
+        if (this.blessings && this.blessings.dungeonSense) return 1;
+        return 0;
+    }
+
+    clearTavernBuffs() {
+        this.tavernBuffs = [];
     }
 
     gainXp(amount) {
@@ -314,6 +402,9 @@ class Player {
             statPoints: this.statPoints, stats: { ...this.stats },
             equipment: { ...this.equipment }, inventory: [...this.inventory],
             gold: this.gold || 0,
+            soulShards: this.soulShards || 0,
+            tavernBuffs: this.tavernBuffs ? [...this.tavernBuffs] : [],
+            blessings: this.blessings ? { ...this.blessings } : {},
             activeBuffs: this.activeBuffs ? [...this.activeBuffs] : [],
             abilityCooldowns: Abilities.serialize(),
         };
@@ -322,6 +413,9 @@ class Player {
     deserialize(data) {
         Object.assign(this, data);
         this.gold = data.gold || 0;
+        this.soulShards = data.soulShards || 0;
+        this.tavernBuffs = data.tavernBuffs || [];
+        this.blessings = data.blessings || {};
         this.activeBuffs = data.activeBuffs || [];
         this.moveTimer = 0;
         this.attackTimer = 0;

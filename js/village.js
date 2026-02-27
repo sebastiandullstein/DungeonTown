@@ -114,6 +114,33 @@ const BUILDING_DEFS = {
         defense: [3, 8, 15],
     },
 
+    // ── Interactive Buildings (custom panels, always pre-built) ─────────────
+    smithy: {
+        name: 'Smithy', char: 'G', fg: '#ff6020', bg: '#301000',
+        description: 'Buy weapons and armor. Upgrade your gear.',
+        maxLevel: 3, isInteractive: true, interactPanel: 'smithy',
+        costs: [null, { wood: 60, stone: 60, iron: 15 }, { wood: 120, stone: 120, iron: 40 }],
+        shopTier: [3, 5, 8],
+    },
+    tavern: {
+        name: 'Tavern', char: 'T', fg: '#ffa020', bg: '#302000',
+        description: 'Buy buffs for your next dungeon run.',
+        maxLevel: 1, isInteractive: true, interactPanel: 'tavern',
+        costs: [null],
+    },
+    temple: {
+        name: 'Temple', char: '+', fg: '#c040ff', bg: '#200040',
+        description: 'Spend Soul Shards for permanent blessings.',
+        maxLevel: 1, isInteractive: true, interactPanel: 'temple',
+        costs: [null],
+    },
+    warehouse: {
+        name: 'Warehouse', char: 'V', fg: '#60a080', bg: '#002010',
+        description: 'Manage your inventory and view resources.',
+        maxLevel: 1, isInteractive: true, interactPanel: 'warehouse',
+        costs: [null],
+    },
+
     // ── Gear Shops (paid with player gold in-shop, cost resources to BUILD) ──
     weaponsmith: {
         name: 'Weaponsmith', char: 'S', fg: '#f44', bg: '#200',
@@ -197,6 +224,11 @@ class Village {
         this.buildings = [
             { type: 'townhall', level: 1 },
             { type: 'farm', level: 1, villager: null },
+            // Interactive buildings (always pre-built)
+            { type: 'smithy', level: 1 },
+            { type: 'tavern', level: 1 },
+            { type: 'temple', level: 1 },
+            { type: 'warehouse', level: 1 },
         ];
 
         this.villagers = [];

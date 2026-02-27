@@ -311,6 +311,16 @@ const UIRenderer = {
         ctx.fillText(`${gold}`, 322, HY + 67);
         ctx.shadowBlur = 0;
 
+        // Soul Shards
+        ctx.fillStyle = '#c040ff';
+        ctx.shadowColor = '#c040ff';
+        ctx.shadowBlur = 3;
+        ctx.font = '12px "Courier New"';
+        ctx.fillText('✦', 400, HY + 67);
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText(`${player.soulShards || 0}`, 414, HY + 67);
+        ctx.shadowBlur = 0;
+
         // ── Row C: Controls ──
         ctx.fillStyle = '#5a4028';
         ctx.font = '11px "Courier New"';
@@ -751,6 +761,20 @@ const UIRenderer = {
             ctx.fillText(`${item.value}`, rx, HY + 44);
             rx += 130;
         }
+
+        // Soul Shards (after resources)
+        ctx.fillStyle = '#c040ff';
+        ctx.shadowColor = '#c040ff';
+        ctx.shadowBlur = 2;
+        ctx.font = '14px "Courier New"';
+        ctx.fillText('✦', rx, HY + 20);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#8a6030';
+        ctx.font = '9px "Courier New"';
+        ctx.fillText('Shards', rx, HY + 32);
+        ctx.fillStyle = '#c040ff';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText(`${(player && player.soulShards) || 0}`, rx, HY + 44);
 
         // Villager count (right side)
         ctx.fillStyle = '#aaaaaa';
@@ -1333,6 +1357,473 @@ const UIRenderer = {
             ctx.fillStyle = '#8a6030';
             ctx.fillText(lines[i], px + 12, py + 34 + i * 18);
         }
+    },
+
+    // ─── SMITHY PANEL ──────────────────────────────────────────────────────────
+
+    drawSmithyPanel(ctx, player, items, tab, selectedIndex) {
+        ctx.fillStyle = '#0d0a06';
+        ctx.fillRect(0, 0, 800, 720);
+
+        const w = 640, h = 580;
+        const x = (800 - w) / 2, y = (720 - h) / 2;
+        this._drawPanel(ctx, x, y, w, h, 'The Forge');
+
+        // Flavor text
+        ctx.fillStyle = '#6a5030';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText('The smith grunts as you enter. The forge burns eternal.', x + 20, y + 52);
+
+        // Gold
+        this._drawIcon(ctx, x + w - 90, y + 12, 'coin');
+        ctx.fillStyle = '#ffd020';
+        ctx.font = 'bold 15px "Courier New"';
+        ctx.fillText(`${player.gold}`, x + w - 68, y + 28);
+
+        // Tabs
+        const tabs = ['Weapons', 'Armor', 'Upgrade'];
+        let tx = x + 20;
+        for (let i = 0; i < tabs.length; i++) {
+            const active = i === tab;
+            this._roundRect(ctx, tx, y + 60, 90, 22, 4);
+            ctx.fillStyle = active ? '#5a3810' : '#2a1808';
+            ctx.fill();
+            ctx.strokeStyle = active ? '#c8a030' : '#4a2808';
+            ctx.lineWidth = active ? 2 : 1;
+            this._roundRect(ctx, tx, y + 60, 90, 22, 4);
+            ctx.stroke();
+            ctx.fillStyle = active ? '#ffd060' : '#6a4820';
+            ctx.font = active ? 'bold 12px "Courier New"' : '12px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText(tabs[i], tx + 45, y + 75);
+            ctx.textAlign = 'left';
+            tx += 100;
+        }
+
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, y + 86, w - 40, 1);
+
+        let listY = y + 94;
+        if (tab === 0 || tab === 1) {
+            const list = tab === 0 ? (items ? items.weapons : []) : (items ? items.armors : []);
+            if (!list || list.length === 0) {
+                ctx.fillStyle = '#4a3018';
+                ctx.font = 'italic 13px "Courier New"';
+                ctx.fillText('Nothing available.', x + 30, listY + 20);
+            }
+            for (let i = 0; i < (list ? list.length : 0); i++) {
+                const item = list[i];
+                const selected = i === selectedIndex;
+                const canAfford = player.gold >= item.value;
+                const bg = selected ? '#4a2e10' : '#1e1208';
+                this._roundRect(ctx, x + 20, listY, w - 40, 30, 3);
+                ctx.fillStyle = bg;
+                ctx.fill();
+                ctx.strokeStyle = selected ? '#c8a030' : '#2e1808';
+                ctx.lineWidth = selected ? 2 : 1;
+                ctx.stroke();
+
+                ctx.fillStyle = item.fg || '#aaa';
+                ctx.beginPath();
+                ctx.arc(x + 36, listY + 15, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = canAfford ? (selected ? '#ffd060' : '#ccccaa') : '#5a4a38';
+                ctx.font = selected ? 'bold 13px "Courier New"' : '13px "Courier New"';
+                ctx.fillText(item.name, x + 50, listY + 20);
+
+                ctx.fillStyle = '#6a5030';
+                ctx.font = '11px "Courier New"';
+                ctx.fillText(item.description || '', x + 200, listY + 20);
+
+                ctx.fillStyle = canAfford ? '#ffd020' : '#6a4a20';
+                ctx.font = 'bold 13px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${item.value}g`, x + w - 24, listY + 20);
+                ctx.textAlign = 'left';
+                listY += 34;
+            }
+        } else {
+            // Upgrade tab
+            const wep = player.equipment.weapon;
+            ctx.fillStyle = '#c8a050';
+            ctx.font = 'bold 13px "Courier New"';
+            ctx.fillText('Upgrade Equipped Weapon', x + 30, listY + 16);
+            listY += 30;
+
+            if (!wep) {
+                ctx.fillStyle = '#5a4030';
+                ctx.font = 'italic 12px "Courier New"';
+                ctx.fillText('No weapon equipped.', x + 30, listY + 14);
+            } else {
+                const selected = selectedIndex === 0;
+                const goldCost = 10 + (wep.stats.atk || 0) * 5;
+                const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
+                const village = Game.state.village;
+                const canAfford = player.gold >= goldCost && (village.resources.iron || 0) >= ironCost;
+
+                const bg = selected ? '#4a2e10' : '#1e1208';
+                this._roundRect(ctx, x + 20, listY, w - 40, 60, 4);
+                ctx.fillStyle = bg;
+                ctx.fill();
+                ctx.strokeStyle = selected ? '#c8a030' : '#2e1808';
+                ctx.lineWidth = selected ? 2 : 1;
+                ctx.stroke();
+
+                ctx.fillStyle = wep.fg || '#aaa';
+                ctx.font = 'bold 14px "Courier New"';
+                ctx.fillText(`${wep.name}  (ATK ${wep.stats.atk})`, x + 30, listY + 22);
+
+                ctx.fillStyle = '#c8a050';
+                ctx.font = '12px "Courier New"';
+                ctx.fillText(`Upgrade to ATK ${(wep.stats.atk || 0) + 1}`, x + 30, listY + 42);
+
+                ctx.fillStyle = canAfford ? '#ffd020' : '#6a4a20';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${goldCost}g + ${ironCost} iron`, x + w - 24, listY + 42);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // Footer
+        ctx.fillStyle = '#5a3810';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Tab] Switch Tab  [Enter] Buy/Upgrade  [Esc] Leave', x + 20, y + h - 12);
+    },
+
+    // ─── TAVERN PANEL ────────────────────────────────────────────────────────
+
+    drawTavernPanel(ctx, player, selectedIndex) {
+        ctx.fillStyle = '#0d0a06';
+        ctx.fillRect(0, 0, 800, 720);
+
+        const w = 560, h = 480;
+        const x = (800 - w) / 2, y = (720 - h) / 2;
+        this._drawPanel(ctx, x, y, w, h, 'The Broken Flagon');
+
+        // Flavor text
+        ctx.fillStyle = '#6a5030';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText("The barkeep eyes you suspiciously. You've died before.", x + 20, y + 52);
+        ctx.fillText('Many times.', x + 20, y + 64);
+
+        // Gold
+        this._drawIcon(ctx, x + w - 90, y + 12, 'coin');
+        ctx.fillStyle = '#ffd020';
+        ctx.font = 'bold 15px "Courier New"';
+        ctx.fillText(`${player.gold}`, x + w - 68, y + 28);
+
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, y + 72, w - 40, 1);
+
+        // Buff list
+        const buffKeys = Object.keys(TAVERN_BUFFS);
+        let listY = y + 82;
+        for (let i = 0; i < buffKeys.length; i++) {
+            const key = buffKeys[i];
+            const buff = TAVERN_BUFFS[key];
+            const selected = i === selectedIndex;
+            const owned = player.tavernBuffs && player.tavernBuffs.includes(key);
+            const canAfford = player.gold >= buff.cost;
+
+            const bg = selected ? '#4a2e10' : '#1e1208';
+            this._roundRect(ctx, x + 20, listY, w - 40, 50, 4);
+            ctx.fillStyle = bg;
+            ctx.fill();
+            ctx.strokeStyle = selected ? '#c8a030' : '#2e1808';
+            ctx.lineWidth = selected ? 2 : 1;
+            ctx.stroke();
+
+            // Name
+            ctx.fillStyle = owned ? '#40a040' : (canAfford ? (selected ? '#ffd060' : '#ccccaa') : '#5a4a38');
+            ctx.font = selected ? 'bold 14px "Courier New"' : '14px "Courier New"';
+            ctx.fillText(owned ? `✓ ${buff.name}` : buff.name, x + 30, listY + 22);
+
+            // Description
+            ctx.fillStyle = '#8a6830';
+            ctx.font = '11px "Courier New"';
+            ctx.fillText(buff.desc, x + 30, listY + 40);
+
+            // Price
+            if (!owned) {
+                ctx.fillStyle = canAfford ? '#ffd020' : '#6a4a20';
+                ctx.font = 'bold 13px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${buff.cost}g`, x + w - 24, listY + 22);
+                ctx.textAlign = 'left';
+            } else {
+                ctx.fillStyle = '#40a040';
+                ctx.font = 'bold 11px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText('ACTIVE', x + w - 24, listY + 22);
+                ctx.textAlign = 'left';
+            }
+            listY += 56;
+        }
+
+        // Active buffs summary
+        listY += 10;
+        ctx.fillStyle = '#5a3818';
+        ctx.fillRect(x + 20, listY, w - 40, 1);
+        listY += 14;
+        ctx.fillStyle = '#8a6030';
+        ctx.font = 'bold 11px "Courier New"';
+        ctx.fillText('Active Buffs (until next death):', x + 20, listY);
+        listY += 16;
+        if (!player.tavernBuffs || player.tavernBuffs.length === 0) {
+            ctx.fillStyle = '#4a3020';
+            ctx.font = 'italic 11px "Courier New"';
+            ctx.fillText('None', x + 20, listY);
+        } else {
+            ctx.font = '11px "Courier New"';
+            for (const id of player.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b) {
+                    ctx.fillStyle = '#40a040';
+                    ctx.fillText(`• ${b.name}`, x + 20, listY);
+                    listY += 14;
+                }
+            }
+        }
+
+        // Footer
+        ctx.fillStyle = '#5a3810';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Purchase  [Esc] Leave', x + 20, y + h - 12);
+    },
+
+    // ─── TEMPLE PANEL ────────────────────────────────────────────────────────
+
+    drawTemplePanel(ctx, player, selectedIndex) {
+        ctx.fillStyle = '#0d0a06';
+        ctx.fillRect(0, 0, 800, 720);
+
+        const w = 580, h = 560;
+        const x = (800 - w) / 2, y = (720 - h) / 2;
+        this._drawPanel(ctx, x, y, w, h, 'The Obsidian Shrine');
+
+        // Flavor text
+        ctx.fillStyle = '#8040c0';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText('The shrine hums with dark energy. Something watches you.', x + 20, y + 52);
+
+        // Soul Shards display
+        ctx.fillStyle = '#c040ff';
+        ctx.shadowColor = '#c040ff';
+        ctx.shadowBlur = 6;
+        ctx.font = 'bold 15px "Courier New"';
+        ctx.textAlign = 'right';
+        ctx.fillText(`✦ ${player.soulShards || 0} Soul Shards`, x + w - 20, y + 28);
+        ctx.shadowBlur = 0;
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, y + 60, w - 40, 1);
+
+        // Blessings list
+        const blessingKeys = Object.keys(TEMPLE_BLESSINGS);
+        let listY = y + 70;
+        for (let i = 0; i < blessingKeys.length; i++) {
+            const key = blessingKeys[i];
+            const blessing = TEMPLE_BLESSINGS[key];
+            const selected = i === selectedIndex;
+            const owned = player.blessings && player.blessings[key];
+            const canAfford = (player.soulShards || 0) >= blessing.cost;
+
+            const bg = owned ? '#1a1a20' : (selected ? '#2a1830' : '#1a1010');
+            this._roundRect(ctx, x + 20, listY, w - 40, 54, 4);
+            ctx.fillStyle = bg;
+            ctx.fill();
+            ctx.strokeStyle = owned ? '#606080' : (selected ? '#a040d0' : '#2e1828');
+            ctx.lineWidth = selected ? 2 : 1;
+            ctx.stroke();
+
+            // Name
+            if (owned) {
+                ctx.fillStyle = '#606080';
+                ctx.font = '14px "Courier New"';
+                ctx.fillText(`✓ ${blessing.name}`, x + 30, listY + 22);
+            } else {
+                ctx.fillStyle = canAfford ? (selected ? '#e0a0ff' : '#c8a0d0') : '#5a4060';
+                ctx.font = selected ? 'bold 14px "Courier New"' : '14px "Courier New"';
+                ctx.fillText(blessing.name, x + 30, listY + 22);
+            }
+
+            // Description
+            ctx.fillStyle = owned ? '#404050' : '#8a6880';
+            ctx.font = '11px "Courier New"';
+            ctx.fillText(blessing.desc, x + 30, listY + 42);
+
+            // Cost
+            if (!owned) {
+                ctx.fillStyle = canAfford ? '#c040ff' : '#5a3060';
+                ctx.font = 'bold 13px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${blessing.cost} ✦`, x + w - 24, listY + 22);
+                ctx.textAlign = 'left';
+            } else {
+                ctx.fillStyle = '#606080';
+                ctx.font = 'bold 11px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText('BLESSED', x + w - 24, listY + 22);
+                ctx.textAlign = 'left';
+            }
+            listY += 60;
+        }
+
+        // Footer
+        ctx.fillStyle = '#5a3810';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Purchase  [Esc] Leave', x + 20, y + h - 12);
+    },
+
+    // ─── WAREHOUSE PANEL ─────────────────────────────────────────────────────
+
+    drawWarehousePanel(ctx, player, village, selectedIndex) {
+        ctx.fillStyle = '#0d0a06';
+        ctx.fillRect(0, 0, 800, 720);
+
+        const w = 640, h = 600;
+        const x = (800 - w) / 2, y = (720 - h) / 2;
+        this._drawPanel(ctx, x, y, w, h, 'The Stockpile');
+
+        // Flavor text
+        ctx.fillStyle = '#6a5030';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText('Damp and dark. The smell of failure lingers here.', x + 20, y + 52);
+
+        // Resources row
+        let ry = y + 66;
+        ctx.fillStyle = '#c8a050';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText('Resources:', x + 20, ry);
+        ry += 16;
+
+        const resources = [
+            { label: 'Gold', value: player.gold || 0, color: '#ffd020', icon: 'G' },
+            { label: 'Iron', value: village.resources.iron || 0, color: '#8888cc', icon: '◆' },
+            { label: 'Wood', value: village.resources.wood || 0, color: '#c87820', icon: '▮' },
+            { label: 'Soul Shards', value: player.soulShards || 0, color: '#c040ff', icon: '✦' },
+        ];
+        let rx = x + 20;
+        for (const res of resources) {
+            ctx.fillStyle = res.color;
+            ctx.font = '13px "Courier New"';
+            ctx.fillText(res.icon, rx, ry);
+            ctx.font = 'bold 12px "Courier New"';
+            ctx.fillText(`${res.value}`, rx + 16, ry);
+            ctx.fillStyle = '#6a5030';
+            ctx.font = '9px "Courier New"';
+            ctx.fillText(res.label, rx, ry + 12);
+            rx += 145;
+        }
+
+        ry += 24;
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, ry, w - 40, 1);
+        ry += 8;
+
+        // Equipment section
+        ctx.fillStyle = '#c8a050';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText('── Equipment ──', x + 20, ry);
+        ry += 16;
+
+        const slots = ['weapon', 'armor', 'helmet', 'boots', 'ring', 'amulet'];
+        for (const slot of slots) {
+            const item = player.equipment[slot];
+            ctx.fillStyle = '#2a1808';
+            ctx.fillRect(x + 20, ry, w - 40, 18);
+            ctx.strokeStyle = '#5a3010';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 20, ry, w - 40, 18);
+
+            ctx.fillStyle = '#6a5030';
+            ctx.font = '10px "Courier New"';
+            ctx.fillText(slot.padEnd(8), x + 24, ry + 13);
+
+            ctx.fillStyle = item ? (item.fg || '#aaa') : '#444';
+            ctx.fillText(item ? `${item.name}  ${item.description || ''}` : '(empty)', x + 96, ry + 13);
+            ry += 20;
+        }
+
+        ry += 6;
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, ry, w - 40, 1);
+        ry += 8;
+
+        // Inventory section
+        ctx.fillStyle = '#c8a050';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText(`── Backpack (${player.inventory.length}/${player.maxInventory}) ──`, x + 20, ry);
+        ry += 16;
+
+        const maxVisible = 8;
+        const scrollOffset = Math.max(0, selectedIndex - maxVisible + 1);
+
+        for (let i = 0; i < maxVisible && i + scrollOffset < player.inventory.length; i++) {
+            const idx = i + scrollOffset;
+            const item = player.inventory[idx];
+            const selected = idx === selectedIndex;
+            const bg = selected ? '#4a2e10' : '#1e1008';
+
+            this._roundRect(ctx, x + 20, ry, w - 40, 22, 3);
+            ctx.fillStyle = bg;
+            ctx.fill();
+            ctx.strokeStyle = selected ? '#c8a030' : '#3a2008';
+            ctx.lineWidth = selected ? 2 : 1;
+            ctx.stroke();
+
+            ctx.fillStyle = item.fg || '#aaa';
+            ctx.fillRect(x + 26, ry + 5, 4, 12);
+
+            ctx.fillStyle = selected ? '#ffd060' : (item.fg || '#aaa');
+            ctx.font = selected ? 'bold 12px "Courier New"' : '12px "Courier New"';
+            ctx.fillText(item.name, x + 36, ry + 15);
+
+            if (item.description) {
+                ctx.fillStyle = '#888060';
+                ctx.font = '10px "Courier New"';
+                ctx.textAlign = 'right';
+                ctx.fillText(item.description, x + w - 24, ry + 15);
+                ctx.textAlign = 'left';
+            }
+            ry += 24;
+        }
+
+        if (player.inventory.length === 0) {
+            ctx.fillStyle = '#444428';
+            ctx.font = 'italic 12px "Courier New"';
+            ctx.fillText('Your pack is empty.', x + 20, ry + 14);
+        }
+
+        // Active tavern buffs
+        ry = y + h - 60;
+        ctx.fillStyle = '#4a2808';
+        ctx.fillRect(x + 20, ry, w - 40, 1);
+        ry += 12;
+        ctx.fillStyle = '#8a6030';
+        ctx.font = 'bold 10px "Courier New"';
+        ctx.fillText('Tavern Buffs:', x + 20, ry);
+        if (player.tavernBuffs && player.tavernBuffs.length > 0) {
+            let bx = x + 110;
+            for (const id of player.tavernBuffs) {
+                const b = TAVERN_BUFFS[id];
+                if (b) {
+                    ctx.fillStyle = '#40a040';
+                    ctx.fillText(b.name, bx, ry);
+                    bx += ctx.measureText(b.name).width + 16;
+                }
+            }
+        } else {
+            ctx.fillStyle = '#4a3020';
+            ctx.fillText('None', x + 110, ry);
+        }
+
+        // Footer
+        ctx.fillStyle = '#5a3810';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Equip/Use  [X] Drop  [Esc] Leave', x + 20, y + h - 12);
     },
 
     // ─── Color helpers ────────────────────────────────────────────────────────

@@ -366,9 +366,11 @@ class Enemy {
         if (!enemy.loot) return;
         for (const drop of enemy.loot) {
             if (Math.random() > drop.chance) continue;
-            const amount = drop.min + Math.floor(Math.random() * (drop.max - drop.min + 1));
+            let amount = drop.min + Math.floor(Math.random() * (drop.max - drop.min + 1));
             if (drop.type === 'gold') {
-                // Gold goes to player's personal wallet (spent in shops)
+                // Gold find bonus from tavern buffs
+                const bonus = player.getGoldFindBonus ? player.getGoldFindBonus() : 0;
+                if (bonus > 0) amount = Math.floor(amount * (1 + bonus));
                 player.gold = (player.gold || 0) + amount;
                 Game.notify(`+${amount} Gold`, '#ffd020');
             } else if (drop.type === 'resource') {
@@ -384,5 +386,24 @@ class Enemy {
                 }
             }
         }
+        // Soul Shard drops from bosses
+        if (enemy.isBoss) {
+            let shards;
+            if (enemy.isFinalBoss) {
+                shards = 40 + Math.floor(Math.random() * 21); // 40-60
+            } else if (enemy.isMajorBoss) {
+                shards = 15 + Math.floor(Math.random() * 11); // 15-25
+            } else {
+                shards = 5 + Math.floor(Math.random() * 6);   // 5-10
+            }
+            player.soulShards = (player.soulShards || 0) + shards;
+            Game.notify(`+${shards} Soul Shards`, '#c040ff');
+        }
+        // Blessing: Blood Pact — heal on kill
+        if (player.blessings && player.blessings.bloodPact) {
+            player.hp = Math.min(player.maxHp, player.hp + 2);
+        }
+        // Track run kills
+        if (Game.state.runStats) Game.state.runStats.kills++;
     }
 }

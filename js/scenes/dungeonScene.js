@@ -26,6 +26,11 @@ const DungeonScene = {
         this.chestAnims = [];
         this._abilityUnlockAnim = null;
         this._trackedLevel = p.level;
+        // Run stats tracking
+        if (!Game.state.runStats || floor === 1) {
+            Game.state.runStats = { kills: 0, floorsReached: floor, goldAtStart: p.gold };
+        }
+        Game.state.runStats.floorsReached = Math.max(Game.state.runStats.floorsReached, floor);
         Audio.startMusic('dungeon');
 
         if (floor === 50) {
@@ -67,11 +72,15 @@ const DungeonScene = {
                 const p = Game.state.player;
                 p.hp = p.maxHp;
                 p.mp = p.maxMp;
-                // Lose half personal gold on death
-                p.gold = Math.floor((p.gold || 0) * 0.5);
+                // Lose gold on death (reduced by Death's Embrace blessing)
+                const savePercent = p.getDeathGoldSavePercent ? p.getDeathGoldSavePercent() : 0;
+                const lossPercent = 0.5 * (1 - savePercent);
+                const goldLost = Math.floor((p.gold || 0) * lossPercent);
+                p.gold = (p.gold || 0) - goldLost;
+                // Clear tavern buffs on death
+                if (p.clearTavernBuffs) p.clearTavernBuffs();
                 Game.state.currentFloor = 1;
-                Game.notify('You died! Lost half your gold...', '#ff4040');
-                Game.switchScene('village');
+                Game.switchScene('village', { fromDeath: true });
             }
             return;
         }
@@ -101,7 +110,8 @@ const DungeonScene = {
         }
 
         player.update(dt, this.map);
-        this.map.revealAround(player.x, player.y);
+        const fovRadius = 6 + (player.getFOVBonus ? player.getFOVBonus() : 0);
+        this.map.revealAround(player.x, player.y, fovRadius);
 
         // Stairs
         if (this.map.get(player.x, player.y) === TILE.STAIRS_DOWN) {
@@ -401,7 +411,7 @@ const DungeonScene = {
             return; // skip death overlay
         }
 
-        // ── Death overlay ──
+        // ── Death overlay with run summary ──
         if (this.deathTimer > 0) {
             const ctx = r.getCtx();
             const deathFade = Math.min(1, (3.0 - this.deathTimer) / 1.5);
@@ -418,14 +428,45 @@ const DungeonScene = {
             ctx.fillStyle = '#ff2020';
             ctx.font = 'bold 64px "Courier New"';
             ctx.textAlign = 'center';
-            ctx.fillText('YOU DIED', r.canvas.width / 2, r.canvas.height / 2 - 40);
+            const cx = r.canvas.width / 2;
+            ctx.fillText('YOU DIED', cx, r.canvas.height / 2 - 60);
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#cc4444';
-            ctx.font = 'italic 18px "Courier New"';
-            ctx.fillText('The dungeon claims another soul...', r.canvas.width / 2, r.canvas.height / 2 + 10);
-            ctx.fillStyle = '#884444';
-            ctx.font = '14px "Courier New"';
-            ctx.fillText('Half your gold is lost to the abyss.', r.canvas.width / 2, r.canvas.height / 2 + 45);
+            ctx.font = 'italic 16px "Courier New"';
+            ctx.fillText('The dungeon claims another soul...', cx, r.canvas.height / 2 - 20);
+
+            // Run summary
+            const stats = Game.state.runStats || { kills: 0, floorsReached: 1, goldAtStart: 0 };
+            const player = Game.state.player;
+            const savePercent = player.getDeathGoldSavePercent ? player.getDeathGoldSavePercent() : 0;
+            const goldLost = Math.floor((player.gold || 0) * 0.5 * (1 - savePercent));
+
+            const summaryFade = Math.min(1, (3.0 - this.deathTimer) / 2.5);
+            ctx.globalAlpha = summaryFade;
+
+            // Summary box
+            ctx.fillStyle = 'rgba(10,4,2,0.7)';
+            ctx.fillRect(cx - 160, r.canvas.height / 2, 320, 100);
+            ctx.strokeStyle = '#6a2020';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(cx - 160, r.canvas.height / 2, 320, 100);
+
+            ctx.font = '13px "Courier New"';
+            let sy = r.canvas.height / 2 + 22;
+            ctx.fillStyle = '#aa6666';
+            ctx.fillText(`Floors Reached: ${stats.floorsReached}`, cx, sy);
+            sy += 20;
+            ctx.fillText(`Enemies Slain: ${stats.kills}`, cx, sy);
+            sy += 20;
+            ctx.fillStyle = '#cc6644';
+            ctx.fillText(`Gold Lost: ${goldLost}`, cx, sy);
+            sy += 20;
+            if (savePercent > 0) {
+                ctx.fillStyle = '#c040ff';
+                ctx.font = '11px "Courier New"';
+                ctx.fillText(`(Death's Embrace saved ${Math.floor(savePercent * 100)}%)`, cx, sy);
+            }
+
             ctx.textAlign = 'left';
             ctx.restore();
         }

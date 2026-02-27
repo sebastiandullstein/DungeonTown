@@ -286,6 +286,22 @@ class Renderer {
         UIRenderer.drawRecruitMenu(this._uiLayer.ctx, recruits, villagers, maxVillagers, selectedOption, gold);
     }
 
+    drawSmithyPanel(player, items, tab, selectedIndex) {
+        UIRenderer.drawSmithyPanel(this._uiLayer.ctx, player, items, tab, selectedIndex);
+    }
+
+    drawTavernPanel(player, selectedIndex) {
+        UIRenderer.drawTavernPanel(this._uiLayer.ctx, player, selectedIndex);
+    }
+
+    drawTemplePanel(player, selectedIndex) {
+        UIRenderer.drawTemplePanel(this._uiLayer.ctx, player, selectedIndex);
+    }
+
+    drawWarehousePanel(player, village, selectedIndex) {
+        UIRenderer.drawWarehousePanel(this._uiLayer.ctx, player, village, selectedIndex);
+    }
+
     drawInfoTooltip(text, lines, col, row) {
         // Convert tile coords to pixel coords, offset below+right of cursor
         const px = (col + 1) * this.tileW + 4;

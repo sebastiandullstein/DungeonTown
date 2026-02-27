@@ -1,11 +1,15 @@
-// Village Scene - management view
+// Village Scene - management view with interactive building panels
 const VillageScene = {
-    mode: 'explore', // explore, build, manage, recruit, assign_villager
+    mode: 'explore', // explore, build, manage, recruit, assign_villager, smithy, tavern, temple, warehouse
     selectedOption: 0,
     buildList: [],
     cursor: { x: 40, y: 25 },
     villageMap: null,  // 50×80 array of tile-info objects
     managingBuilding: null,
+
+    // Panel sub-state for smithy/warehouse
+    _panelTab: 0,        // 0=weapons, 1=armor (smithy); 0=inventory (warehouse)
+    _panelScroll: 0,
 
     // Building positions (world tile coords)
     BUILDING_POSITIONS: [
@@ -17,6 +21,11 @@ const VillageScene = {
         { x: 58, y: 30, type: 'barracks' },
         { x: 40, y: 35, type: 'inn' },
         { x: 40, y: 15, type: 'walls' },
+        // Interactive buildings (diamond around town hall)
+        { x: 33, y: 21, type: 'smithy' },
+        { x: 47, y: 21, type: 'tavern' },
+        { x: 33, y: 29, type: 'temple' },
+        { x: 47, y: 29, type: 'warehouse' },
         // Weapon & armor shops (west side)
         { x: 14, y: 18, type: 'weaponsmith' },
         { x: 14, y: 25, type: 'blacksmith' },
@@ -28,23 +37,79 @@ const VillageScene = {
         { x: 66, y: 39, type: 'foodstore' },
     ],
 
+    // Decorative NPCs
+    _npcs: [],
+    _npcTimer: 0,
+
+    // Building pulse after death return
+    _buildingPulse: 0,
+
     // Viewport (mirrors dungeon scene — 25×18 scrolling window)
     viewX: 0,
     viewY: 0,
     viewW: 25,
     viewH: 18,
 
+    // Smithy cached items
+    _smithyItems: null,
+
     init() {},
 
-    enter() {
+    enter(data) {
         this.mode = 'explore';
         this.generateVillageMap();
+
+        // Town square spawn (death return or normal)
+        if (data && data.fromDeath) {
+            this.cursor.x = 40;
+            this.cursor.y = 25;
+            this._buildingPulse = 2.0; // 2 second pulse
+            Game.notify('You have returned... weaker, but wiser.', '#c8a050');
+        }
+
         this._centerOnCursor();
         Game.notify('You return to DungeonTown.', '#0f0');
         Audio.startMusic('village');
+
+        // Init decorative NPCs
+        this._initNPCs();
     },
 
     exit() {},
+
+    _initNPCs() {
+        this._npcs = [
+            { x: 36, y: 25, dx: 1, dy: 0, color: '#8a6040', timer: 0, speed: 1.5 },
+            { x: 44, y: 25, dx: -1, dy: 0, color: '#6080a0', timer: 0, speed: 2.0 },
+            { x: 40, y: 22, dx: 0, dy: 1, color: '#a06060', timer: 0, speed: 1.8 },
+        ];
+    },
+
+    _updateNPCs(dt) {
+        for (const npc of this._npcs) {
+            npc.timer -= dt;
+            if (npc.timer <= 0) {
+                npc.timer = npc.speed + Math.random() * 1.0;
+                // Random walk, prefer paths
+                if (Math.random() < 0.4) {
+                    // Change direction
+                    const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+                    const d = dirs[Math.floor(Math.random() * dirs.length)];
+                    npc.dx = d.x;
+                    npc.dy = d.y;
+                }
+                const nx = npc.x + npc.dx;
+                const ny = npc.y + npc.dy;
+                if (nx > 12 && nx < 68 && ny > 8 && ny < 42) {
+                    const tile = this.villageMap[ny] && this.villageMap[ny][nx];
+                    if (tile && (tile.type === 'path' || tile.type === 'grass')) {
+                        npc.x = nx;
+                        npc.y = ny;
+                    }
+                }
+            }
+        }
+    },
 
     _centerOnCursor() {
         const r = Game.renderer;
@@ -61,8 +126,7 @@ const VillageScene = {
         for (let y = 0; y < 50; y++) {
             this.villageMap[y] = [];
             for (let x = 0; x < 80; x++) {
-                const rnd = Math.random();
-                const variant = (x * 7 + y * 13) % 4; // deterministic variant
+                const variant = (x * 7 + y * 13) % 4;
                 this.villageMap[y][x] = { type: 'grass', variant };
             }
         }
@@ -80,6 +144,15 @@ const VillageScene = {
                 const x = 40 + dx;
                 this.villageMap[y][x] = { type: 'path' };
             }
+        }
+        // Extra paths to smithy/tavern/temple/warehouse
+        for (let x = 33; x <= 47; x++) {
+            this.villageMap[21][x] = { type: 'path' };
+            this.villageMap[29][x] = { type: 'path' };
+        }
+        for (let y = 21; y <= 29; y++) {
+            this.villageMap[y][33] = { type: 'path' };
+            this.villageMap[y][47] = { type: 'path' };
         }
 
         // Trees around edges
@@ -107,7 +180,6 @@ const VillageScene = {
             const building = village.getBuilding(pos.type);
             const def = BUILDING_DEFS[pos.type];
             if (building) {
-                // 3×3 footprint — mark all tiles so they draw ground only (building drawn in 2nd pass)
                 for (let dy = -1; dy <= 1; dy++) {
                     for (let dx = -1; dx <= 1; dx++) {
                         const tx = pos.x + dx, ty = pos.y + dy;
@@ -116,7 +188,6 @@ const VillageScene = {
                         }
                     }
                 }
-                // Anchor tile carries building data (for tooltip detection, not tile rendering)
                 this.villageMap[pos.y][pos.x] = {
                     type: 'building',
                     buildingType: pos.type,
@@ -124,7 +195,6 @@ const VillageScene = {
                     level: building.level,
                 };
             } else if (village.isBuildingUnlocked(pos.type)) {
-                // 3×3 footprint for empty plot
                 for (let dy = -1; dy <= 1; dy++) {
                     for (let dx = -1; dx <= 1; dx++) {
                         const tx = pos.x + dx, ty = pos.y + dy;
@@ -162,9 +232,33 @@ const VillageScene = {
         return null;
     },
 
+    _getInteractiveTarget() {
+        const target = this.getBuildingAtCursor();
+        if (target && target.def && target.def.isInteractive && target.building) {
+            return target;
+        }
+        return null;
+    },
+
+    _refreshSmithyItems() {
+        const village = Game.state.village;
+        const smithy = village.getBuilding('smithy');
+        const level = smithy ? smithy.level : 1;
+        const maxTier = [3, 5, 8][level - 1] || 3;
+        const weapons = ItemGenerator.getShopItems('weapons', maxTier).slice(0, 6);
+        const armors = ItemGenerator.getShopItems('armors', maxTier).slice(0, 6);
+        this._smithyItems = { weapons, armors };
+    },
+
     update(dt) {
         const village = Game.state.village;
         village.updateProduction(dt);
+
+        // Tick building pulse
+        if (this._buildingPulse > 0) this._buildingPulse = Math.max(0, this._buildingPulse - dt);
+
+        // Tick NPCs
+        this._updateNPCs(dt);
 
         // Sync viewport dims
         const r = Game.renderer;
@@ -190,6 +284,14 @@ const VillageScene = {
             this.updateAssignMenu(dt);
         } else if (this.mode === 'recruit') {
             this.updateRecruit(dt);
+        } else if (this.mode === 'smithy') {
+            this.updateSmithyPanel(dt);
+        } else if (this.mode === 'tavern') {
+            this.updateTavernPanel(dt);
+        } else if (this.mode === 'temple') {
+            this.updateTemplePanel(dt);
+        } else if (this.mode === 'warehouse') {
+            this.updateWarehousePanel(dt);
         }
     },
 
@@ -201,14 +303,42 @@ const VillageScene = {
         this.cursor.x = Math.max(1, Math.min(78, this.cursor.x));
         this.cursor.y = Math.max(1, Math.min(48, this.cursor.y));
 
-        // Scroll viewport to follow cursor
         this._centerOnCursor();
+
+        // E key: enter interactive buildings
+        if (Input.wasPressed('e') || Input.wasPressed('E')) {
+            const iTarget = this._getInteractiveTarget();
+            if (iTarget) {
+                const panel = iTarget.def.interactPanel;
+                this.mode = panel;
+                this.selectedOption = 0;
+                this._panelTab = 0;
+                this._panelScroll = 0;
+                if (panel === 'smithy') this._refreshSmithyItems();
+                return;
+            }
+            // Also allow E for dungeon entrance
+            if (this.getBuildingAtCursor()?.type === 'dungeon_entrance') {
+                Game.switchScene('dungeon');
+                return;
+            }
+        }
 
         if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
             const target = this.getBuildingAtCursor();
             if (target) {
                 if (target.type === 'dungeon_entrance') {
                     Game.switchScene('dungeon');
+                    return;
+                }
+                // Interactive buildings also respond to Enter
+                if (target.def && target.def.isInteractive && target.building) {
+                    const panel = target.def.interactPanel;
+                    this.mode = panel;
+                    this.selectedOption = 0;
+                    this._panelTab = 0;
+                    this._panelScroll = 0;
+                    if (panel === 'smithy') this._refreshSmithyItems();
                     return;
                 }
                 if (target.building) {
@@ -247,10 +377,175 @@ const VillageScene = {
         }
     },
 
+    // ── Panel update handlers ────────────────────────────────────────────────
+
+    updateSmithyPanel(dt) {
+        if (Input.wasPressed('Escape')) { this.mode = 'explore'; return; }
+
+        const items = this._smithyItems;
+        if (!items) { this.mode = 'explore'; return; }
+
+        // Tab switch: Tab or Left/Right
+        if (Input.wasPressed('Tab')) {
+            this._panelTab = (this._panelTab + 1) % 3; // 0=weapons, 1=armor, 2=upgrade
+            this.selectedOption = 0;
+        }
+
+        let listLen;
+        if (this._panelTab === 0) listLen = items.weapons.length;
+        else if (this._panelTab === 1) listLen = items.armors.length;
+        else listLen = 1; // upgrade option
+
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this.selectedOption = Math.max(0, this.selectedOption - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this.selectedOption = Math.min(Math.max(0, listLen - 1), this.selectedOption + 1);
+        }
+
+        if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+            const player = Game.state.player;
+            if (this._panelTab === 2) {
+                // Upgrade weapon
+                const wep = player.equipment.weapon;
+                if (!wep) { Game.notify('No weapon equipped!', '#f00'); return; }
+                const goldCost = 10 + (wep.stats.atk || 0) * 5;
+                const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
+                const village = Game.state.village;
+                if (player.gold < goldCost) { Game.notify(`Need ${goldCost} gold!`, '#f00'); return; }
+                if ((village.resources.iron || 0) < ironCost) { Game.notify(`Need ${ironCost} iron ore!`, '#f00'); return; }
+                player.gold -= goldCost;
+                village.resources.iron -= ironCost;
+                wep.stats.atk = (wep.stats.atk || 0) + 1;
+                wep.name = wep.name.replace(/ \+\d+$/, '') + ` +${wep.stats.atk - 3}`;
+                Game.notify(`Weapon upgraded! ATK +1`, '#0f0');
+            } else {
+                const list = this._panelTab === 0 ? items.weapons : items.armors;
+                const item = list[this.selectedOption];
+                if (!item) return;
+                if (player.gold < item.value) { Game.notify('Not enough gold!', '#f00'); return; }
+                if (player.inventory.length >= player.maxInventory) { Game.notify('Inventory full!', '#f00'); return; }
+                const cat = this._panelTab === 0 ? 'weapons' : 'armors';
+                const bought = ItemGenerator.createItem(item, cat);
+                player.gold -= item.value;
+                player.addToInventory(bought);
+                Game.notify(`Bought ${item.name} for ${item.value} gold`, '#0f0');
+            }
+        }
+    },
+
+    updateTavernPanel(dt) {
+        if (Input.wasPressed('Escape')) { this.mode = 'explore'; return; }
+
+        const buffKeys = Object.keys(TAVERN_BUFFS);
+        this.selectedOption = Math.min(this.selectedOption, buffKeys.length - 1);
+
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this.selectedOption = Math.max(0, this.selectedOption - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this.selectedOption = Math.min(buffKeys.length - 1, this.selectedOption + 1);
+        }
+
+        if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+            const player = Game.state.player;
+            const key = buffKeys[this.selectedOption];
+            const buff = TAVERN_BUFFS[key];
+            if (!buff) return;
+
+            // Check if already active
+            if (player.tavernBuffs.includes(key)) {
+                Game.notify('Already active!', '#f80');
+                return;
+            }
+            if (player.gold < buff.cost) {
+                Game.notify('Not enough gold!', '#f00');
+                return;
+            }
+            player.gold -= buff.cost;
+            player.tavernBuffs.push(key);
+            Game.notify(`${buff.name} activated!`, '#0f0');
+        }
+    },
+
+    updateTemplePanel(dt) {
+        if (Input.wasPressed('Escape')) { this.mode = 'explore'; return; }
+
+        const blessingKeys = Object.keys(TEMPLE_BLESSINGS);
+        this.selectedOption = Math.min(this.selectedOption, blessingKeys.length - 1);
+
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this.selectedOption = Math.max(0, this.selectedOption - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this.selectedOption = Math.min(blessingKeys.length - 1, this.selectedOption + 1);
+        }
+
+        if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+            const player = Game.state.player;
+            const key = blessingKeys[this.selectedOption];
+            const blessing = TEMPLE_BLESSINGS[key];
+            if (!blessing) return;
+
+            if (player.blessings[key]) {
+                Game.notify('Already purchased!', '#f80');
+                return;
+            }
+            if ((player.soulShards || 0) < blessing.cost) {
+                Game.notify('Not enough Soul Shards!', '#f00');
+                return;
+            }
+            player.soulShards -= blessing.cost;
+            player.blessings[key] = true;
+            // Recalculate HP
+            player.maxHp = player.getMaxHp();
+            if (player.hp > player.maxHp) player.hp = player.maxHp;
+            Game.notify(`${blessing.name} bestowed!`, '#c040ff');
+        }
+    },
+
+    updateWarehousePanel(dt) {
+        if (Input.wasPressed('Escape')) { this.mode = 'explore'; return; }
+
+        const player = Game.state.player;
+        const maxIdx = Math.max(0, player.inventory.length - 1);
+        this.selectedOption = Math.min(this.selectedOption, maxIdx);
+
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this.selectedOption = Math.max(0, this.selectedOption - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this.selectedOption = Math.min(maxIdx, this.selectedOption + 1);
+        }
+
+        if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+            const item = player.inventory[this.selectedOption];
+            if (!item) return;
+            if (item.slot) {
+                player.equip(item);
+            } else if (item.type === 'potion') {
+                player.usePotion(item.subtype);
+            } else if (item.type === 'food') {
+                player.useFood();
+            }
+        }
+
+        if (Input.wasPressed('x') || Input.wasPressed('X')) {
+            const item = player.inventory[this.selectedOption];
+            if (item) {
+                player.inventory.splice(this.selectedOption, 1);
+                Game.notify(`Dropped ${item.name}`, '#f80');
+                this.selectedOption = Math.min(this.selectedOption, Math.max(0, player.inventory.length - 1));
+            }
+        }
+    },
+
     getAvailableBuilds() {
         const village = Game.state.village;
         const list = [];
         for (const [type, def] of Object.entries(BUILDING_DEFS)) {
+            // Skip interactive buildings from build menu (they're always pre-built)
+            if (def.isInteractive) continue;
             const existing = village.getBuilding(type);
             if (existing) {
                 if (existing.level < def.maxLevel) {
@@ -361,7 +656,7 @@ const VillageScene = {
     },
 
     render(r) {
-        // ── Pass 1: ground tiles (grass, path, tree, building_ground) ──
+        // ── Pass 1: ground tiles ──
         for (let row = 0; row < this.viewH; row++) {
             for (let col = 0; col < this.viewW; col++) {
                 const mx = col + this.viewX;
@@ -374,7 +669,7 @@ const VillageScene = {
             }
         }
 
-        // ── Pass 2: buildings rendered ON TOP (3×3 centered on anchor) ──
+        // ── Pass 2: buildings ──
         const village = Game.state.village;
         for (const pos of this.BUILDING_POSITIONS) {
             const building = village.getBuilding(pos.type);
@@ -382,45 +677,118 @@ const VillageScene = {
             const col = pos.x - this.viewX;
             const row = pos.y - this.viewY;
             if (building) {
-                // Draw 3×3 building centred on anchor (col-1, row-1)
                 r.putBuilding(col - 1, row - 1, def, building.level);
             } else if (village.isBuildingUnlocked(pos.type)) {
-                // Draw empty plot marker
                 r.putEmptyPlot(col - 1, row - 1, def);
             }
         }
 
-        // ── Player hero sprite (cursor position = hero position in village) ──
+        // ── Building labels for the 4 interactive buildings ──
+        const ctx = r.getCtx();
+        const interactiveBuildings = ['smithy', 'tavern', 'temple', 'warehouse'];
+        for (const pos of this.BUILDING_POSITIONS) {
+            if (!interactiveBuildings.includes(pos.type)) continue;
+            const building = village.getBuilding(pos.type);
+            if (!building) continue;
+            const def = BUILDING_DEFS[pos.type];
+            const col = pos.x - this.viewX;
+            const row = pos.y - this.viewY;
+            if (col < -1 || col > this.viewW + 1 || row < -1 || row > this.viewH + 1) continue;
+
+            const px = col * r.tileW + r.tileW / 2;
+            const py = (row - 2) * r.tileH + r.tileH / 2;
+
+            ctx.save();
+            // Building pulse animation after death
+            let pulseAlpha = 0;
+            if (this._buildingPulse > 0) {
+                pulseAlpha = 0.4 * Math.sin(this._buildingPulse * 6) * (this._buildingPulse / 2.0);
+                if (pulseAlpha > 0) {
+                    ctx.shadowColor = def.fg;
+                    ctx.shadowBlur = 12 + pulseAlpha * 20;
+                }
+            }
+            ctx.fillStyle = def.fg;
+            ctx.font = 'bold 10px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText(def.name, px, py);
+            ctx.textAlign = 'left';
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // ── Decorative NPCs ──
+        for (const npc of this._npcs) {
+            const col = npc.x - this.viewX;
+            const row = npc.y - this.viewY;
+            if (col < 0 || col >= this.viewW || row < 0 || row >= this.viewH) continue;
+            const px = col * r.tileW + r.tileW / 2;
+            const py = row * r.tileH + r.tileH / 2;
+            ctx.save();
+            ctx.fillStyle = npc.color;
+            ctx.beginPath();
+            ctx.arc(px, py + 4, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Head
+            ctx.fillStyle = '#ddc090';
+            ctx.beginPath();
+            ctx.arc(px, py - 3, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // ── Player hero sprite ──
         const cursorCol = this.cursor.x - this.viewX;
         const cursorRow = this.cursor.y - this.viewY;
         r.putPlayer(cursorCol, cursorRow, Game.state.player);
-
-        // ── Cursor ring drawn on top of hero ──
         r.putCursor(cursorCol, cursorRow);
 
-        // ── Info tooltip near cursor ──
-        const target = this.getBuildingAtCursor();
-        if (target && this.mode === 'explore') {
-            let lines = [];
-            if (target.type === 'dungeon_entrance') {
-                lines = ['Dungeon Entrance', '[Enter] Descend'];
-            } else if (target.building) {
-                lines = [
-                    `${target.def.name}  Lv.${target.building.level}`,
-                    '[Enter] Manage',
-                    target.building.villager ? `Worker: ${target.building.villager}` : '',
-                ].filter(Boolean);
-            } else if (Game.state.village.isBuildingUnlocked(target.type)) {
-                const cost = target.def.costs[0];
-                const costStr = cost ? Object.entries(cost).map(([k, v]) => `${k}:${v}`).join(' ') : '';
-                lines = [`Build: ${target.def.name}`, costStr, '[Enter] Build'].filter(Boolean);
-            }
-            if (lines.length) {
-                r.drawInfoTooltip(lines[0], lines.slice(1), cursorCol, cursorRow);
+        // ── Interaction prompt ──
+        if (this.mode === 'explore') {
+            const iTarget = this._getInteractiveTarget();
+            if (iTarget) {
+                // "Press [E] to enter" prompt above player
+                ctx.save();
+                const promptX = cursorCol * r.tileW + r.tileW / 2;
+                const promptY = cursorRow * r.tileH - 8;
+                ctx.fillStyle = 'rgba(10,6,2,0.85)';
+                const tw = 140;
+                ctx.fillRect(promptX - tw / 2, promptY - 14, tw, 18);
+                ctx.strokeStyle = '#c8a030';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(promptX - tw / 2, promptY - 14, tw, 18);
+                ctx.fillStyle = '#ffd060';
+                ctx.font = 'bold 11px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Press [E] to enter', promptX, promptY);
+                ctx.textAlign = 'left';
+                ctx.restore();
+            } else {
+                // Standard tooltip for non-interactive buildings
+                const target = this.getBuildingAtCursor();
+                if (target) {
+                    let lines = [];
+                    if (target.type === 'dungeon_entrance') {
+                        lines = ['Dungeon Entrance', '[Enter/E] Descend'];
+                    } else if (target.building && !target.def.isInteractive) {
+                        lines = [
+                            `${target.def.name}  Lv.${target.building.level}`,
+                            '[Enter] Manage',
+                            target.building.villager ? `Worker: ${target.building.villager}` : '',
+                        ].filter(Boolean);
+                    } else if (!target.building && Game.state.village.isBuildingUnlocked(target.type)) {
+                        const cost = target.def.costs[0];
+                        const costStr = cost ? Object.entries(cost).map(([k, v]) => `${k}:${v}`).join(' ') : '';
+                        lines = [`Build: ${target.def.name}`, costStr, '[Enter] Build'].filter(Boolean);
+                    }
+                    if (lines.length) {
+                        r.drawInfoTooltip(lines[0], lines.slice(1), cursorCol, cursorRow);
+                    }
+                }
             }
         }
 
-        // ── Village HUD (resource bar + player gold) ──
+        // ── Village HUD ──
         r.drawVillageHUD(Game.state.village, Game.state.player);
 
         // ── Mode-specific overlay menus ──
@@ -446,6 +814,14 @@ const VillageScene = {
                 this.selectedOption,
                 Game.state.village.resources.food || 0
             );
+        } else if (this.mode === 'smithy') {
+            r.drawSmithyPanel(Game.state.player, this._smithyItems, this._panelTab, this.selectedOption);
+        } else if (this.mode === 'tavern') {
+            r.drawTavernPanel(Game.state.player, this.selectedOption);
+        } else if (this.mode === 'temple') {
+            r.drawTemplePanel(Game.state.player, this.selectedOption);
+        } else if (this.mode === 'warehouse') {
+            r.drawWarehousePanel(Game.state.player, Game.state.village, this.selectedOption);
         }
 
         // ── Inventory / Character overlays ──
