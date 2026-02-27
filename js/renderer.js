@@ -302,6 +302,23 @@ class Renderer {
         UIRenderer.drawWarehousePanel(this._uiLayer.ctx, player, village, selectedIndex);
     }
 
+    // Phase 1: Dungeon event panels
+    drawFloorSelectPanel(floors, selectedIndex) {
+        UIRenderer.drawFloorSelectPanel(this._uiLayer.ctx, floors, selectedIndex);
+    }
+    drawEscapeConfirm(floor) {
+        UIRenderer.drawEscapeConfirm(this._uiLayer.ctx, floor);
+    }
+    drawEventPrompt(evDef) {
+        UIRenderer.drawEventPrompt(this._uiLayer.ctx, evDef);
+    }
+    drawMerchantPanel(player, items, selectedIndex) {
+        UIRenderer.drawMerchantPanel(this._uiLayer.ctx, player, items, selectedIndex);
+    }
+    drawPrisonerPanel(selectedIndex) {
+        UIRenderer.drawPrisonerPanel(this._uiLayer.ctx, selectedIndex);
+    }
+
     drawInfoTooltip(text, lines, col, row) {
         // Convert tile coords to pixel coords, offset below+right of cursor
         const px = (col + 1) * this.tileW + 4;

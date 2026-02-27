@@ -10,10 +10,30 @@ const DungeonScene = {
     chestAnims: [],
     _abilityUnlockAnim: null,
     _trackedLevel: 0,
+    // Phase 1: Escape + Events
+    mode: 'play', // 'play','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice'
+    floorEvents: [],
+    _floorOptions: [],
+    _floorSelectIndex: 0,
+    _eventTarget: null,
+    _merchantItems: [],
+    _merchantIndex: 0,
+    _prisonerIndex: 0,
 
     init() {},
 
-    enter() {
+    enter(data) {
+        // Floor select mode
+        if (data && data.floorSelect && Game.state.maxFloorReached >= 5) {
+            this.mode = 'floorSelect';
+            this._floorOptions = [1];
+            for (let f = 5; f <= Game.state.maxFloorReached; f += 5) {
+                this._floorOptions.push(f);
+            }
+            this._floorSelectIndex = 0;
+            return;
+        }
+        this.mode = 'play';
         const floor = Game.state.currentFloor;
         this.map = DungeonGenerator.generate(floor);
         const p = Game.state.player;
@@ -31,6 +51,11 @@ const DungeonScene = {
             Game.state.runStats = { kills: 0, floorsReached: floor, goldAtStart: p.gold };
         }
         Game.state.runStats.floorsReached = Math.max(Game.state.runStats.floorsReached, floor);
+        // Generate floor events
+        this.floorEvents = DungeonEvents.generate(floor, this.map);
+        // Clear run bonuses on floor 1
+        if (floor === 1) p._runBonuses = {};
+
         Audio.startMusic('dungeon');
 
         if (floor === 50) {
@@ -55,6 +80,131 @@ const DungeonScene = {
         const r = Game.renderer;
         this.viewW = r.viewportCols;
         this.viewH = r.viewportRows;
+
+        // Floor select mode
+        if (this.mode === 'floorSelect') {
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._floorSelectIndex = Math.max(0, this._floorSelectIndex - 1);
+                Audio.play('menuMove');
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._floorSelectIndex = Math.min(this._floorOptions.length - 1, this._floorSelectIndex + 1);
+                Audio.play('menuMove');
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                Game.state.currentFloor = this._floorOptions[this._floorSelectIndex];
+                Audio.play('menuSelect');
+                this.enter();
+                return;
+            }
+            if (Input.wasPressed('Escape')) {
+                Game.state.currentFloor = 1;
+                this.enter();
+                return;
+            }
+            return;
+        }
+
+        // Escape confirmation mode
+        if (this.mode === 'escapeConfirm') {
+            if (Input.wasPressed('Enter') || Input.wasPressed('y') || Input.wasPressed('Y')) {
+                this.mode = 'play';
+                this.returnToVillage();
+                return;
+            }
+            if (Input.wasPressed('Escape') || Input.wasPressed('n') || Input.wasPressed('N')) {
+                this.mode = 'play';
+            }
+            return;
+        }
+
+        // Event prompt mode (shrine, fountain, cursed chest)
+        if (this.mode === 'eventPrompt') {
+            if (Input.wasPressed('Enter') || Input.wasPressed('y') || Input.wasPressed('Y')) {
+                const result = DungeonEvents.resolve(this._eventTarget, Game.state.player, Game.state.currentFloor);
+                if (result) {
+                    Game.notify(result.text, result.color);
+                    Combat.addFloatingText(Game.state.player.x, Game.state.player.y, result.text.substring(0, 30), result.color);
+                    // Handle trap from cursed chest
+                    if (result.trap && this.map.enemies) {
+                        const p = Game.state.player;
+                        for (let i = 0; i < 2; i++) {
+                            const ex = p.x + (Math.random() < 0.5 ? -1 : 1);
+                            const ey = p.y + (Math.random() < 0.5 ? -1 : 1);
+                            const enemy = Enemy.spawn(Game.state.currentFloor, ex, ey);
+                            if (enemy) this.map.enemies.push(enemy);
+                        }
+                    }
+                    // Handle dry fountain
+                    if (this._eventTarget.dry) {
+                        this.map.set(this._eventTarget.x, this._eventTarget.y, TILE.FOUNTAIN_DRY);
+                    }
+                }
+                this.mode = 'play';
+                return;
+            }
+            if (Input.wasPressed('Escape') || Input.wasPressed('n') || Input.wasPressed('N')) {
+                this.mode = 'play';
+            }
+            return;
+        }
+
+        // Merchant mode
+        if (this.mode === 'merchant') {
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._merchantIndex = Math.max(0, this._merchantIndex - 1);
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._merchantIndex = Math.min(this._merchantItems.length - 1, this._merchantIndex + 1);
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                const item = this._merchantItems[this._merchantIndex];
+                const p = Game.state.player;
+                if (item && p.gold >= item.value) {
+                    if (p.inventory.length < 20) {
+                        p.gold -= item.value;
+                        p.inventory.push(item);
+                        Game.notify('Purchased ' + item.name, '#ffd700');
+                        Audio.play('buy');
+                        this._merchantItems.splice(this._merchantIndex, 1);
+                        if (this._merchantIndex >= this._merchantItems.length) this._merchantIndex = Math.max(0, this._merchantItems.length - 1);
+                        this._eventTarget.used = true;
+                    } else {
+                        Game.notify('Inventory full!', '#f00');
+                    }
+                } else if (item) {
+                    Game.notify('Not enough gold!', '#f00');
+                }
+            }
+            if (Input.wasPressed('Escape')) {
+                this._eventTarget.used = true;
+                this.mode = 'play';
+            }
+            return;
+        }
+
+        // Prisoner choice mode
+        if (this.mode === 'prisonerChoice') {
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._prisonerIndex = Math.max(0, this._prisonerIndex - 1);
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._prisonerIndex = Math.min(2, this._prisonerIndex + 1);
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                const result = DungeonEvents.resolvePrisoner(Game.state.player, this._prisonerIndex);
+                if (result) {
+                    Game.notify(result.text, result.color);
+                    this._eventTarget.used = true;
+                }
+                this.mode = 'play';
+                return;
+            }
+            if (Input.wasPressed('Escape')) {
+                this.mode = 'play';
+            }
+            return;
+        }
 
         // Victory screen — Demon Lord slain
         if (Game.state.victory) {
@@ -105,7 +255,7 @@ const DungeonScene = {
         if (Input.wasPressed('q') || Input.wasPressed('Q')) {
             Abilities.tryActivate('whirlwind', player, this.map, this.map.enemies);
         }
-        if (Input.wasPressed('e') || Input.wasPressed('E')) {
+        if ((Input.wasPressed('e') || Input.wasPressed('E')) && !this._nearEvent) {
             Abilities.tryActivate('execute', player, this.map, this.map.enemies);
         }
 
@@ -125,9 +275,42 @@ const DungeonScene = {
         }
         if (this.map.get(player.x, player.y) === TILE.STAIRS_UP) {
             if (Input.wasPressed('Enter') || Input.wasPressed('<') || Input.wasPressed(',')) {
+                if (Game.state.currentFloor > 1) {
+                    this.mode = 'escapeConfirm';
+                    return;
+                }
                 this.returnToVillage();
                 return;
             }
+        }
+
+        // Event tile interaction (E key — prioritize over Execute ability)
+        const playerTile = this.map.get(player.x, player.y);
+        const eventTiles = [TILE.SHRINE, TILE.MERCHANT, TILE.CURSED_CHEST, TILE.FOUNTAIN, TILE.PRISONER];
+        if (eventTiles.includes(playerTile)) {
+            this._nearEvent = this._findEvent(player.x, player.y);
+            if (this._nearEvent && !this._nearEvent.used && (Input.wasPressed('e') || Input.wasPressed('E'))) {
+                this._eventTarget = this._nearEvent;
+                const evDef = DungeonEvents.EVENTS[this._nearEvent.id];
+                if (this._nearEvent.id === 'merchant') {
+                    this._merchantItems = DungeonEvents.getMerchantItems(Game.state.currentFloor);
+                    this._merchantIndex = 0;
+                    this.mode = 'merchant';
+                } else if (this._nearEvent.id === 'prisoner') {
+                    if (Game.state.player.soulShards >= 5) {
+                        Game.state.player.soulShards -= 5;
+                        this._prisonerIndex = 0;
+                        this.mode = 'prisonerChoice';
+                    } else {
+                        Game.notify('You lack the soul shards to break the seal... (Need 5)', '#888');
+                    }
+                } else {
+                    this.mode = 'eventPrompt';
+                }
+                return;
+            }
+        } else {
+            this._nearEvent = null;
         }
 
         // Chest interaction — open automatically when stepped on
@@ -216,6 +399,13 @@ const DungeonScene = {
             Game.renderer.shake(15, 0.8);
             Game.notify('YOUR SOUL IS CLAIMED', '#ff0000');
         }
+    },
+
+    _findEvent(x, y) {
+        for (const ev of this.floorEvents) {
+            if (ev.x === x && ev.y === y) return ev;
+        }
+        return null;
     },
 
     returnToVillage() {
@@ -497,6 +687,47 @@ const DungeonScene = {
             ctx.fillText(`Press [${ua.key}] to unleash`, r.canvas.width / 2, r.canvas.height / 2 + 22);
             ctx.textAlign = 'left';
             ctx.restore();
+        }
+
+        // ── Event interaction prompt ──
+        if (this.mode === 'play' && this._nearEvent && !this._nearEvent.used) {
+            const ctx = r.getCtx();
+            ctx.save();
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(r.canvas.width / 2 - 100, 540, 200, 24);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '13px "Courier New"';
+            ctx.textAlign = 'center';
+            const evDef = DungeonEvents.EVENTS[this._nearEvent.id];
+            ctx.fillText('Press [E] ' + (evDef ? evDef.name : ''), r.canvas.width / 2, 557);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        // ── Floor select panel ──
+        if (this.mode === 'floorSelect') {
+            r.drawFloorSelectPanel(this._floorOptions, this._floorSelectIndex);
+        }
+
+        // ── Escape confirmation overlay ──
+        if (this.mode === 'escapeConfirm') {
+            r.drawEscapeConfirm(Game.state.currentFloor);
+        }
+
+        // ── Event prompt overlay (shrine, fountain, cursed chest) ──
+        if (this.mode === 'eventPrompt' && this._eventTarget) {
+            const evDef = DungeonEvents.EVENTS[this._eventTarget.id];
+            r.drawEventPrompt(evDef);
+        }
+
+        // ── Merchant panel ──
+        if (this.mode === 'merchant') {
+            r.drawMerchantPanel(player, this._merchantItems, this._merchantIndex);
+        }
+
+        // ── Prisoner choice panel ──
+        if (this.mode === 'prisonerChoice') {
+            r.drawPrisonerPanel(this._prisonerIndex);
         }
 
         // ── Inventory / Character overlays ──

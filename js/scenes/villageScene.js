@@ -240,6 +240,14 @@ const VillageScene = {
         return null;
     },
 
+    _enterDungeon() {
+        if (Game.state.maxFloorReached >= 5) {
+            Game.switchScene('dungeon', { floorSelect: true });
+        } else {
+            Game.switchScene('dungeon');
+        }
+    },
+
     _refreshSmithyItems() {
         const village = Game.state.village;
         const smithy = village.getBuilding('smithy');
@@ -319,7 +327,7 @@ const VillageScene = {
             }
             // Also allow E for dungeon entrance
             if (this.getBuildingAtCursor()?.type === 'dungeon_entrance') {
-                Game.switchScene('dungeon');
+                this._enterDungeon();
                 return;
             }
         }
@@ -328,7 +336,7 @@ const VillageScene = {
             const target = this.getBuildingAtCursor();
             if (target) {
                 if (target.type === 'dungeon_entrance') {
-                    Game.switchScene('dungeon');
+                    this._enterDungeon();
                     return;
                 }
                 // Interactive buildings also respond to Enter

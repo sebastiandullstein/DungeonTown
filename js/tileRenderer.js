@@ -665,11 +665,94 @@ const TileRenderer = {
             case 5: this.drawStairsUp(ctx, x, y, w, h); break;     // STAIRS_UP
             case 6: this.drawWater(ctx, x, y, w, h, time); break;  // WATER
             case 7: this.drawChest(ctx, x, y, w, h); break;        // CHEST
+            case 8: this.drawShrine(ctx, x, y, w, h, time); break;  // SHRINE
+            case 9: this.drawMerchant(ctx, x, y, w, h, time); break;// MERCHANT
+            case 10: this.drawCursedChest(ctx, x, y, w, h, time); break; // CURSED_CHEST
+            case 11: this.drawFountain(ctx, x, y, w, h, time); break;   // FOUNTAIN
+            case 12: this.drawFountainDry(ctx, x, y, w, h); break;      // FOUNTAIN_DRY
+            case 13: this.drawPrisoner(ctx, x, y, w, h, time); break;   // PRISONER
             default: this.drawVoid(ctx, x, y, w, h);
         }
 
         if (dimFactor < 1.0) {
             ctx.restore();
+        }
+    },
+
+    // --- Event Tiles ---
+
+    drawShrine(ctx, x, y, w, h, time) {
+        ctx.fillStyle = '#300';
+        ctx.fillRect(x, y, w, h);
+        // Pulsing red glow
+        const pulse = 0.6 + Math.sin(time * 3) * 0.3;
+        ctx.fillStyle = `rgba(255,32,32,${pulse * 0.15})`;
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#ff2020';
+        ctx.font = `bold ${h * 0.7}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('†', x + w / 2, y + h / 2 + 1);
+    },
+
+    drawMerchant(ctx, x, y, w, h, time) {
+        ctx.fillStyle = '#1a1000';
+        ctx.fillRect(x, y, w, h);
+        const flicker = 0.7 + Math.sin(time * 5) * 0.15;
+        ctx.fillStyle = `rgba(255,215,0,${flicker})`;
+        ctx.font = `bold ${h * 0.7}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('$', x + w / 2, y + h / 2 + 1);
+    },
+
+    drawCursedChest(ctx, x, y, w, h, time) {
+        ctx.fillStyle = '#200030';
+        ctx.fillRect(x, y, w, h);
+        const pulse = 0.5 + Math.sin(time * 2) * 0.4;
+        ctx.fillStyle = `rgba(192,64,255,${pulse * 0.2})`;
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#c040ff';
+        ctx.font = `bold ${h * 0.7}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('?', x + w / 2, y + h / 2 + 1);
+    },
+
+    drawFountain(ctx, x, y, w, h, time) {
+        ctx.fillStyle = '#001828';
+        ctx.fillRect(x, y, w, h);
+        const shimmer = 0.6 + Math.sin(time * 4) * 0.25;
+        ctx.fillStyle = `rgba(64,255,255,${shimmer * 0.15})`;
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#40ffff';
+        ctx.font = `bold ${h * 0.7}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('~', x + w / 2, y + h / 2 + 1);
+    },
+
+    drawFountainDry(ctx, x, y, w, h) {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#555';
+        ctx.font = `bold ${h * 0.7}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('~', x + w / 2, y + h / 2 + 1);
+    },
+
+    drawPrisoner(ctx, x, y, w, h, time) {
+        ctx.fillStyle = '#1a001a';
+        ctx.fillRect(x, y, w, h);
+        const flicker = 0.5 + Math.sin(time * 2.5) * 0.4;
+        ctx.fillStyle = `rgba(255,255,255,${flicker})`;
+        ctx.font = `bold ${h * 0.6}px monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('@', x + w / 2, y + h / 2 + 1);
+        // Prison bars
+        ctx.strokeStyle = `rgba(128,128,128,0.5)`;
+        ctx.lineWidth = 1;
+        for (let bx = x + w * 0.2; bx < x + w * 0.9; bx += w * 0.2) {
+            ctx.beginPath();
+            ctx.moveTo(bx, y + 2);
+            ctx.lineTo(bx, y + h - 2);
+            ctx.stroke();
         }
     },
 };

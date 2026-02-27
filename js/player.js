@@ -105,6 +105,8 @@ class Player {
         if (this.equipment.ring && this.equipment.ring.stats.atk) atk += this.equipment.ring.stats.atk;
         // Blessing: Cursed Strength
         if (this.blessings && this.blessings.cursedStrength) atk += 5;
+        // Run bonuses (from shrine events)
+        if (this._runBonuses && this._runBonuses.atk) atk += this._runBonuses.atk;
         // Tavern buff multipliers
         let atkMult = 0;
         if (this.tavernBuffs) {
@@ -144,6 +146,8 @@ class Player {
             if (this.blessings.ironWill) hp += 10;
             if (this.blessings.cursedStrength) hp -= 5;
         }
+        // Run bonuses (from shrine events)
+        if (this._runBonuses && this._runBonuses.maxHp) hp += this._runBonuses.maxHp;
         // Tavern buff: Hearty Stew
         if (this.tavernBuffs) {
             for (const id of this.tavernBuffs) {

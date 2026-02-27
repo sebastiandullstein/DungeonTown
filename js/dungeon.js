@@ -8,6 +8,12 @@ const TILE = {
     STAIRS_UP: 5,
     WATER: 6,
     CHEST: 7,
+    SHRINE: 8,
+    MERCHANT: 9,
+    CURSED_CHEST: 10,
+    FOUNTAIN: 11,
+    FOUNTAIN_DRY: 12,
+    PRISONER: 13,
 };
 
 const TILE_DISPLAY = {
@@ -19,6 +25,12 @@ const TILE_DISPLAY = {
     [TILE.STAIRS_UP]: { char: '<', fg: '#0ff', bg: '#110' },
     [TILE.WATER]: { char: '~', fg: '#44f', bg: '#113' },
     [TILE.CHEST]: { char: '=', fg: '#ff0', bg: '#110' },
+    [TILE.SHRINE]: { char: '†', fg: '#ff2020', bg: '#300' },
+    [TILE.MERCHANT]: { char: '$', fg: '#ffd700', bg: '#1a1000' },
+    [TILE.CURSED_CHEST]: { char: '?', fg: '#c040ff', bg: '#200030' },
+    [TILE.FOUNTAIN]: { char: '~', fg: '#40ffff', bg: '#001828' },
+    [TILE.FOUNTAIN_DRY]: { char: '~', fg: '#555', bg: '#111' },
+    [TILE.PRISONER]: { char: '@', fg: '#ffffff', bg: '#1a001a' },
 };
 
 class DungeonMap {

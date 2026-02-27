@@ -1826,6 +1826,253 @@ const UIRenderer = {
         ctx.fillText('[W/S] Select  [Enter] Equip/Use  [X] Drop  [Esc] Leave', x + 20, y + h - 12);
     },
 
+    // ─── Phase 1: Dungeon Event Panels ──────────────────────────────────────
+
+    drawFloorSelectPanel(ctx, floors, selectedIndex) {
+        const cw = 800, ch = 720;
+        const w = 360, h = 340;
+        const x = (cw - w) / 2, y = (ch - h) / 2;
+
+        // Backdrop
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Panel
+        ctx.fillStyle = '#0a0608';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#4a2020';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+
+        // Title
+        ctx.fillStyle = '#ff4040';
+        ctx.font = 'bold 20px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Choose Your Descent', x + w / 2, y + 32);
+
+        ctx.fillStyle = '#886060';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('Deeper floors have deadlier foes but richer spoils', x + w / 2, y + 52);
+
+        // Floor list
+        let fy = y + 76;
+        for (let i = 0; i < floors.length; i++) {
+            const sel = i === selectedIndex;
+            ctx.fillStyle = sel ? '#301010' : 'transparent';
+            if (sel) ctx.fillRect(x + 20, fy - 14, w - 40, 24);
+
+            ctx.fillStyle = sel ? '#ff6040' : '#886060';
+            ctx.font = (sel ? 'bold ' : '') + '14px "Courier New"';
+            ctx.textAlign = 'left';
+            ctx.fillText('► Floor ' + floors[i], x + 40, fy);
+
+            // Difficulty hint
+            ctx.textAlign = 'right';
+            ctx.fillStyle = sel ? '#aa6040' : '#554040';
+            ctx.font = '11px "Courier New"';
+            if (floors[i] === 1) ctx.fillText('Safe start', x + w - 40, fy);
+            else if (floors[i] >= 40) ctx.fillText('Suicidal', x + w - 40, fy);
+            else if (floors[i] >= 20) ctx.fillText('Dangerous', x + w - 40, fy);
+            else if (floors[i] >= 10) ctx.fillText('Challenging', x + w - 40, fy);
+            else ctx.fillText('Moderate', x + w - 40, fy);
+
+            fy += 28;
+        }
+
+        // Footer
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#665050';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Descend  [Esc] Floor 1', x + w / 2, y + h - 16);
+        ctx.textAlign = 'left';
+    },
+
+    drawEscapeConfirm(ctx, floor) {
+        const cw = 800, ch = 720;
+        const w = 380, h = 120;
+        const x = (cw - w) / 2, y = (ch - h) / 2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.fillStyle = '#0a0808';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = '#40e0e0';
+        ctx.font = 'bold 16px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Return to Village?', x + w / 2, y + 30);
+
+        ctx.fillStyle = '#88bbbb';
+        ctx.font = '12px "Courier New"';
+        ctx.fillText('You keep all gold and items.', x + w / 2, y + 54);
+        ctx.fillText('Floor ' + floor + ' progress will be saved.', x + w / 2, y + 72);
+
+        ctx.fillStyle = '#668888';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[Enter/Y] Escape    [Esc/N] Stay', x + w / 2, y + h - 14);
+        ctx.textAlign = 'left';
+    },
+
+    drawEventPrompt(ctx, evDef) {
+        if (!evDef) return;
+        const cw = 800, ch = 720;
+        const w = 420, h = 130;
+        const x = (cw - w) / 2, y = (ch - h) / 2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.fillStyle = '#0a0608';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#885020';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = '#ffa040';
+        ctx.font = 'bold 16px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText(evDef.name, x + w / 2, y + 28);
+
+        ctx.fillStyle = '#aa8860';
+        ctx.font = '12px "Courier New"';
+        ctx.fillText(evDef.desc, x + w / 2, y + 52);
+
+        ctx.fillStyle = '#ffd080';
+        ctx.font = '13px "Courier New"';
+        ctx.fillText(evDef.prompt, x + w / 2, y + 80);
+
+        ctx.fillStyle = '#666050';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[Enter/Y] Accept    [Esc/N] Decline', x + w / 2, y + h - 14);
+        ctx.textAlign = 'left';
+    },
+
+    drawMerchantPanel(ctx, player, items, selectedIndex) {
+        const cw = 800, ch = 720;
+        const w = 440, h = 280;
+        const x = (cw - w) / 2, y = (ch - h) / 2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.fillStyle = '#0a0800';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 18px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Wandering Merchant', x + w / 2, y + 28);
+        ctx.fillStyle = '#8a7040';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText('"Rare wares, friend... prices may vary."', x + w / 2, y + 46);
+
+        // Gold
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffd020';
+        ctx.font = 'bold 12px "Courier New"';
+        ctx.fillText('Gold: ' + (player.gold || 0), x + w - 20, y + 28);
+
+        // Items
+        let iy = y + 70;
+        ctx.textAlign = 'left';
+        if (items.length === 0) {
+            ctx.fillStyle = '#554';
+            ctx.font = '13px "Courier New"';
+            ctx.fillText('Sold out...', x + 30, iy);
+        }
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const sel = i === selectedIndex;
+            if (sel) {
+                ctx.fillStyle = '#1a1400';
+                ctx.fillRect(x + 10, iy - 14, w - 20, 50);
+            }
+
+            ctx.fillStyle = item.fg || '#ccc';
+            ctx.font = 'bold 14px "Courier New"';
+            ctx.fillText(item.name, x + 30, iy);
+
+            ctx.fillStyle = '#888';
+            ctx.font = '11px "Courier New"';
+            const statsStr = item.stats ? Object.entries(item.stats).map(([k,v]) => `${k}:${v > 0 ? '+' : ''}${v}`).join(' ') : '';
+            ctx.fillText(statsStr, x + 30, iy + 16);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = player.gold >= item.value ? '#ffd020' : '#ff4040';
+            ctx.font = 'bold 13px "Courier New"';
+            ctx.fillText(item.value + 'g', x + w - 30, iy);
+            ctx.textAlign = 'left';
+
+            iy += 55;
+        }
+
+        // Footer
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#665';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Buy  [Esc] Leave', x + w / 2, y + h - 14);
+        ctx.textAlign = 'left';
+    },
+
+    drawPrisonerPanel(ctx, selectedIndex) {
+        const cw = 800, ch = 720;
+        const w = 420, h = 260;
+        const x = (cw - w) / 2, y = (ch - h) / 2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.fillStyle = '#0a000a';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Imprisoned Soul', x + w / 2, y + 28);
+        ctx.fillStyle = '#aaaaaa';
+        ctx.font = 'italic 11px "Courier New"';
+        ctx.fillText('"Choose wisely... my power is yours."', x + w / 2, y + 48);
+
+        const choices = [
+            { name: '+3 STR permanently', desc: 'Raw strength courses through you' },
+            { name: '+4 VIT, +20 max HP permanently', desc: 'Your body hardens against the abyss' },
+            { name: '+50% potion effectiveness (this run)', desc: 'Healing magic intensifies' },
+        ];
+
+        let cy = y + 80;
+        ctx.textAlign = 'left';
+        for (let i = 0; i < choices.length; i++) {
+            const sel = i === selectedIndex;
+            if (sel) {
+                ctx.fillStyle = '#1a0a1a';
+                ctx.fillRect(x + 10, cy - 14, w - 20, 42);
+            }
+            ctx.fillStyle = sel ? '#ffffff' : '#888888';
+            ctx.font = (sel ? 'bold ' : '') + '14px "Courier New"';
+            ctx.fillText((sel ? '► ' : '  ') + choices[i].name, x + 24, cy);
+            ctx.fillStyle = sel ? '#bbbbbb' : '#666666';
+            ctx.font = 'italic 11px "Courier New"';
+            ctx.fillText('  ' + choices[i].desc, x + 24, cy + 18);
+            cy += 50;
+        }
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#666';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[W/S] Select  [Enter] Choose  [Esc] Decline', x + w / 2, y + h - 14);
+        ctx.textAlign = 'left';
+    },
+
     // ─── Color helpers ────────────────────────────────────────────────────────
 
     _darken(hex, factor) {

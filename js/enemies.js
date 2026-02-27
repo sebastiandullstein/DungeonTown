@@ -231,6 +231,11 @@ class Enemy {
         };
     }
 
+    static spawn(floor, x, y) {
+        const type = EnemyTypes.getForFloor(floor);
+        return Enemy.create(x, y, type);
+    }
+
     static update(enemy, dt, dungeonMap, player) {
         enemy.moveTimer -= dt;
         enemy.attackTimer -= dt;
