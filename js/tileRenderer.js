@@ -97,6 +97,17 @@ const TileRenderer = {
         // Subtle highlight in center
         ctx.fillStyle = 'rgba(255,200,120,0.04)';
         ctx.fillRect(x + 8, y + 8, 16, 16);
+
+        // Subtle per-tile brightness variation (seeded dark/light noise)
+        const brightOffsets = [-0.04, 0, 0.025, -0.02, 0.03, 0, -0.03, 0.04];
+        const brightVar = brightOffsets[seed];
+        if (brightVar > 0) {
+            ctx.fillStyle = `rgba(255,200,100,${brightVar})`;
+            ctx.fillRect(x, y, w, h);
+        } else if (brightVar < 0) {
+            ctx.fillStyle = `rgba(0,0,0,${-brightVar})`;
+            ctx.fillRect(x, y, w, h);
+        }
     },
 
     // ─── DOOR ───────────────────────────────────────────────────────────────

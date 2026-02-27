@@ -41,9 +41,17 @@ const SpriteRenderer = {
             lungeY = dir.y * ease * 4;
         }
 
+        // Knockback visual offset
+        let knockOffX = 0, knockOffY = 0;
+        if (player.knockTimer > 0 && player.knockX !== undefined) {
+            const kt = player.knockTimer / 0.15;
+            knockOffX = player.knockX * kt * 32;
+            knockOffY = player.knockY * kt * 32;
+        }
+
         const groundY = y;
-        y += bobY + lungeY;
-        x += lungeX;
+        y += bobY + lungeY + knockOffY;
+        x += lungeX + knockOffX;
 
         const cx = x + w / 2;
         const cy = y + h / 2;

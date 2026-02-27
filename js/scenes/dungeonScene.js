@@ -8,6 +8,8 @@ const DungeonScene = {
     deathTimer: 0,
     victoryTimer: 0,
     chestAnims: [],
+    _abilityUnlockAnim: null,
+    _trackedLevel: 0,
 
     init() {},
 
@@ -22,6 +24,8 @@ const DungeonScene = {
         this.deathTimer = 0;
         this.victoryTimer = 0;
         this.chestAnims = [];
+        this._abilityUnlockAnim = null;
+        this._trackedLevel = p.level;
         Audio.startMusic('dungeon');
 
         if (floor === 50) {
@@ -169,6 +173,22 @@ const DungeonScene = {
         // Combat effects
         Combat.update(dt);
 
+        // Tick ability unlock animation
+        if (this._abilityUnlockAnim) {
+            this._abilityUnlockAnim.timer -= dt;
+            if (this._abilityUnlockAnim.timer <= 0) this._abilityUnlockAnim = null;
+        }
+
+        // Detect level-up → check ability unlocks
+        if (player.level !== this._trackedLevel) {
+            this._trackedLevel = player.level;
+            const abilityUnlocks = { 5: { name: 'Whirlwind', key: 'Q' }, 10: { name: 'Execute', key: 'E' } };
+            const unlocked = abilityUnlocks[player.level];
+            if (unlocked) {
+                this._abilityUnlockAnim = { name: unlocked.name, key: unlocked.key, timer: 3.5, maxTimer: 3.5 };
+            }
+        }
+
         // Village production (background ticking)
         Game.state.village.updateProduction(dt);
 
@@ -217,6 +237,14 @@ const DungeonScene = {
                 const dimFactor = inFOV ? 1.0 : 0.35;
 
                 r.putTile(col, row, tile, { dimFactor });
+
+                // Wall bottom shadow: if this tile is a floor and the tile above is a wall
+                if (inFOV && tile !== TILE.WALL && tile !== TILE.VOID) {
+                    const tileAbove = (my > 0) ? this.map.get(mx, my - 1) : TILE.VOID;
+                    if (tileAbove === TILE.WALL) {
+                        r.putWallShadow(col, row);
+                    }
+                }
             }
         }
 
@@ -320,6 +348,9 @@ const DungeonScene = {
             ctx.restore();
         }
 
+        // ── Vignette (dark edge overlay over viewport, under HUD) ──
+        r.drawVignette(0.55);
+
         // ── HUD ──
         r.drawHUD(player, Game.state.currentFloor,
             this.map.get(player.x, player.y),
@@ -395,6 +426,34 @@ const DungeonScene = {
             ctx.fillStyle = '#884444';
             ctx.font = '14px "Courier New"';
             ctx.fillText('Half your gold is lost to the abyss.', r.canvas.width / 2, r.canvas.height / 2 + 45);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        // ── Ability unlock dramatic notification ──
+        if (this._abilityUnlockAnim) {
+            const ua = this._abilityUnlockAnim;
+            const t = ua.timer / ua.maxTimer; // 1→0
+            // Fade in quickly, hold, then fade out
+            const fadeIn = Math.min(1, (ua.maxTimer - ua.timer) / 0.3);
+            const fadeOut = ua.timer < 0.6 ? ua.timer / 0.6 : 1;
+            const alpha = Math.min(fadeIn, fadeOut);
+            const ctx = r.getCtx();
+            ctx.save();
+            ctx.globalAlpha = alpha * 0.82;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, r.canvas.height / 2 - 70, r.canvas.width, 140);
+            ctx.globalAlpha = alpha;
+            ctx.shadowColor = '#ffd040';
+            ctx.shadowBlur = 24;
+            ctx.fillStyle = '#ffd040';
+            ctx.font = 'bold 38px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText(`✦ ${ua.name} UNLOCKED ✦`, r.canvas.width / 2, r.canvas.height / 2 - 12);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffaa30';
+            ctx.font = '18px "Courier New"';
+            ctx.fillText(`Press [${ua.key}] to unleash`, r.canvas.width / 2, r.canvas.height / 2 + 22);
             ctx.textAlign = 'left';
             ctx.restore();
         }

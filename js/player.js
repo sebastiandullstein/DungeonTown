@@ -108,6 +108,7 @@ class Player {
 
     gainXp(amount) {
         this.xp += amount;
+        this._xpFlash = 0.7; // trigger XP bar flash
         while (this.xp >= this.xpToLevel) {
             this.xp -= this.xpToLevel;
             this.level++;
@@ -175,6 +176,8 @@ class Player {
         this.moveTimer -= dt;
         this.attackTimer -= dt;
         this.invulnTimer -= dt;
+        if (this._xpFlash > 0) this._xpFlash = Math.max(0, this._xpFlash - dt);
+        if (this.knockTimer > 0) this.knockTimer = Math.max(0, this.knockTimer - dt);
 
         // Tick active food buffs
         if (this.activeBuffs && this.activeBuffs.length > 0) {

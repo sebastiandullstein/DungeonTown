@@ -210,10 +210,36 @@ class Renderer {
         ctx.restore();
     }
 
+    // Vignette overlay drawn on UI layer (over tiles+entities, under nothing)
+    drawVignette(alpha = 0.55) {
+        const ctx = this._uiLayer.ctx;
+        const w = this.canvas.width;
+        const h = this.tileH * this.viewportRows; // viewport area only (not HUD)
+        const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.28, w / 2, h / 2, w * 0.72);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(0.65, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, `rgba(0,0,0,${alpha})`);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    // Wall-cast shadow on floor tiles immediately below a wall
+    putWallShadow(col, row) {
+        if (col < 0 || col >= this.viewportCols || row < 0 || row >= this.viewportRows) return;
+        const px = col * this.tileW;
+        const py = row * this.tileH;
+        const ctx = this._tileLayer.ctx;
+        const grad = ctx.createLinearGradient(px, py, px, py + 9);
+        grad.addColorStop(0, 'rgba(0,0,0,0.55)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(px, py, this.tileW, 9);
+    }
+
     // ── UI layer delegates ─────────────────────────────────────────────────
 
     drawHUD(player, currentFloor, mapTile, gold) {
-        UIRenderer.drawHUD(this._uiLayer.ctx, player, currentFloor, mapTile, gold);
+        UIRenderer.drawHUD(this._uiLayer.ctx, player, currentFloor, mapTile, gold, this.time);
     }
 
     drawMinimap(dungeonMap, px, py) {

@@ -188,7 +188,20 @@ const UIRenderer = {
 
     // ─── DUNGEON HUD ─────────────────────────────────────────────────────────
 
-    drawHUD(ctx, player, currentFloor, mapTile, gold) {
+    _getFloorName(floor) {
+        if (floor <= 5)  return 'The Depths';
+        if (floor <= 10) return 'Stone Caverns';
+        if (floor <= 15) return 'The Labyrinth';
+        if (floor <= 20) return 'The Abyss';
+        if (floor <= 25) return 'Forgotten Tombs';
+        if (floor <= 30) return 'Shadow Realm';
+        if (floor <= 35) return 'Infernal Pits';
+        if (floor <= 40) return 'Daemon Halls';
+        if (floor <= 45) return 'Hellfire Warrens';
+        return 'The Final Dark';
+    },
+
+    drawHUD(ctx, player, currentFloor, mapTile, gold, time = 0) {
         const HY = 576, W = 800;
 
         // Panel background (wood grain)
@@ -217,6 +230,16 @@ const UIRenderer = {
 
         // ── Row A: HP / MP / XP bars ──
         this._drawIcon(ctx, 8, HY + 8, 'heart');
+        // HP pulse glow when below 25%
+        if (player.hp / player.maxHp < 0.25) {
+            const pulse = 0.5 + 0.5 * Math.sin(time * 8);
+            ctx.save();
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 6 + pulse * 14;
+            ctx.fillStyle = `rgba(255,0,0,${0.12 + pulse * 0.18})`;
+            ctx.fillRect(30, HY + 12, 180, 22);
+            ctx.restore();
+        }
         this._drawStatBar(ctx, 30, HY + 12, 180, 22,
             player.hp, player.maxHp,
             '#b03030', '#3a0a0a', true, '#600010');
@@ -227,6 +250,16 @@ const UIRenderer = {
             '#2848c0', '#0a0a3a', true, '#081040');
 
         this._drawIcon(ctx, 378, HY + 8, 'xp');
+        // XP flash on gain
+        if (player._xpFlash > 0) {
+            const flashAlpha = Math.min(1, player._xpFlash * 1.8);
+            ctx.save();
+            ctx.shadowColor = '#ffff40';
+            ctx.shadowBlur = 10 * flashAlpha;
+            ctx.fillStyle = `rgba(255,240,0,${0.28 * flashAlpha})`;
+            ctx.fillRect(400, HY + 12, 130, 22);
+            ctx.restore();
+        }
         this._drawStatBar(ctx, 400, HY + 12, 130, 22,
             player.xp, player.xpToLevel,
             '#b09010', '#302400', true, '#504000');
@@ -247,14 +280,18 @@ const UIRenderer = {
         ctx.fillText(`Lv.${player.level}`, 568, HY + 27);
         ctx.shadowBlur = 0;
 
-        // Floor
+        // Floor — atmospheric two-line indicator
         ctx.fillStyle = '#40b8b8';
         ctx.shadowColor = '#00ffff';
         ctx.shadowBlur = 4;
-        ctx.font = 'bold 13px "Courier New"';
+        ctx.font = 'bold 12px "Courier New"';
         ctx.textAlign = 'left';
-        ctx.fillText(`Floor ${currentFloor}`, 610, HY + 27);
+        ctx.fillText(`Floor ${currentFloor}`, 610, HY + 21);
         ctx.shadowBlur = 0;
+        ctx.fillStyle = '#2a7878';
+        ctx.font = '9px "Courier New"';
+        ctx.fillText(this._getFloorName(currentFloor), 610, HY + 33);
+        ctx.textAlign = 'left';
 
         // ── Row B: Weapon / stats / gold ──
         const wep = player.equipment.weapon;
@@ -312,18 +349,29 @@ const UIRenderer = {
             ctx.strokeRect(abX, abY, 24, 24);
             if (unlocked) {
                 // Icon
-                ctx.fillStyle = ab.cooldown > 0 ? '#555' : '#ffd040';
+                ctx.fillStyle = ab.cooldown > 0 ? '#666' : '#ffd040';
                 ctx.font = 'bold 13px "Courier New"';
                 ctx.textAlign = 'center';
                 ctx.fillText(abIcons[ai], abX + 12, abY + 17);
-                // Cooldown overlay
+                // Circular cooldown overlay (pie-chart style)
                 if (ab.cooldown > 0) {
                     const pct = ab.cooldown / ab.maxCooldown;
-                    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-                    ctx.fillRect(abX + 1, abY + 1, 22, Math.floor(22 * pct));
+                    const cx2 = abX + 12, cy2 = abY + 12, r2 = 11;
+                    const startAngle = -Math.PI / 2;
+                    const endAngle = startAngle + Math.PI * 2 * pct;
+                    ctx.save();
+                    ctx.globalAlpha = 0.65;
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.moveTo(cx2, cy2);
+                    ctx.arc(cx2, cy2, r2, startAngle, endAngle);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
                     ctx.fillStyle = '#ff8830';
-                    ctx.font = 'bold 10px "Courier New"';
-                    ctx.fillText(Math.ceil(ab.cooldown).toString(), abX + 12, abY + 17);
+                    ctx.font = 'bold 9px "Courier New"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(Math.ceil(ab.cooldown).toString(), abX + 12, abY + 16);
                 }
             } else {
                 ctx.fillStyle = '#444';
