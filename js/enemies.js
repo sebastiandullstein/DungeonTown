@@ -403,6 +403,13 @@ class Enemy {
             }
             player.soulShards = (player.soulShards || 0) + shards;
             Game.notify(`+${shards} Soul Shards`, '#c040ff');
+            // Unlock floor checkpoint on boss kill (5er floors)
+            const floor = Game.state.currentFloor;
+            if (floor % 5 === 0 && !Game.state.unlockedFloors.includes(floor)) {
+                Game.state.unlockedFloors.push(floor);
+                Game.state.unlockedFloors.sort((a, b) => a - b);
+                Game.notify(`Floor ${floor} checkpoint unlocked!`, '#40e0e0');
+            }
         }
         // Blessing: Blood Pact — heal on kill
         if (player.blessings && player.blessings.bloodPact) {

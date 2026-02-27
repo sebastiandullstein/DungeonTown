@@ -241,7 +241,7 @@ const VillageScene = {
     },
 
     _enterDungeon() {
-        if (Game.state.maxFloorReached >= 5) {
+        if (Game.state.unlockedFloors && Game.state.unlockedFloors.length > 1) {
             Game.switchScene('dungeon', { floorSelect: true });
         } else {
             Game.switchScene('dungeon');

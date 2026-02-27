@@ -24,12 +24,9 @@ const DungeonScene = {
 
     enter(data) {
         // Floor select mode
-        if (data && data.floorSelect && Game.state.maxFloorReached >= 5) {
+        if (data && data.floorSelect && Game.state.unlockedFloors.length > 1) {
             this.mode = 'floorSelect';
-            this._floorOptions = [1];
-            for (let f = 5; f <= Game.state.maxFloorReached; f += 5) {
-                this._floorOptions.push(f);
-            }
+            this._floorOptions = [...Game.state.unlockedFloors];
             this._floorSelectIndex = 0;
             return;
         }

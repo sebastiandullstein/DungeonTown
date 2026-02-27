@@ -19,6 +19,7 @@ const Game = {
         village: null,
         currentFloor: 1,
         maxFloorReached: 1,
+        unlockedFloors: [1],
         notifications: [],
         gameStarted: false,
         victory: false,       // true when Demon Lord is slain
@@ -128,6 +129,7 @@ const Game = {
             village: Game.state.village.serialize(),
             currentFloor: Game.state.currentFloor,
             maxFloorReached: Game.state.maxFloorReached,
+            unlockedFloors: Game.state.unlockedFloors,
             abilityCooldowns: Abilities.serialize(),
         };
         localStorage.setItem('dungeontown_save', JSON.stringify(data));
@@ -143,6 +145,7 @@ const Game = {
             Game.state.village.deserialize(data.village);
             Game.state.currentFloor = data.currentFloor;
             Game.state.maxFloorReached = data.maxFloorReached;
+            Game.state.unlockedFloors = data.unlockedFloors || [1];
             if (data.abilityCooldowns) Abilities.deserialize(data.abilityCooldowns);
             return true;
         } catch (e) {
@@ -156,6 +159,7 @@ const Game = {
         Game.state.village = new Village();
         Game.state.currentFloor = 1;
         Game.state.maxFloorReached = 1;
+        Game.state.unlockedFloors = [1];
         Game.state.gameStarted = true;
         Game.state.victory = false;
     }
