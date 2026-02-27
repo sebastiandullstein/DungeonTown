@@ -1,0 +1,165 @@
+// Main Game Controller
+const Game = {
+    renderer: null,
+    currentScene: null,
+    scenes: {},
+    lastTime: 0,
+    running: false,
+
+    // Hit stop (freeze frames)
+    hitStopTimer: 0,
+
+    hitStop(duration) {
+        this.hitStopTimer = Math.max(this.hitStopTimer, duration);
+    },
+
+    // Global game state
+    state: {
+        player: null,
+        village: null,
+        currentFloor: 1,
+        maxFloorReached: 1,
+        notifications: [],
+        gameStarted: false,
+        victory: false,       // true when Demon Lord is slain
+    },
+
+    init() {
+        // Migrate save key from old name
+        const oldSave = localStorage.getItem('roguevillage_save');
+        if (oldSave && !localStorage.getItem('dungeontown_save')) {
+            localStorage.setItem('dungeontown_save', oldSave);
+            localStorage.removeItem('roguevillage_save');
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        this.renderer = new Renderer(canvas, 25, 18);
+        Input.init(canvas);
+        canvas.focus();
+
+        // Allow canvas to receive keyboard focus
+        canvas.setAttribute('tabindex', '0');
+
+        // Initialize scenes (they register themselves)
+        this.scenes.title = TitleScene;
+        this.scenes.village = VillageScene;
+        this.scenes.dungeon = DungeonScene;
+        this.scenes.shop = ShopScene;
+
+        // Initialize all scenes
+        Object.values(this.scenes).forEach(s => s.init && s.init());
+
+        this.switchScene('title');
+        this.running = true;
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.loop(t));
+    },
+
+    switchScene(name, data) {
+        if (this.currentScene && this.currentScene.exit) {
+            this.currentScene.exit();
+        }
+        this.currentScene = this.scenes[name];
+        if (this.currentScene.enter) {
+            this.currentScene.enter(data);
+        }
+    },
+
+    loop(timestamp) {
+        if (!this.running) return;
+
+        const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1); // cap delta
+        this.lastTime = timestamp;
+
+        // Tick renderer animation clock
+        this.renderer.tick(dt);
+
+        // Mute toggle (global, works in any scene)
+        if (Input.wasPressed('m') || Input.wasPressed('M')) {
+            Audio.toggleMute();
+            this.notify(Audio.muted ? 'Sound: OFF' : 'Sound: ON', '#888', 1);
+        }
+
+        // Hit stop: freeze game updates but keep rendering
+        if (this.hitStopTimer > 0) {
+            this.hitStopTimer = Math.max(0, this.hitStopTimer - dt);
+        } else if (this.currentScene && this.currentScene.update) {
+            this.currentScene.update(dt);
+        }
+
+        // Render
+        this.renderer.clear();
+        if (this.currentScene && this.currentScene.render) {
+            this.currentScene.render(this.renderer);
+        }
+
+        // Render notifications
+        this.renderNotifications(this.renderer, dt);
+
+        this.renderer.flush();
+
+        Input.endFrame();
+        requestAnimationFrame((t) => this.loop(t));
+    },
+
+    notify(text, color = '#ff0', duration = 2) {
+        this.state.notifications.push({ text, color, duration, timer: 0 });
+    },
+
+    renderNotifications(r, dt) {
+        const notifs = this.state.notifications;
+        let slot = 0;
+        for (let i = notifs.length - 1; i >= 0; i--) {
+            notifs[i].timer += dt;
+            if (notifs[i].timer >= notifs[i].duration) {
+                notifs.splice(i, 1);
+                continue;
+            }
+            const alpha = 1 - (notifs[i].timer / notifs[i].duration);
+            r.drawNotification(notifs[i].text, notifs[i].color, alpha, slot);
+            slot++;
+        }
+    },
+
+    // Save/Load
+    save() {
+        const data = {
+            player: Game.state.player.serialize(),
+            village: Game.state.village.serialize(),
+            currentFloor: Game.state.currentFloor,
+            maxFloorReached: Game.state.maxFloorReached,
+            abilityCooldowns: Abilities.serialize(),
+        };
+        localStorage.setItem('dungeontown_save', JSON.stringify(data));
+        Game.notify('Game Saved!', '#0f0');
+    },
+
+    load() {
+        const raw = localStorage.getItem('dungeontown_save');
+        if (!raw) return false;
+        try {
+            const data = JSON.parse(raw);
+            Game.state.player.deserialize(data.player);
+            Game.state.village.deserialize(data.village);
+            Game.state.currentFloor = data.currentFloor;
+            Game.state.maxFloorReached = data.maxFloorReached;
+            if (data.abilityCooldowns) Abilities.deserialize(data.abilityCooldowns);
+            return true;
+        } catch (e) {
+            console.error('Load failed:', e);
+            return false;
+        }
+    },
+
+    newGame() {
+        Game.state.player = new Player();
+        Game.state.village = new Village();
+        Game.state.currentFloor = 1;
+        Game.state.maxFloorReached = 1;
+        Game.state.gameStarted = true;
+        Game.state.victory = false;
+    }
+};
+
+// Start on load
+window.addEventListener('load', () => Game.init());

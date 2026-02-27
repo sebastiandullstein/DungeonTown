@@ -1,0 +1,21 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: #0a0a0a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+}
+
+#gameCanvas {
+    border: 2px solid #333;
+    cursor: default;
+}
+
+#gameCanvas:focus {
+    outline: none;
+    border-color: #666;
+}
