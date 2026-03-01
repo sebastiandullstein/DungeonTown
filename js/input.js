@@ -10,7 +10,7 @@ const Input = {
                 this.keyPressed[e.key] = true;
             }
             this.keys[e.key] = true;
-            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Tab','i','I','c','C','v','V','e','E','q','Q','m','M','p','P','Escape'].includes(e.key)) {
+            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','Tab','i','I','c','C','v','V','e','E','q','Q','m','M','p','P','Escape','F11'].includes(e.key)) {
                 e.preventDefault();
             }
         });

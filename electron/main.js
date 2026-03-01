@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain } = require('electron');
 const path = require('path');
 
 // Steam overlay compatibility: disable GPU sandbox
@@ -54,6 +54,18 @@ function createWindow() {
     mainWindow = null;
   });
 }
+
+// ── IPC: Fullscreen toggle ────────────────────────────────────────────────────
+ipcMain.handle('toggle-fullscreen', () => {
+  if (!mainWindow) return false;
+  mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  return mainWindow.isFullScreen();
+});
+
+ipcMain.handle('is-fullscreen', () => {
+  if (!mainWindow) return false;
+  return mainWindow.isFullScreen();
+});
 
 // Single instance lock — only one game window at a time
 const gotTheLock = app.requestSingleInstanceLock();

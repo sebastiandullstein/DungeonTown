@@ -92,6 +92,11 @@ const Game = {
             this.notify(Audio.muted ? 'Sound: OFF' : 'Sound: ON', '#888', 1);
         }
 
+        // Fullscreen toggle (F11)
+        if (Input.wasPressed('F11')) {
+            this.toggleFullscreen();
+        }
+
         // Hit stop: freeze game updates but keep rendering
         if (this.hitStopTimer > 0) {
             this.hitStopTimer = Math.max(0, this.hitStopTimer - dt);

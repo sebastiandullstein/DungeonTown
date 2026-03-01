@@ -19,3 +19,12 @@ body {
     outline: none;
     border-color: #666;
 }
+
+/* Fullscreen: canvas fills viewport maintaining aspect ratio */
+:fullscreen #gameCanvas,
+:-webkit-full-screen #gameCanvas {
+    border: none;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
+}
