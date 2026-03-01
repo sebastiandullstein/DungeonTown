@@ -319,6 +319,13 @@ class Renderer {
         UIRenderer.drawPrisonerPanel(this._uiLayer.ctx, selectedIndex);
     }
 
+    drawPauseMenu(selectedIndex) {
+        UIRenderer.drawPauseMenu(this._uiLayer.ctx, selectedIndex);
+    }
+    drawSettingsPanel(settings, selectedIndex) {
+        UIRenderer.drawSettingsPanel(this._uiLayer.ctx, settings, selectedIndex);
+    }
+
     drawInfoTooltip(text, lines, col, row) {
         // Convert tile coords to pixel coords, offset below+right of cursor
         const px = (col + 1) * this.tileW + 4;
