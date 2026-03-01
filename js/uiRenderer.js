@@ -2227,4 +2227,29 @@ const UIRenderer = {
             return `rgb(${r},${g},${b})`;
         } catch(e) { return hex; }
     },
+
+    // ─── TUTORIAL HINT ──────────────────────────────────────────────────────────
+
+    drawTutorialHint(ctx, text, alpha) {
+        if (alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        const w = Math.min(text.length * 9 + 40, 600);
+        const x = (800 - w) / 2;
+        const y = 10;
+        const h = 32;
+        // Background
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = 'rgba(255,220,80,0.4)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+        // Text
+        ctx.fillStyle = '#ffd850';
+        ctx.font = '13px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, 400, y + 20);
+        ctx.textAlign = 'left';
+        ctx.restore();
+    },
 };

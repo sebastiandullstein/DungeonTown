@@ -21,6 +21,9 @@ const DungeonScene = {
     _prisonerIndex: 0,
     _pauseIndex: 0,
     _settingsIndex: 0,
+    // Tutorial hints (non-blocking, overlay during play)
+    _tutorialHint: null,  // { text, timer }
+    _tutorialTimer: 0,    // time spent on this floor (for movement hint delay)
 
     init() {},
 
@@ -46,6 +49,8 @@ const DungeonScene = {
         this.chestAnims = [];
         this._abilityUnlockAnim = null;
         this._trackedLevel = p.level;
+        this._tutorialHint = null;
+        this._tutorialTimer = 0;
         // Run stats tracking
         if (!Game.state.runStats || floor === 1) {
             Game.state.runStats = { kills: 0, floorsReached: floor, goldAtStart: p.gold };
@@ -299,6 +304,16 @@ const DungeonScene = {
         const fovRadius = 6 + (player.getFOVBonus ? player.getFOVBonus() : 0);
         this.map.revealAround(player.x, player.y, fovRadius);
 
+        // Tutorial hints (non-blocking)
+        this._tutorialTimer += dt;
+        if (this._tutorialHint) {
+            this._tutorialHint.timer += dt;
+            if (this._tutorialHint.timer >= 6 || Object.keys(Input.keyPressed).length > 0) {
+                this._tutorialHint = null;
+            }
+        }
+        this._checkTutorials(player);
+
         // Stairs
         if (this.map.get(player.x, player.y) === TILE.STAIRS_DOWN) {
             if (Input.wasPressed('Enter') || Input.wasPressed('>') || Input.wasPressed('.')) {
@@ -473,6 +488,51 @@ const DungeonScene = {
         if (Input.wasPressed('Escape')) {
             this._pauseIndex = 1;
             this.mode = 'paused';
+        }
+    },
+
+    _showHint(key, text) {
+        const seen = Game.settings.tutorialSeen;
+        if (seen[key] || this._tutorialHint) return;
+        seen[key] = true;
+        Game.saveSettings();
+        this._tutorialHint = { text, timer: 0 };
+    },
+
+    _checkTutorials(player) {
+        const floor = Game.state.currentFloor;
+        // Movement hint — first 3 seconds on floor 1
+        if (floor === 1 && this._tutorialTimer < 3 && this._tutorialTimer > 0.5) {
+            this._showHint('movement', 'WASD to move, Space to attack');
+        }
+        // Combat hint — enemy within 4 tiles
+        for (const e of this.map.enemies) {
+            if (e.hp <= 0) continue;
+            const dx = Math.abs(e.x - player.x);
+            const dy = Math.abs(e.y - player.y);
+            if (dx + dy <= 4) {
+                this._showHint('combat', 'Space to attack, Shift to dash');
+                break;
+            }
+        }
+        // Item hint — item on ground within FOV
+        for (const item of this.map.items) {
+            if (this.map.isInFOV(player.x, player.y, item.x, item.y)) {
+                this._showHint('items', 'Walk over items to pick up, I for inventory');
+                break;
+            }
+        }
+        // Event hint — standing on event tile
+        if (this._nearEvent && !this._nearEvent.used) {
+            this._showHint('events', 'Press E to interact with this event');
+        }
+        // Ability hint — player reaches level 3
+        if (player.level >= 3) {
+            this._showHint('abilities', 'Q: Whirlwind  E: Execute  Shift: Dash');
+        }
+        // Escape hint — standing on stairs up
+        if (this.map.get(player.x, player.y) === TILE.STAIRS_UP) {
+            this._showHint('escape', 'Enter on stairs to escape with your loot');
         }
     },
 
@@ -781,6 +841,14 @@ const DungeonScene = {
             ctx.fillText('Press [E] ' + (evDef ? evDef.name : ''), r.canvas.width / 2, 557);
             ctx.textAlign = 'left';
             ctx.restore();
+        }
+
+        // ── Tutorial hint (top-center, non-blocking) ──
+        if (this._tutorialHint) {
+            const alpha = this._tutorialHint.timer < 0.3
+                ? this._tutorialHint.timer / 0.3
+                : this._tutorialHint.timer > 5 ? 1 - (this._tutorialHint.timer - 5) : 1;
+            r.drawTutorialHint(this._tutorialHint.text, Math.max(0, alpha));
         }
 
         // ── Escape confirmation overlay ──

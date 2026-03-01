@@ -330,6 +330,9 @@ class Renderer {
     drawSettingsPanel(settings, selectedIndex) {
         UIRenderer.drawSettingsPanel(this._uiLayer.ctx, settings, selectedIndex);
     }
+    drawTutorialHint(text, alpha) {
+        UIRenderer.drawTutorialHint(this._uiLayer.ctx, text, alpha);
+    }
 
     drawInfoTooltip(text, lines, col, row) {
         // Convert tile coords to pixel coords, offset below+right of cursor
