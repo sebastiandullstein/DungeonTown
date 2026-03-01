@@ -212,7 +212,7 @@ class Enemy {
             hp: Math.floor(type.hp * floorScale),
             maxHp: Math.floor(type.hp * floorScale),
             atk: Math.floor(type.atk * floorScale),
-            def: type.def,
+            def: Math.floor(type.def * floorScale),
             speed: type.speed,
             xp: Math.floor(type.xp * floorScale),
             detection: type.detection,

@@ -3,7 +3,7 @@ const Abilities = {
     list: {
         dash: {
             name: 'Dash', key: 'Shift', unlockLevel: 1,
-            maxCooldown: 3, cooldown: 0, manaCost: 0,
+            maxCooldown: 4, cooldown: 0, manaCost: 0,
         },
         whirlwind: {
             name: 'Whirlwind', key: 'Q', unlockLevel: 5,
@@ -11,7 +11,7 @@ const Abilities = {
         },
         execute: {
             name: 'Execute', key: 'E', unlockLevel: 10,
-            maxCooldown: 12, cooldown: 0, manaCost: 15,
+            maxCooldown: 10, cooldown: 0, manaCost: 15,
         },
     },
 
@@ -103,7 +103,7 @@ const Abilities = {
 
         player.x = lastX;
         player.y = lastY;
-        player.invulnTimer = 0.4;
+        player.invulnTimer = 0.2;
         player.moveTimer = 0.15;
         this.list.dash.cooldown = this.list.dash.maxCooldown;
         Audio.play('playerAttack');
@@ -113,7 +113,7 @@ const Abilities = {
     _doWhirlwind(player, enemies, ab) {
         player.mp -= ab.manaCost;
         ab.cooldown = ab.maxCooldown;
-        const atk = Math.floor(player.getAtk() * 1.5);
+        const atk = Math.floor(player.getAtk() * 2.0);
         let hitCount = 0;
 
         for (const enemy of enemies) {
