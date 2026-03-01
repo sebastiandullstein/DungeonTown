@@ -304,8 +304,8 @@ class DungeonGenerator {
             if (isFinalFloor) {
                 // Floor 50: Demon Lord (final boss) + 2 demon guards
                 map.enemies.push(Enemy.create(bx, by, EnemyTypes.types.demonLord));
-                map.enemies.push(Enemy.create(bx - 2, by, EnemyTypes.types.demon));
-                map.enemies.push(Enemy.create(bx + 2, by, EnemyTypes.types.demon));
+                if (map.isWalkable(bx - 2, by)) map.enemies.push(Enemy.create(bx - 2, by, EnemyTypes.types.demon));
+                if (map.isWalkable(bx + 2, by)) map.enemies.push(Enemy.create(bx + 2, by, EnemyTypes.types.demon));
             } else if (isMajorBoss) {
                 map.enemies.push(Enemy.create(bx, by, EnemyTypes.getMajorBossForFloor(floor)));
             } else if (isMiniBoss) {

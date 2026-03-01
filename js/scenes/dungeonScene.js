@@ -46,6 +46,7 @@ const DungeonScene = {
         p.invulnTimer = 0;
         this.deathTimer = 0;
         this.victoryTimer = 0;
+        Game.state.victory = false;
         this.chestAnims = [];
         this._abilityUnlockAnim = null;
         this._trackedLevel = p.level;
@@ -168,6 +169,7 @@ const DungeonScene = {
                         for (let i = 0; i < 2; i++) {
                             const ex = p.x + (Math.random() < 0.5 ? -1 : 1);
                             const ey = p.y + (Math.random() < 0.5 ? -1 : 1);
+                            if (!this.map.isWalkable(ex, ey)) continue;
                             const enemy = Enemy.spawn(Game.state.currentFloor, ex, ey);
                             if (enemy) this.map.enemies.push(enemy);
                         }
@@ -296,7 +298,7 @@ const DungeonScene = {
         if (Input.wasPressed('q') || Input.wasPressed('Q')) {
             Abilities.tryActivate('whirlwind', player, this.map, this.map.enemies);
         }
-        if ((Input.wasPressed('e') || Input.wasPressed('E')) && !this._nearEvent) {
+        if ((Input.wasPressed('e') || Input.wasPressed('E')) && (!this._nearEvent || this._nearEvent.used)) {
             Abilities.tryActivate('execute', player, this.map, this.map.enemies);
         }
 

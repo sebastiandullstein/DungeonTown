@@ -104,7 +104,7 @@ class Player {
         if (this.equipment.weapon) atk += this.equipment.weapon.stats.atk || 0;
         if (this.equipment.ring && this.equipment.ring.stats.atk) atk += this.equipment.ring.stats.atk;
         // Blessing: Cursed Strength
-        if (this.blessings && this.blessings.cursedStrength) atk += 5;
+        if (this.blessings && this.blessings.cursedStrength) atk += TEMPLE_BLESSINGS.cursedStrength.atkBonus;
         // Run bonuses (from shrine events)
         if (this._runBonuses && this._runBonuses.atk) atk += this._runBonuses.atk;
         // Tavern buff multipliers
@@ -115,7 +115,7 @@ class Player {
                 if (b && b.atkMult) atkMult += b.atkMult;
             }
         }
-        if (atkMult > 0) atk = Math.floor(atk * (1 + atkMult));
+        if (atkMult !== 0) atk = Math.max(0, Math.floor(atk * (1 + atkMult)));
         return atk;
     }
 
@@ -144,7 +144,7 @@ class Player {
         // Blessings
         if (this.blessings) {
             if (this.blessings.ironWill) hp += 10;
-            if (this.blessings.cursedStrength) hp -= 5;
+            if (this.blessings.cursedStrength) hp -= TEMPLE_BLESSINGS.cursedStrength.maxHpPenalty;
         }
         // Run bonuses (from shrine events)
         if (this._runBonuses && this._runBonuses.maxHp) hp += this._runBonuses.maxHp;
@@ -196,6 +196,11 @@ class Player {
 
     clearTavernBuffs() {
         this.tavernBuffs = [];
+        // Recalculate derived stats now that buff multipliers are gone
+        this.maxHp = this.getMaxHp();
+        this.maxMp = this.getMaxMp();
+        if (this.hp > this.maxHp) this.hp = this.maxHp;
+        if (this.mp > this.maxMp) this.mp = this.maxMp;
     }
 
     gainXp(amount) {
@@ -286,6 +291,7 @@ class Player {
             this.attackFrame += dt * 10;
             if (this.attackFrame > 3) {
                 this.attacking = false;
+                this._attackResolved = false;
             }
         }
 

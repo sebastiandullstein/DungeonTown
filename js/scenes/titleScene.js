@@ -68,9 +68,10 @@ const TitleScene = {
                 Game.switchScene('village');
             } else if (this.selectedOption === 1 && this.hasSave) {
                 Game.newGame();
-                if (Game.load()) {
-                    Game.switchScene('village');
+                if (!Game.load()) {
+                    Game.notify('Save corrupted — starting fresh.', '#f00');
                 }
+                Game.switchScene('village');
             } else if (this.selectedOption === 2) {
                 this._settingsMode = true;
                 this._settingsIndex = 0;

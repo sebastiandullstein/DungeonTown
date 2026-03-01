@@ -120,6 +120,7 @@ const ShopScene = {
         if (item.slot === 'ring') return 'rings';
         if (item.slot === 'amulet') return 'amulets';
         if (item.type === 'potion') return 'potions';
+        if (item.type === 'food') return 'food';
         return 'weapons';
     },
 

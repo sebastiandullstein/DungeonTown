@@ -146,6 +146,7 @@ const Game = {
             currentFloor: Game.state.currentFloor,
             maxFloorReached: Game.state.maxFloorReached,
             unlockedFloors: Game.state.unlockedFloors,
+            victory: Game.state.victory,
             abilityCooldowns: Abilities.serialize(),
         };
         localStorage.setItem('dungeontown_save', JSON.stringify(data));
@@ -162,6 +163,7 @@ const Game = {
             Game.state.currentFloor = data.currentFloor;
             Game.state.maxFloorReached = data.maxFloorReached;
             Game.state.unlockedFloors = data.unlockedFloors || [1];
+            Game.state.victory = data.victory || false;
             if (data.abilityCooldowns) Abilities.deserialize(data.abilityCooldowns);
             return true;
         } catch (e) {

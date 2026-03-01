@@ -102,8 +102,7 @@ const Combat = {
             }
         }
 
-        // Reset on next attack
-        setTimeout(() => { player._attackResolved = false; }, 50);
+        // Reset when the swing ends (attackFrame goes past 1.5, guard at top re-enables)
     },
 
     render(renderer, viewX, viewY) {
