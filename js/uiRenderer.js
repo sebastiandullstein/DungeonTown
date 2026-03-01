@@ -1040,12 +1040,12 @@ const UIRenderer = {
         ctx.setLineDash([]);
 
         // ── Menu Buttons ──
-        const menuStartY = 360;
-        const options = ['New Game', 'Continue'];
+        const menuStartY = 350;
+        const options = ['New Game', 'Continue', 'Settings'];
         for (let i = 0; i < options.length; i++) {
             const selected = i === selectedOption;
             const disabled = i === 1 && !hasSave;
-            this._drawMenuButton(ctx, W / 2 - 140, menuStartY + i * 80, 280, 55, options[i], selected, disabled);
+            this._drawMenuButton(ctx, W / 2 - 140, menuStartY + i * 65, 280, 48, options[i], selected, disabled);
         }
 
         // Controls hint
@@ -1053,7 +1053,7 @@ const UIRenderer = {
         ctx.shadowBlur = 0;
         ctx.font = '12px "Courier New"';
         ctx.textAlign = 'center';
-        ctx.fillText('[W / S]  Navigate      [Enter]  Select', W / 2, 560);
+        ctx.fillText('[W / S]  Navigate      [Enter]  Select', W / 2, 570);
 
         // Tip (rotating)
         const tips = [
@@ -2070,6 +2070,137 @@ const UIRenderer = {
         ctx.fillStyle = '#666';
         ctx.font = '11px "Courier New"';
         ctx.fillText('[W/S] Select  [Enter] Choose  [Esc] Decline', x + w / 2, y + h - 14);
+        ctx.textAlign = 'left';
+    },
+
+    // ─── Pause Menu ─────────────────────────────────────────────────────────
+
+    drawPauseMenu(selectedIndex) {
+        const ctx = this.ctx;
+        const cw = this.canvas.width;
+        const ch = this.canvas.height;
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Panel
+        const pw = 280, ph = 220;
+        const px = (cw - pw) / 2, py = (ch - ph) / 2 - 20;
+        ctx.fillStyle = 'rgba(15,10,20,0.92)';
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px, py, pw, ph);
+
+        // Title
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 24px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('PAUSED', cw / 2, py + 40);
+
+        // Options
+        const options = ['Resume', 'Settings', 'Main Menu'];
+        ctx.font = '16px "Courier New"';
+        for (let i = 0; i < options.length; i++) {
+            const oy = py + 80 + i * 40;
+            const sel = i === selectedIndex;
+            if (sel) {
+                ctx.fillStyle = 'rgba(255,215,0,0.1)';
+                ctx.fillRect(px + 20, oy - 14, pw - 40, 28);
+            }
+            ctx.fillStyle = sel ? '#ffd700' : '#888';
+            ctx.font = (sel ? 'bold ' : '') + '16px "Courier New"';
+            ctx.fillText((sel ? '► ' : '  ') + options[i], cw / 2, oy + 4);
+        }
+
+        // Hint
+        ctx.fillStyle = '#555';
+        ctx.font = '11px "Courier New"';
+        ctx.fillText('[Esc] Resume', cw / 2, py + ph - 14);
+        ctx.textAlign = 'left';
+    },
+
+    // ─── Settings Panel ───────────────────────────────────────────────────────
+
+    drawSettingsPanel(settings, selectedIndex) {
+        const ctx = this.ctx;
+        const cw = this.canvas.width;
+        const ch = this.canvas.height;
+
+        // Dark overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Panel
+        const pw = 360, ph = 260;
+        const px = (cw - pw) / 2, py = (ch - ph) / 2 - 20;
+        ctx.fillStyle = 'rgba(15,10,20,0.92)';
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px, py, pw, ph);
+
+        // Title
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 22px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('SETTINGS', cw / 2, py + 38);
+
+        // Items
+        const items = [
+            { label: 'Master Volume', value: settings.masterVolume, type: 'slider' },
+            { label: 'SFX Volume',    value: settings.sfxVolume,    type: 'slider' },
+            { label: 'Music Volume',  value: settings.musicVolume,  type: 'slider' },
+            { label: 'Fullscreen',    value: settings.fullscreen,   type: 'toggle' },
+        ];
+
+        ctx.textAlign = 'left';
+        for (let i = 0; i < items.length; i++) {
+            const iy = py + 72 + i * 40;
+            const sel = i === selectedIndex;
+            const item = items[i];
+
+            if (sel) {
+                ctx.fillStyle = 'rgba(255,215,0,0.08)';
+                ctx.fillRect(px + 10, iy - 12, pw - 20, 32);
+            }
+
+            ctx.fillStyle = sel ? '#ffd700' : '#aaa';
+            ctx.font = (sel ? 'bold ' : '') + '14px "Courier New"';
+            ctx.fillText((sel ? '► ' : '  ') + item.label, px + 20, iy + 6);
+
+            if (item.type === 'slider') {
+                // Volume bar
+                const barX = px + 210, barW = 120, barH = 10;
+                const barY = iy - 2;
+                ctx.fillStyle = '#222';
+                ctx.fillRect(barX, barY, barW, barH);
+                ctx.fillStyle = sel ? '#ffd700' : '#888';
+                ctx.fillRect(barX, barY, barW * item.value, barH);
+                ctx.strokeStyle = '#444';
+                ctx.strokeRect(barX, barY, barW, barH);
+                // Percentage
+                ctx.textAlign = 'right';
+                ctx.fillStyle = sel ? '#fff' : '#888';
+                ctx.font = '12px "Courier New"';
+                ctx.fillText(Math.round(item.value * 100) + '%', px + pw - 16, iy + 6);
+                ctx.textAlign = 'left';
+            } else {
+                // Toggle
+                ctx.textAlign = 'right';
+                ctx.fillStyle = item.value ? '#40ff40' : '#ff4040';
+                ctx.font = 'bold 14px "Courier New"';
+                ctx.fillText(item.value ? 'ON' : 'OFF', px + pw - 16, iy + 6);
+                ctx.textAlign = 'left';
+            }
+        }
+
+        // Hint
+        ctx.fillStyle = '#555';
+        ctx.font = '11px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('[A/D] Adjust  [Esc] Back', cw / 2, py + ph - 14);
         ctx.textAlign = 'left';
     },
 

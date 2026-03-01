@@ -175,6 +175,25 @@ const Game = {
         Game.state.victory = false;
     },
 
+    toggleFullscreen() {
+        if (window.electronAPI && window.electronAPI.toggleFullscreen) {
+            window.electronAPI.toggleFullscreen().then(isFs => {
+                this.settings.fullscreen = isFs;
+                this.saveSettings();
+            });
+        } else {
+            // Browser fallback
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                this.settings.fullscreen = true;
+            } else {
+                document.exitFullscreen().catch(() => {});
+                this.settings.fullscreen = false;
+            }
+            this.saveSettings();
+        }
+    },
+
     loadSettings() {
         try {
             const raw = localStorage.getItem('dungeontown_settings');

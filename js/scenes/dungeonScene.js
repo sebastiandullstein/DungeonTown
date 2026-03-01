@@ -11,7 +11,7 @@ const DungeonScene = {
     _abilityUnlockAnim: null,
     _trackedLevel: 0,
     // Phase 1: Escape + Events
-    mode: 'play', // 'play','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice'
+    mode: 'play', // 'play','paused','settings','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice'
     floorEvents: [],
     _floorOptions: [],
     _floorSelectIndex: 0,
@@ -19,6 +19,8 @@ const DungeonScene = {
     _merchantItems: [],
     _merchantIndex: 0,
     _prisonerIndex: 0,
+    _pauseIndex: 0,
+    _settingsIndex: 0,
 
     init() {},
 
@@ -77,6 +79,38 @@ const DungeonScene = {
         const r = Game.renderer;
         this.viewW = r.viewportCols;
         this.viewH = r.viewportRows;
+
+        // Pause menu
+        if (this.mode === 'paused') {
+            const pauseOptions = ['Resume', 'Settings', 'Main Menu'];
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._pauseIndex = Math.max(0, this._pauseIndex - 1);
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._pauseIndex = Math.min(pauseOptions.length - 1, this._pauseIndex + 1);
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                if (this._pauseIndex === 0) {
+                    this.mode = 'play';
+                } else if (this._pauseIndex === 1) {
+                    this._settingsIndex = 0;
+                    this.mode = 'settings';
+                } else if (this._pauseIndex === 2) {
+                    Game.switchScene('title');
+                }
+                return;
+            }
+            if (Input.wasPressed('Escape') || Input.wasPressed('p') || Input.wasPressed('P')) {
+                this.mode = 'play';
+            }
+            return;
+        }
+
+        // Settings panel (from pause)
+        if (this.mode === 'settings') {
+            this._updateSettings();
+            return;
+        }
 
         // Floor select mode
         if (this.mode === 'floorSelect') {
@@ -240,7 +274,11 @@ const DungeonScene = {
 
         if (Input.wasPressed('i') || Input.wasPressed('I')) { UI.toggle('inventory'); return; }
         if (Input.wasPressed('c') || Input.wasPressed('C')) { UI.toggle('character'); return; }
-        if (Input.wasPressed('Escape')) { this.returnToVillage(); return; }
+        if (Input.wasPressed('Escape') || Input.wasPressed('p') || Input.wasPressed('P')) {
+            this._pauseIndex = 0;
+            this.mode = 'paused';
+            return;
+        }
 
         const player = Game.state.player;
 
@@ -403,6 +441,38 @@ const DungeonScene = {
             if (ev.x === x && ev.y === y) return ev;
         }
         return null;
+    },
+
+    _updateSettings() {
+        const items = ['masterVolume', 'sfxVolume', 'musicVolume', 'fullscreen'];
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this._settingsIndex = Math.max(0, this._settingsIndex - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this._settingsIndex = Math.min(items.length - 1, this._settingsIndex + 1);
+        }
+        const key = items[this._settingsIndex];
+        if (key === 'fullscreen') {
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('ArrowLeft') || Input.wasPressed('ArrowRight')) {
+                Game.toggleFullscreen();
+            }
+        } else {
+            const step = 0.05;
+            if (Input.wasPressed('ArrowLeft') || Input.wasPressed('a') || Input.wasPressed('A')) {
+                Game.settings[key] = Math.max(0, Math.round((Game.settings[key] - step) * 100) / 100);
+                Audio.setVolume(Game.settings.masterVolume, Game.settings.sfxVolume, Game.settings.musicVolume);
+                Game.saveSettings();
+            }
+            if (Input.wasPressed('ArrowRight') || Input.wasPressed('d') || Input.wasPressed('D')) {
+                Game.settings[key] = Math.min(1, Math.round((Game.settings[key] + step) * 100) / 100);
+                Audio.setVolume(Game.settings.masterVolume, Game.settings.sfxVolume, Game.settings.musicVolume);
+                Game.saveSettings();
+            }
+        }
+        if (Input.wasPressed('Escape')) {
+            this._pauseIndex = 1;
+            this.mode = 'paused';
+        }
     },
 
     returnToVillage() {
@@ -731,6 +801,16 @@ const DungeonScene = {
         // ── Prisoner choice panel ──
         if (this.mode === 'prisonerChoice') {
             r.drawPrisonerPanel(this._prisonerIndex);
+        }
+
+        // ── Pause menu overlay ──
+        if (this.mode === 'paused') {
+            r.drawPauseMenu(this._pauseIndex);
+        }
+
+        // ── Settings overlay ──
+        if (this.mode === 'settings') {
+            r.drawSettingsPanel(Game.settings, this._settingsIndex);
         }
 
         // ── Inventory / Character overlays ──
