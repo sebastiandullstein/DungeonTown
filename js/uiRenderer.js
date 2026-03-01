@@ -2075,10 +2075,9 @@ const UIRenderer = {
 
     // ─── Pause Menu ─────────────────────────────────────────────────────────
 
-    drawPauseMenu(selectedIndex) {
-        const ctx = this.ctx;
-        const cw = this.canvas.width;
-        const ch = this.canvas.height;
+    drawPauseMenu(ctx, selectedIndex) {
+        const cw = 800;
+        const ch = 720;
 
         // Dark overlay
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -2123,10 +2122,9 @@ const UIRenderer = {
 
     // ─── Settings Panel ───────────────────────────────────────────────────────
 
-    drawSettingsPanel(settings, selectedIndex) {
-        const ctx = this.ctx;
-        const cw = this.canvas.width;
-        const ch = this.canvas.height;
+    drawSettingsPanel(ctx, settings, selectedIndex) {
+        const cw = 800;
+        const ch = 720;
 
         // Dark overlay
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
