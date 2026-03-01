@@ -34,6 +34,7 @@ const DungeonScene = {
         }
         this.mode = 'play';
         const floor = Game.state.currentFloor;
+        TileRenderer.setTheme(floor);
         this.map = DungeonGenerator.generate(floor);
         const p = Game.state.player;
         p.x = this.map.playerStart.x;

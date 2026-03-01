@@ -91,6 +91,11 @@ class Renderer {
         this.ctx.translate(sx, sy);
         this.ctx.drawImage(this._tileLayer.canvas,   0, 0);
         this.ctx.drawImage(this._entityLayer.canvas, 0, 0);
+        // Ambient tint from dungeon theme
+        if (TileRenderer.currentTheme && TileRenderer.currentTheme.ambient) {
+            this.ctx.fillStyle = TileRenderer.currentTheme.ambient;
+            this.ctx.fillRect(0, 0, this._tileLayer.canvas.width, this._tileLayer.canvas.height);
+        }
         this.ctx.restore();
         // UI layer drawn without shake so HUD stays stable
         this.ctx.drawImage(this._uiLayer.canvas,     0, 0);

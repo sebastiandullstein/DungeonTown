@@ -1,7 +1,66 @@
 // TileRenderer — pure stateless canvas drawing functions for terrain tiles
 // All functions take (ctx, x, y, w, h) where x/y = top-left pixel, w=h=32
 
+// ─── Dungeon Floor Themes ────────────────────────────────────────────────────
+const DUNGEON_THEMES = {
+    stone: {
+        wall1: '#4a3f30', wall2: '#3a2f20', wall3: '#251a0e',
+        brick1: '#56473a', brick2: '#4e4030', mortar: '#1a1008',
+        floor1: '#26190d', floor2: '#141008', floorCrack: '#332212',
+        floorHighlight: 'rgba(255,200,120,0.04)',
+        water1: '#0a1a3a', water2: '#050e20', waterRipple: 'rgba(40,120,200,0.5)',
+        waterShimmer: [100, 180, 255],
+        ambient: null,
+    },
+    frost: {
+        wall1: '#3a4860', wall2: '#2a3850', wall3: '#1a2838',
+        brick1: '#4a5870', brick2: '#3e4e62', mortar: '#101828',
+        floor1: '#1a2030', floor2: '#101820', floorCrack: '#253040',
+        floorHighlight: 'rgba(140,200,255,0.05)',
+        water1: '#0a2840', water2: '#061828', waterRipple: 'rgba(80,180,255,0.6)',
+        waterShimmer: [140, 210, 255],
+        ambient: 'rgba(100,160,255,0.06)',
+    },
+    magma: {
+        wall1: '#4a2020', wall2: '#3a1818', wall3: '#281010',
+        brick1: '#5a2828', brick2: '#4e2020', mortar: '#1a0808',
+        floor1: '#201008', floor2: '#180808', floorCrack: '#3a1810',
+        floorHighlight: 'rgba(255,140,60,0.06)',
+        water1: '#3a1000', water2: '#280800', waterRipple: 'rgba(255,100,20,0.6)',
+        waterShimmer: [255, 120, 40],
+        ambient: 'rgba(255,80,20,0.05)',
+    },
+    abyss: {
+        wall1: '#302040', wall2: '#201830', wall3: '#141020',
+        brick1: '#3a2850', brick2: '#302040', mortar: '#0a0818',
+        floor1: '#140e1a', floor2: '#0e0a14', floorCrack: '#201830',
+        floorHighlight: 'rgba(180,120,255,0.04)',
+        water1: '#100828', water2: '#08041a', waterRipple: 'rgba(140,60,255,0.5)',
+        waterShimmer: [160, 100, 255],
+        ambient: 'rgba(120,60,200,0.05)',
+    },
+    infernal: {
+        wall1: '#3a1820', wall2: '#2a1018', wall3: '#1a0810',
+        brick1: '#4a2028', brick2: '#3e1820', mortar: '#140408',
+        floor1: '#1a0c08', floor2: '#140808', floorCrack: '#301810',
+        floorHighlight: 'rgba(200,255,80,0.05)',
+        water1: '#281000', water2: '#1a0800', waterRipple: 'rgba(200,255,60,0.5)',
+        waterShimmer: [200, 255, 80],
+        ambient: 'rgba(180,255,40,0.04)',
+    },
+};
+
 const TileRenderer = {
+
+    currentTheme: DUNGEON_THEMES.stone,
+
+    setTheme(floor) {
+        if (floor <= 10)      this.currentTheme = DUNGEON_THEMES.stone;
+        else if (floor <= 20) this.currentTheme = DUNGEON_THEMES.frost;
+        else if (floor <= 30) this.currentTheme = DUNGEON_THEMES.magma;
+        else if (floor <= 40) this.currentTheme = DUNGEON_THEMES.abyss;
+        else                  this.currentTheme = DUNGEON_THEMES.infernal;
+    },
 
     // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -29,27 +88,28 @@ const TileRenderer = {
     // ─── WALL ───────────────────────────────────────────────────────────────
 
     drawWall(ctx, x, y, w, h) {
+        const t = this.currentTheme;
         // Base stone gradient
         const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-        grad.addColorStop(0,   '#4a3f30');
-        grad.addColorStop(0.5, '#3a2f20');
-        grad.addColorStop(1,   '#251a0e');
+        grad.addColorStop(0,   t.wall1);
+        grad.addColorStop(0.5, t.wall2);
+        grad.addColorStop(1,   t.wall3);
         ctx.fillStyle = grad;
         ctx.fillRect(x, y, w, h);
 
         // Two rows of bricks (offset pattern)
         // Top row
-        ctx.fillStyle = '#56473a';
+        ctx.fillStyle = t.brick1;
         ctx.fillRect(x + 2,  y + 2,  13, 11);
         ctx.fillRect(x + 17, y + 2,  13, 11);
         // Bottom row (offset by half)
-        ctx.fillStyle = '#4e4030';
+        ctx.fillStyle = t.brick2;
         ctx.fillRect(x + 2,  y + 17, 7,  11);
         ctx.fillRect(x + 11, y + 17, 11, 11);
         ctx.fillRect(x + 24, y + 17, 6,  11);
 
         // Mortar (dark lines)
-        ctx.fillStyle = '#1a1008';
+        ctx.fillStyle = t.mortar;
         ctx.fillRect(x,      y + 14, w,  2);   // horizontal mortar
         ctx.fillRect(x + 15, y + 2,  2,  12);  // top row vertical
         ctx.fillRect(x + 9,  y + 17, 2,  12);  // bottom row V1
@@ -70,15 +130,16 @@ const TileRenderer = {
     // ─── FLOOR ──────────────────────────────────────────────────────────────
 
     drawFloor(ctx, x, y, w, h, dimFactor = 1.0) {
+        const t = this.currentTheme;
         // Base worn stone
         const bright = dimFactor >= 1.0;
-        ctx.fillStyle = bright ? '#26190d' : '#141008';
+        ctx.fillStyle = bright ? t.floor1 : t.floor2;
         ctx.fillRect(x, y, w, h);
 
         if (!bright) return; // skip details for dim tiles (performance)
 
         // Stone slab edge lines
-        ctx.fillStyle = '#332212';
+        ctx.fillStyle = t.floorCrack;
         ctx.fillRect(x + 2, y + 15, w - 4, 1);  // horizontal crack
         ctx.fillRect(x + 14, y + 2, 1, 13);     // vertical crack
 
@@ -95,7 +156,7 @@ const TileRenderer = {
         ctx.fillRect(x + sp[0], y + sp[1], 2, 2);
 
         // Subtle highlight in center
-        ctx.fillStyle = 'rgba(255,200,120,0.04)';
+        ctx.fillStyle = t.floorHighlight;
         ctx.fillRect(x + 8, y + 8, 16, 16);
 
         // Subtle per-tile brightness variation (seeded dark/light noise)
@@ -212,16 +273,17 @@ const TileRenderer = {
     // ─── WATER ──────────────────────────────────────────────────────────────
 
     drawWater(ctx, x, y, w, h, time = 0) {
+        const t = this.currentTheme;
         // Deep water base
         const grad = ctx.createLinearGradient(x, y, x, y + h);
-        grad.addColorStop(0,   '#0a1a3a');
-        grad.addColorStop(1,   '#050e20');
+        grad.addColorStop(0,   t.water1);
+        grad.addColorStop(1,   t.water2);
         ctx.fillStyle = grad;
         ctx.fillRect(x, y, w, h);
 
         // Animated ripple lines
         const waveOffset = (time * 1.5) % 1;
-        ctx.strokeStyle = 'rgba(40,120,200,0.5)';
+        ctx.strokeStyle = t.waterRipple;
         ctx.lineWidth = 1;
         for (let i = 0; i < 3; i++) {
             const wy = y + ((i / 3 + waveOffset) % 1) * h;
@@ -235,7 +297,8 @@ const TileRenderer = {
 
         // Shimmer highlight
         const shimmer = 0.05 + 0.03 * Math.sin(time * 3);
-        ctx.fillStyle = `rgba(100,180,255,${shimmer})`;
+        const ws = t.waterShimmer;
+        ctx.fillStyle = `rgba(${ws[0]},${ws[1]},${ws[2]},${shimmer})`;
         ctx.fillRect(x + 6, y + 4, 8, 3);
     },
 
