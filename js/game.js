@@ -9,6 +9,15 @@ const Game = {
     // Hit stop (freeze frames)
     hitStopTimer: 0,
 
+    // Settings (persisted separately from save)
+    settings: {
+        masterVolume: 0.7,
+        sfxVolume: 0.8,
+        musicVolume: 0.4,
+        fullscreen: false,
+        tutorialSeen: {},
+    },
+
     hitStop(duration) {
         this.hitStopTimer = Math.max(this.hitStopTimer, duration);
     },
@@ -32,6 +41,8 @@ const Game = {
             localStorage.setItem('dungeontown_save', oldSave);
             localStorage.removeItem('roguevillage_save');
         }
+
+        this.loadSettings();
 
         const canvas = document.getElementById('gameCanvas');
         this.renderer = new Renderer(canvas, 25, 18);
@@ -162,7 +173,28 @@ const Game = {
         Game.state.unlockedFloors = [1];
         Game.state.gameStarted = true;
         Game.state.victory = false;
-    }
+    },
+
+    loadSettings() {
+        try {
+            const raw = localStorage.getItem('dungeontown_settings');
+            if (raw) {
+                const saved = JSON.parse(raw);
+                this.settings.masterVolume = saved.masterVolume ?? 0.7;
+                this.settings.sfxVolume = saved.sfxVolume ?? 0.8;
+                this.settings.musicVolume = saved.musicVolume ?? 0.4;
+                this.settings.fullscreen = saved.fullscreen ?? false;
+                this.settings.tutorialSeen = saved.tutorialSeen ?? {};
+            }
+        } catch (e) {
+            console.error('Settings load failed:', e);
+        }
+        Audio.setVolume(this.settings.masterVolume, this.settings.sfxVolume, this.settings.musicVolume);
+    },
+
+    saveSettings() {
+        localStorage.setItem('dungeontown_settings', JSON.stringify(this.settings));
+    },
 };
 
 // Start on load

@@ -300,4 +300,16 @@ const Audio = {
             );
         }
     },
+
+    setVolume(master, sfx, music) {
+        this.masterVolume = master;
+        this.sfxVolume = sfx;
+        this.musicVolume = music;
+        if (this.ctx && this._musicGain && !this.muted) {
+            this._musicGain.gain.setValueAtTime(
+                this.musicVolume * this.masterVolume,
+                this.ctx.currentTime
+            );
+        }
+    },
 };
