@@ -254,10 +254,15 @@ class Player {
     equip(item) {
         if (!item.slot) return false;
         const old = this.equipment[item.slot];
-        this.equipment[item.slot] = item;
-        // Remove from inventory
+        // Remove new item from inventory first
         const idx = this.inventory.indexOf(item);
         if (idx >= 0) this.inventory.splice(idx, 1);
+        // Check if old item fits before swapping
+        if (old && idx < 0 && this.inventory.length >= this.maxInventory) {
+            Game.notify('Inventory full — cannot unequip!', '#f00');
+            return false;
+        }
+        this.equipment[item.slot] = item;
         // Put old in inventory
         if (old) this.inventory.push(old);
         // Recalculate stats
@@ -427,6 +432,12 @@ class Player {
         this.tavernBuffs = data.tavernBuffs || [];
         this.blessings = data.blessings || {};
         this.activeBuffs = data.activeBuffs || [];
+        // Validate xpToLevel — recalculate if missing or inconsistent
+        if (!this.xpToLevel || this.xpToLevel < 20) {
+            let xpReq = 20;
+            for (let i = 1; i < this.level; i++) xpReq = Math.floor(xpReq * 1.5);
+            this.xpToLevel = xpReq;
+        }
         this.moveTimer = 0;
         this.attackTimer = 0;
         this.attacking = false;

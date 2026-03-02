@@ -478,9 +478,9 @@ class Village {
         this.resources = data.resources || {};
         // Migrate old saves that have 'gold' in village resources → discard it
         delete this.resources.gold;
-        this.buildings = data.buildings;
-        this.villagers = data.villagers;
-        this.maxVillagers = data.maxVillagers;
+        this.buildings = data.buildings || this.buildings;
+        this.villagers = data.villagers || this.villagers;
+        this.maxVillagers = data.maxVillagers || this.maxVillagers;
         this.recruits = data.recruits || [];
     }
 }

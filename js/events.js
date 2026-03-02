@@ -123,7 +123,7 @@ const DungeonEvents = {
             const items = ItemGenerator.getShopItems(cat, tier);
             if (items.length > 0) {
                 const item = items[Math.floor(Math.random() * items.length)];
-                if (player.inventory.length < 20) {
+                if ((player.inventory ? player.inventory.length : 0) < player.maxInventory) {
                     player.inventory.push(item);
                     return { text: 'Treasure! Found ' + item.name, color: '#c040ff' };
                 }
@@ -139,8 +139,8 @@ const DungeonEvents = {
             return { text: 'The chest holds ' + gold + ' gold!', color: '#ff0' };
         } else {
             // Trap!
-            const dmg = Math.floor(player.hp * 0.3);
-            player.hp = Math.max(1, player.hp - dmg);
+            const dmg = Math.floor((player.hp || 1) * 0.3);
+            player.hp = Math.max(1, (player.hp || 1) - dmg);
             return { text: 'TRAP! Dark energy erupts! (-' + dmg + ' HP) Enemies approach!', color: '#ff0000', trap: true };
         }
     },

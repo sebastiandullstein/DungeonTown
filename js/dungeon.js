@@ -314,18 +314,25 @@ class DungeonGenerator {
         }
     }
 
+    static _findFloorTile(map) {
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const room = map.rooms[Math.floor(Math.random() * map.rooms.length)];
+            const x = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
+            const y = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
+            if (map.isWalkable(x, y) && map.get(x, y) === TILE.FLOOR) return { x, y };
+        }
+        return null;
+    }
+
     static placeItems(map, floor) {
         // Scatter potions as dungeon floor loot
         const potionCount = 2 + Math.floor(Math.random() * 3);
         for (let i = 0; i < potionCount; i++) {
-            const roomIdx = Math.floor(Math.random() * map.rooms.length);
-            const room = map.rooms[roomIdx];
-            const x = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
-            const y = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
-            if (map.isWalkable(x, y) && map.get(x, y) === TILE.FLOOR) {
+            const pos = this._findFloorTile(map);
+            if (pos) {
                 const item = ItemGenerator.generateDungeonLoot(floor);
-                item.x = x;
-                item.y = y;
+                item.x = pos.x;
+                item.y = pos.y;
                 map.items.push(item);
             }
         }
@@ -333,13 +340,10 @@ class DungeonGenerator {
         // Gold piles
         const goldCount = 3 + Math.floor(Math.random() * 4);
         for (let i = 0; i < goldCount; i++) {
-            const roomIdx = Math.floor(Math.random() * map.rooms.length);
-            const room = map.rooms[roomIdx];
-            const x = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
-            const y = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
-            if (map.isWalkable(x, y) && map.get(x, y) === TILE.FLOOR) {
+            const pos = this._findFloorTile(map);
+            if (pos) {
                 map.items.push({
-                    x, y, name: 'Gold',
+                    x: pos.x, y: pos.y, name: 'Gold',
                     type: 'gold',
                     char: '$', fg: '#ff0',
                     value: 10 + Math.floor(Math.random() * 15 * Math.max(1, floor)),
