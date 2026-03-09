@@ -570,12 +570,15 @@ const DungeonScene = {
             Game.state.village.resolveRaid(Game.state.currentFloor);
         }
         Game.state.village.refreshRecruits();
-        Audio.startMusic('village');
         if (escaped) {
-            Game.notify('Escaped the dungeon safely.', '#40e0e0');
             Game.save();
+            Game.switchScene('village', {
+                fromEscape: true,
+                runStats: Game.state.runStats
+            });
+        } else {
+            Game.switchScene('village');
         }
-        Game.switchScene('village');
     },
 
     render(r) {

@@ -61,21 +61,28 @@ const VillageScene = {
         this.mode = 'explore';
         this.generateVillageMap();
 
-        // Town square spawn (death return or normal)
         if (data && data.fromDeath) {
+            // Death return
             this.cursor.x = 40;
             this.cursor.y = 25;
             this._buildingPulse = 2.0;
             Audio.play('villageReturn');
             this._showDeathReactions(data.runStats, data.goldLost);
+        } else if (data && data.fromEscape) {
+            // Successful escape
+            this.cursor.x = 40;
+            this.cursor.y = 25;
+            Audio.play('villageReturn');
+            this._showEscapeReactions(data.runStats);
         } else {
             Game.notify('You return to DungeonTown.', '#0f0');
         }
 
+        // Check for floor milestones
+        this._checkMilestones();
+
         this._centerOnCursor();
         Audio.startMusic('village');
-
-        // Init decorative NPCs
         this._initNPCs();
     },
 
@@ -83,10 +90,52 @@ const VillageScene = {
 
     _initNPCs() {
         this._npcs = [
-            { x: 36, y: 25, dx: 1, dy: 0, color: '#8a6040', timer: 0, speed: 1.5 },
-            { x: 44, y: 25, dx: -1, dy: 0, color: '#6080a0', timer: 0, speed: 2.0 },
-            { x: 40, y: 22, dx: 0, dy: 1, color: '#a06060', timer: 0, speed: 1.8 },
+            { x: 36, y: 25, dx: 1, dy: 0, color: '#8a6040', timer: 0, speed: 1.5, name: 'Elder Maren', role: 'elder' },
+            { x: 44, y: 25, dx: -1, dy: 0, color: '#6080a0', timer: 0, speed: 2.0, name: 'Scout Fynn', role: 'scout' },
+            { x: 40, y: 22, dx: 0, dy: 1, color: '#a06060', timer: 0, speed: 1.8, name: 'Healer Sila', role: 'healer' },
         ];
+    },
+
+    _getNearNPC() {
+        for (const npc of this._npcs) {
+            const dist = Math.abs(this.cursor.x - npc.x) + Math.abs(this.cursor.y - npc.y);
+            if (dist <= 2) return npc;
+        }
+        return null;
+    },
+
+    _getNPCDialogue(npc) {
+        const floor = Game.state.maxFloorReached || 1;
+        const deaths = Game.state.totalDeaths || 0;
+        const victory = Game.state.victory;
+        const villagers = Game.state.village.villagers.length;
+        const player = Game.state.player;
+
+        if (npc.role === 'elder') {
+            if (victory) return '"You freed us all. DungeonTown will never forget."';
+            if (floor >= 40) return '"The Demon Lord\'s presence weakens. Press on!"';
+            if (floor >= 25) return '"The deep floors hold terrible secrets... and great power."';
+            if (floor >= 10) return '"The dungeon respects you now. The village prospers."';
+            if (deaths >= 5) return '"Each fall teaches the town something new. We grow stronger."';
+            return '"The dungeon beneath us holds our children captive. Will you descend?"';
+        }
+        if (npc.role === 'scout') {
+            if (victory) return '"The dungeon is quiet now... but for how long?"';
+            if (floor >= 30) return '"I\'ve mapped the upper floors. Below that... only you know."';
+            if (floor >= 15) return `"Floor ${floor} is your record. The frost caves are treacherous."`;
+            if (player.level >= 5) return '"You\'re getting stronger. The Smithy has new gear for you."';
+            if (deaths >= 3) return '"I\'ve been watching the entrance. Something stirs below floor 10."';
+            return '"I scout the dungeon entrance daily. Monsters grow bolder."';
+        }
+        if (npc.role === 'healer') {
+            if (victory) return '"The curse is lifted. But some wounds... take longer to heal."';
+            if (player.hp < player.maxHp) return '"You\'re wounded. Rest here a moment before your next descent."';
+            if (deaths >= 10) return `"${deaths} returns from the brink. Your resilience is remarkable."`;
+            if (floor >= 20) return '"The Temple blessings will serve you well in the deep floors."';
+            if (villagers >= 3) return '"More hands means more herbs. Visit the Temple when you can."';
+            return '"Potions and blessings keep adventurers alive. Don\'t forget them."';
+        }
+        return '"..."';
     },
 
     _showDeathReactions(runStats, goldLost) {
@@ -140,6 +189,57 @@ const VillageScene = {
             Game.notify('Ten falls. Ten lessons. The dungeon respects persistence.', '#ffd700');
         } else if (deaths % 25 === 0) {
             Game.notify(`${deaths} deaths. A legend in the making.`, '#ffd700');
+        }
+    },
+
+    _showEscapeReactions(runStats) {
+        const stats = runStats || {};
+        const floor = stats.floorsReached || 1;
+        const kills = stats.kills || 0;
+        const gold = stats.goldEarned || 0;
+
+        Game.notify('You escaped the dungeon safely!', '#40e0e0');
+        if (floor >= 40) {
+            Game.notify(`Floor ${floor}! The village celebrates your bravery.`, '#ffd700');
+        } else if (kills >= 30) {
+            Game.notify(`${kills} slain and home alive. Well fought!`, '#c8a050');
+        } else if (gold >= 100) {
+            Game.notify(`${gold} gold earned. The town prospers!`, '#ffd020');
+        } else if (floor >= 10) {
+            Game.notify('Another successful expedition. The dungeon weakens.', '#c8a050');
+        }
+    },
+
+    _checkMilestones() {
+        const ms = Game.state.milestones || {};
+        const floor = Game.state.maxFloorReached || 1;
+        const deaths = Game.state.totalDeaths || 0;
+        let changed = false;
+
+        if (floor >= 10 && !ms.floor10) {
+            ms.floor10 = true; changed = true;
+            Game.notify('Milestone: Floor 10 reached! The frost caves await.', '#40e0e0');
+            Game.notify('The village feels safer. New dangers stir below.', '#c8a050');
+        }
+        if (floor >= 25 && !ms.floor25) {
+            ms.floor25 = true; changed = true;
+            Game.notify('Milestone: Floor 25! You have entered the Abyss.', '#c040ff');
+            Game.notify('The villagers whisper of an ancient evil below...', '#c8a050');
+        }
+        if (floor >= 40 && !ms.floor40) {
+            ms.floor40 = true; changed = true;
+            Game.notify('Milestone: Floor 40! The Infernal depths beckon.', '#ff4040');
+            Game.notify('The Demon Lord knows you are coming.', '#ff8040');
+        }
+        if (Game.state.victory && !ms.victory) {
+            ms.victory = true; changed = true;
+            Game.notify('The curse is broken! DungeonTown is free!', '#ffd700');
+            Game.notify('Your children return. The nightmare ends.', '#ffd700');
+        }
+
+        if (changed) {
+            Game.state.milestones = ms;
+            Game.save();
         }
     },
 
@@ -413,8 +513,14 @@ const VillageScene = {
 
         this._centerOnCursor();
 
-        // E key: enter interactive buildings
+        // E key: NPC dialogue or enter interactive buildings
         if (Input.wasPressed('e') || Input.wasPressed('E')) {
+            const nearNPC = this._getNearNPC();
+            if (nearNPC) {
+                const line = this._getNPCDialogue(nearNPC);
+                Game.notify(`${nearNPC.name}: ${line}`, '#e0d0a0');
+                return;
+            }
             const iTarget = this._getInteractiveTarget();
             if (iTarget) {
                 const panel = iTarget.def.interactPanel;
@@ -862,7 +968,7 @@ const VillageScene = {
             ctx.restore();
         }
 
-        // ── Decorative NPCs ──
+        // ── Named NPCs ──
         for (const npc of this._npcs) {
             const col = npc.x - this.viewX;
             const row = npc.y - this.viewY;
@@ -879,6 +985,24 @@ const VillageScene = {
             ctx.beginPath();
             ctx.arc(px, py - 3, 4, 0, Math.PI * 2);
             ctx.fill();
+            // Name tag (when player is nearby)
+            const dist = Math.abs(this.cursor.x - npc.x) + Math.abs(this.cursor.y - npc.y);
+            if (dist <= 3) {
+                ctx.fillStyle = 'rgba(10,6,2,0.8)';
+                const nameW = ctx.measureText(npc.name).width || 70;
+                ctx.font = '9px "Courier New"';
+                const tw = ctx.measureText(npc.name).width + 8;
+                ctx.fillRect(px - tw / 2, py - 16, tw, 12);
+                ctx.fillStyle = '#e0d0a0';
+                ctx.textAlign = 'center';
+                ctx.fillText(npc.name, px, py - 7);
+                if (dist <= 2) {
+                    ctx.fillStyle = '#ffd060';
+                    ctx.font = '8px "Courier New"';
+                    ctx.fillText('[E] Talk', px, py + 16);
+                }
+                ctx.textAlign = 'left';
+            }
             ctx.restore();
         }
 

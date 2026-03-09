@@ -149,6 +149,7 @@ const Game = {
             unlockedFloors: Game.state.unlockedFloors,
             victory: Game.state.victory,
             totalDeaths: Game.state.totalDeaths || 0,
+            milestones: Game.state.milestones || {},
             abilityCooldowns: Abilities.serialize(),
         };
         localStorage.setItem('dungeontown_save', JSON.stringify(data));
@@ -167,6 +168,7 @@ const Game = {
             Game.state.unlockedFloors = data.unlockedFloors || [1];
             Game.state.victory = data.victory || false;
             Game.state.totalDeaths = data.totalDeaths || 0;
+            Game.state.milestones = data.milestones || {};
             if (data.abilityCooldowns) Abilities.deserialize(data.abilityCooldowns);
             return true;
         } catch (e) {
@@ -184,6 +186,7 @@ const Game = {
         Game.state.gameStarted = true;
         Game.state.victory = false;
         Game.state.totalDeaths = 0;
+        Game.state.milestones = {};
     },
 
     toggleFullscreen() {
