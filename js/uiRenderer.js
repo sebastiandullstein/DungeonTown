@@ -2075,7 +2075,7 @@ const UIRenderer = {
 
     // ─── Pause Menu ─────────────────────────────────────────────────────────
 
-    drawPauseMenu(ctx, selectedIndex) {
+    drawPauseMenu(ctx, selectedIndex, customOptions) {
         const cw = 800;
         const ch = 720;
 
@@ -2083,8 +2083,9 @@ const UIRenderer = {
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
         ctx.fillRect(0, 0, cw, ch);
 
-        // Panel
-        const pw = 280, ph = 220;
+        // Panel — height adapts to option count
+        const options = customOptions || ['Resume', 'Settings', 'Main Menu'];
+        const pw = 280, ph = 140 + options.length * 40;
         const px = (cw - pw) / 2, py = (ch - ph) / 2 - 20;
         ctx.fillStyle = 'rgba(15,10,20,0.92)';
         ctx.fillRect(px, py, pw, ph);
@@ -2097,9 +2098,6 @@ const UIRenderer = {
         ctx.font = 'bold 24px "Courier New"';
         ctx.textAlign = 'center';
         ctx.fillText('PAUSED', cw / 2, py + 40);
-
-        // Options
-        const options = ['Resume', 'Settings', 'Main Menu'];
         ctx.font = '16px "Courier New"';
         for (let i = 0; i < options.length; i++) {
             const oy = py + 80 + i * 40;

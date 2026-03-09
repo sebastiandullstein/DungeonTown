@@ -1,7 +1,9 @@
 // Village Scene - management view with interactive building panels
 const VillageScene = {
-    mode: 'explore', // explore, build, manage, recruit, assign_villager, smithy, tavern, temple, warehouse
+    mode: 'explore', // explore, paused, settings, build, manage, recruit, assign_villager, smithy, tavern, temple, warehouse
     selectedOption: 0,
+    _pauseIndex: 0,
+    _settingsIndex: 0,
     buildList: [],
     cursor: { x: 40, y: 25 },
     villageMap: null,  // 50×80 array of tile-info objects
@@ -273,6 +275,41 @@ const VillageScene = {
         this.viewW = r.viewportCols;
         this.viewH = r.viewportRows;
 
+        // Pause menu
+        if (this.mode === 'paused') {
+            const pauseOptions = ['Resume', 'Settings', 'Save Game', 'Main Menu'];
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._pauseIndex = Math.max(0, this._pauseIndex - 1);
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._pauseIndex = Math.min(pauseOptions.length - 1, this._pauseIndex + 1);
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                if (this._pauseIndex === 0) {
+                    this.mode = 'explore';
+                } else if (this._pauseIndex === 1) {
+                    this._settingsIndex = 0;
+                    this.mode = 'settings';
+                } else if (this._pauseIndex === 2) {
+                    Game.save();
+                    this.mode = 'explore';
+                } else if (this._pauseIndex === 3) {
+                    Game.switchScene('title');
+                }
+                return;
+            }
+            if (Input.wasPressed('Escape') || Input.wasPressed('p') || Input.wasPressed('P')) {
+                this.mode = 'explore';
+            }
+            return;
+        }
+
+        // Settings panel (from pause)
+        if (this.mode === 'settings') {
+            this._updateVillageSettings();
+            return;
+        }
+
         // UI menus (inventory / character)
         if (UI.isOpen()) {
             UI.update(dt);
@@ -304,6 +341,13 @@ const VillageScene = {
     },
 
     updateExplore(dt) {
+        // Pause menu
+        if (Input.wasPressed('Escape') || Input.wasPressed('p') || Input.wasPressed('P')) {
+            this._pauseIndex = 0;
+            this.mode = 'paused';
+            return;
+        }
+
         if (Input.wasPressed('ArrowLeft') || Input.wasPressed('a') || Input.wasPressed('A')) this.cursor.x -= 2;
         if (Input.wasPressed('ArrowRight') || Input.wasPressed('d') || Input.wasPressed('D')) this.cursor.x += 2;
         if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) this.cursor.y -= 2;
@@ -382,6 +426,38 @@ const VillageScene = {
 
         if (Input.wasPressed('F5')) {
             Game.save();
+        }
+    },
+
+    _updateVillageSettings() {
+        const items = ['masterVolume', 'sfxVolume', 'musicVolume', 'fullscreen'];
+        if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+            this._settingsIndex = Math.max(0, this._settingsIndex - 1);
+        }
+        if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+            this._settingsIndex = Math.min(items.length - 1, this._settingsIndex + 1);
+        }
+        const key = items[this._settingsIndex];
+        if (key === 'fullscreen') {
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('ArrowLeft') || Input.wasPressed('ArrowRight')) {
+                Game.toggleFullscreen();
+            }
+        } else {
+            const step = 0.05;
+            if (Input.wasPressed('ArrowLeft') || Input.wasPressed('a') || Input.wasPressed('A')) {
+                Game.settings[key] = Math.max(0, Math.round((Game.settings[key] - step) * 100) / 100);
+                Audio.setVolume(Game.settings.masterVolume, Game.settings.sfxVolume, Game.settings.musicVolume);
+                Game.saveSettings();
+            }
+            if (Input.wasPressed('ArrowRight') || Input.wasPressed('d') || Input.wasPressed('D')) {
+                Game.settings[key] = Math.min(1, Math.round((Game.settings[key] + step) * 100) / 100);
+                Audio.setVolume(Game.settings.masterVolume, Game.settings.sfxVolume, Game.settings.musicVolume);
+                Game.saveSettings();
+            }
+        }
+        if (Input.wasPressed('Escape')) {
+            this._pauseIndex = 1;
+            this.mode = 'paused';
         }
     },
 
@@ -830,6 +906,16 @@ const VillageScene = {
             r.drawTemplePanel(Game.state.player, this.selectedOption);
         } else if (this.mode === 'warehouse') {
             r.drawWarehousePanel(Game.state.player, Game.state.village, this.selectedOption);
+        }
+
+        // ── Pause menu overlay ──
+        if (this.mode === 'paused') {
+            r.drawPauseMenu(this._pauseIndex, ['Resume', 'Settings', 'Save Game', 'Main Menu']);
+        }
+
+        // ── Settings overlay ──
+        if (this.mode === 'settings') {
+            r.drawSettingsPanel(Game.settings, this._settingsIndex);
         }
 
         // ── Inventory / Character overlays ──

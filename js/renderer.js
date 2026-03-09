@@ -324,8 +324,8 @@ class Renderer {
         UIRenderer.drawPrisonerPanel(this._uiLayer.ctx, selectedIndex);
     }
 
-    drawPauseMenu(selectedIndex) {
-        UIRenderer.drawPauseMenu(this._uiLayer.ctx, selectedIndex);
+    drawPauseMenu(selectedIndex, options) {
+        UIRenderer.drawPauseMenu(this._uiLayer.ctx, selectedIndex, options);
     }
     drawSettingsPanel(settings, selectedIndex) {
         UIRenderer.drawSettingsPanel(this._uiLayer.ctx, settings, selectedIndex);
