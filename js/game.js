@@ -15,6 +15,7 @@ const Game = {
         sfxVolume: 0.8,
         musicVolume: 0.4,
         fullscreen: false,
+        assistMode: false,
         tutorialSeen: {},
     },
 
@@ -213,6 +214,7 @@ const Game = {
                 this.settings.sfxVolume = saved.sfxVolume ?? 0.8;
                 this.settings.musicVolume = saved.musicVolume ?? 0.4;
                 this.settings.fullscreen = saved.fullscreen ?? false;
+                this.settings.assistMode = saved.assistMode ?? false;
                 this.settings.tutorialSeen = saved.tutorialSeen ?? {};
             }
         } catch (e) {

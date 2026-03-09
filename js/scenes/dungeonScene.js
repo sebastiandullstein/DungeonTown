@@ -483,7 +483,7 @@ const DungeonScene = {
     },
 
     _updateSettings() {
-        const items = ['masterVolume', 'sfxVolume', 'musicVolume', 'fullscreen'];
+        const items = ['masterVolume', 'sfxVolume', 'musicVolume', 'fullscreen', 'assistMode'];
         if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
             this._settingsIndex = Math.max(0, this._settingsIndex - 1);
         }
@@ -494,6 +494,11 @@ const DungeonScene = {
         if (key === 'fullscreen') {
             if (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('ArrowLeft') || Input.wasPressed('ArrowRight')) {
                 Game.toggleFullscreen();
+            }
+        } else if (key === 'assistMode') {
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('ArrowLeft') || Input.wasPressed('ArrowRight')) {
+                Game.settings.assistMode = !Game.settings.assistMode;
+                Game.saveSettings();
             }
         } else {
             const step = 0.05;

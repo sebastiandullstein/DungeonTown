@@ -224,7 +224,12 @@ class Player {
     takeDamage(amount) {
         if (this.invulnTimer > 0) return 0;
         const def = this.getDef();
-        const damage = Math.max(1, amount - def + Math.floor(Math.random() * 3) - 1);
+        let damage = Math.max(1, amount - def + Math.floor(Math.random() * 3) - 1);
+        // Assist Mode: reduce incoming damage based on death count
+        if (Game.settings.assistMode) {
+            const reduction = Math.min(0.8, 0.2 + (Game.state.totalDeaths || 0) * 0.02);
+            damage = Math.max(1, Math.floor(damage * (1 - reduction)));
+        }
         this.hp -= damage;
         this.invulnTimer = this.invulnDuration;
         Audio.play('playerHurt');

@@ -321,6 +321,26 @@ const UIRenderer = {
         ctx.fillText(`${player.soulShards || 0}`, 414, HY + 67);
         ctx.shadowBlur = 0;
 
+        // ── Run progress line ──
+        const runStats = Game.state.runStats;
+        if (runStats) {
+            ctx.fillStyle = '#6a8a6a';
+            ctx.font = '11px "Courier New"';
+            ctx.textAlign = 'right';
+            let progressText = `Floor ${currentFloor}/50 · ${runStats.kills} kills`;
+            if (Game.settings.assistMode) {
+                const deaths = Game.state.totalDeaths || 0;
+                const reduction = Math.min(80, 20 + deaths * 2);
+                ctx.fillText(progressText, W - 110, HY + 67);
+                ctx.fillStyle = '#a070d0';
+                ctx.font = '10px "Courier New"';
+                ctx.fillText(`ASSIST -${reduction}%`, W - 110, HY + 80);
+            } else {
+                ctx.fillText(progressText, W - 10, HY + 67);
+            }
+            ctx.textAlign = 'left';
+        }
+
         // ── Row C: Controls ──
         ctx.fillStyle = '#5a4028';
         ctx.font = '11px "Courier New"';
@@ -2129,7 +2149,7 @@ const UIRenderer = {
         ctx.fillRect(0, 0, cw, ch);
 
         // Panel
-        const pw = 360, ph = 260;
+        const pw = 360, ph = 310;
         const px = (cw - pw) / 2, py = (ch - ph) / 2 - 20;
         ctx.fillStyle = 'rgba(15,10,20,0.92)';
         ctx.fillRect(px, py, pw, ph);
@@ -2149,6 +2169,7 @@ const UIRenderer = {
             { label: 'SFX Volume',    value: settings.sfxVolume,    type: 'slider' },
             { label: 'Music Volume',  value: settings.musicVolume,  type: 'slider' },
             { label: 'Fullscreen',    value: settings.fullscreen,   type: 'toggle' },
+            { label: 'Assist Mode',  value: settings.assistMode,   type: 'toggle' },
         ];
 
         ctx.textAlign = 'left';
@@ -2190,6 +2211,16 @@ const UIRenderer = {
                 ctx.fillText(item.value ? 'ON' : 'OFF', px + pw - 16, iy + 6);
                 ctx.textAlign = 'left';
             }
+        }
+
+        // Assist mode info line
+        if (settings.assistMode) {
+            const deaths = (Game.state && Game.state.totalDeaths) || 0;
+            const reduction = Math.min(80, 20 + deaths * 2);
+            ctx.fillStyle = '#c080ff';
+            ctx.font = 'italic 11px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Damage reduced by ${reduction}% (grows per death)`, cw / 2, py + ph - 34);
         }
 
         // Hint
