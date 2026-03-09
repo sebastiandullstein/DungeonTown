@@ -116,6 +116,10 @@ class Player {
             }
         }
         if (atkMult !== 0) atk = Math.max(0, Math.floor(atk * (1 + atkMult)));
+        // Desperate Fury: +30% ATK when below 20% HP
+        if (this.hp > 0 && this.hp <= this.getMaxHp() * 0.2) {
+            atk = Math.floor(atk * 1.3);
+        }
         return atk;
     }
 
@@ -231,6 +235,21 @@ class Player {
             damage = Math.max(1, Math.floor(damage * (1 - reduction)));
         }
         this.hp -= damage;
+        // Close-call death save: once per run, survive at 1 HP instead of dying
+        if (this.hp <= 0 && !this._deathSaveUsed) {
+            this._deathSaveUsed = true;
+            this.hp = 1;
+            this.invulnTimer = 1.5; // generous i-frames after death save
+            Audio.play('deathSave');
+            if (Game.renderer) {
+                Game.renderer.shake(12, 0.6);
+                Game.hitStop(0.2);
+            }
+            Game.notify('★ DEATH DEFIED ★', '#ffd700');
+            Combat.addFloatingText(this.x, this.y, '★ DEFIED ★', '#ffd700');
+            this.knockTimer = 0.15;
+            return damage;
+        }
         this.invulnTimer = this.invulnDuration;
         Audio.play('playerHurt');
         // Screen shake + hit stop + knockback

@@ -357,6 +357,9 @@ class Enemy {
 
             if (enemy.isFinalBoss) {
                 // Victory!
+                Game.renderer.shake(20, 1.5);
+                Game.hitStop(0.3);
+                Audio.play('bossKill');
                 setTimeout(() => {
                     Game.notify('MALPHAS IS SLAIN!', '#ff0044');
                     Game.notify('Your children are free. You have won!', '#ffd700');
@@ -364,9 +367,15 @@ class Enemy {
                     Game.state.victory = true;
                 }, 500);
             } else if (enemy.isMajorBoss) {
-                Game.notify(`${enemy.name} defeated! Floor cleared!`, '#ff8800');
+                Game.renderer.shake(15, 1.0);
+                Game.hitStop(0.25);
+                Audio.play('bossKill');
+                Game.notify(`★ ${enemy.name} DEFEATED ★`, '#ff8800');
             } else if (enemy.isBoss) {
-                Game.notify(`${enemy.name} defeated!`, '#ffbb00');
+                Game.renderer.shake(10, 0.6);
+                Game.hitStop(0.15);
+                Audio.play('bossKill');
+                Game.notify(`★ ${enemy.name} DEFEATED ★`, '#ffbb00');
             }
         }
         return actualDmg;

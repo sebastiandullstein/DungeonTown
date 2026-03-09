@@ -10,6 +10,12 @@ const DungeonScene = {
     chestAnims: [],
     _abilityUnlockAnim: null,
     _trackedLevel: 0,
+    // Boss intro cinematic
+    _bossIntro: null,  // { name, tier, timer, maxTimer }
+    // Loot fanfare particles
+    _lootFanfare: [],
+    // Death save flash
+    _deathSaveFlash: 0,
     // Phase 1: Escape + Events
     mode: 'play', // 'play','paused','settings','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice'
     floorEvents: [],
@@ -52,6 +58,11 @@ const DungeonScene = {
         this._trackedLevel = p.level;
         this._tutorialHint = null;
         this._tutorialTimer = 0;
+        this._bossIntro = null;
+        this._lootFanfare = [];
+        this._furyTriggered = false;
+        this._deathSaveFlash = 0;
+        this._deathSaveAcknowledged = false;
         // Run stats tracking
         if (!Game.state.runStats || floor === 1) {
             Game.state.runStats = {
@@ -64,19 +75,27 @@ const DungeonScene = {
         // Generate floor events
         this.floorEvents = DungeonEvents.generate(floor, this.map);
         // Clear run bonuses on floor 1
-        if (floor === 1) p._runBonuses = {};
+        if (floor === 1) {
+            p._runBonuses = {};
+            p._deathSaveUsed = false;
+        }
 
         Audio.startMusic('dungeon');
 
         if (floor === 50) {
-            Audio.play('bossEncounter');
-            Game.notify('Floor 50 — The Demon Lord awaits!', '#ff2020');
-            Game.notify('Rescue your children. End this.', '#ff8040');
+            Audio.play('bossIntro');
+            this._bossIntro = { name: 'Malphas the Demon Lord', tier: 'final', timer: 3.5, maxTimer: 3.5 };
+            Game.renderer.shake(15, 1.0);
         } else if (floor % 10 === 0) {
-            Audio.play('bossEncounter');
-            Game.notify(`Floor ${floor} — MAJOR BOSS FLOOR!`, '#ff4400');
+            const boss = EnemyTypes.getMajorBossForFloor(floor);
+            Audio.play('bossIntro');
+            this._bossIntro = { name: boss.name, tier: 'major', timer: 3.0, maxTimer: 3.0 };
+            Game.renderer.shake(10, 0.6);
         } else if (floor % 5 === 0) {
-            Game.notify(`Floor ${floor} — Mini-Boss lurks ahead...`, '#ff8800');
+            const boss = EnemyTypes.getMiniBossForFloor(floor);
+            Audio.play('bossEncounter');
+            this._bossIntro = { name: boss.name, tier: 'mini', timer: 2.0, maxTimer: 2.0 };
+            Game.renderer.shake(6, 0.4);
         } else {
             Game.notify(`Dungeon Floor ${floor}`, '#40e0e0');
         }
@@ -291,6 +310,20 @@ const DungeonScene = {
         // Track run time
         if (Game.state.runStats) Game.state.runStats.runTime += dt;
 
+        // Boss intro cinematic (blocks input)
+        if (this._bossIntro) {
+            this._bossIntro.timer -= dt;
+            if (this._bossIntro.timer <= 0) this._bossIntro = null;
+            return;
+        }
+
+        // Tick loot fanfare particles
+        for (let i = this._lootFanfare.length - 1; i >= 0; i--) {
+            const lf = this._lootFanfare[i];
+            lf.timer += dt;
+            if (lf.timer >= lf.duration) this._lootFanfare.splice(i, 1);
+        }
+
         // UI menus take priority
         if (UI.isOpen()) {
             UI.update(dt);
@@ -409,7 +442,26 @@ const DungeonScene = {
                 } else {
                     if (player.addToInventory(item)) {
                         if (Game.state.runStats) Game.state.runStats.itemsFound++;
-                        Game.notify(`Picked up ${item.name}`, '#40c0e0');
+                        // Rare loot fanfare for tier 4+ items
+                        if (item.tier >= 4) {
+                            Audio.play('rareLoot');
+                            Game.renderer.shake(4, 0.2);
+                            const tierColors = ['#aaa','#8c8','#48f','#a4f','#f80','#f44','#f8f','#fff'];
+                            const col = tierColors[Math.min(item.tier, 7)];
+                            for (let p = 0; p < 12; p++) {
+                                const angle = (p / 12) * Math.PI * 2;
+                                this._lootFanfare.push({
+                                    x: item.x * 32 + 16, y: item.y * 32 + 16,
+                                    vx: Math.cos(angle) * (50 + Math.random() * 40),
+                                    vy: Math.sin(angle) * (50 + Math.random() * 40) - 30,
+                                    color: col, timer: 0, duration: 0.8 + Math.random() * 0.4,
+                                    size: 2 + Math.random() * 3
+                                });
+                            }
+                            Game.notify(`★ ${item.name} ★`, col);
+                        } else {
+                            Game.notify(`Picked up ${item.name}`, '#40c0e0');
+                        }
                         this.map.items.splice(i, 1);
                     } else {
                         Game.notify('Inventory full!', '#f00');
@@ -463,6 +515,26 @@ const DungeonScene = {
         this.viewX = Math.max(0, Math.min(this.map.width  - this.viewW, this.viewX));
         this.viewY = Math.max(0, Math.min(this.map.height - this.viewH, this.viewY));
         Game.renderer.setViewport(this.viewX, this.viewY);
+
+        // Death save flash decay
+        if (this._deathSaveFlash > 0) this._deathSaveFlash -= dt;
+
+        // Detect death save activation (player was saved from death)
+        if (player._deathSaveUsed && !this._deathSaveAcknowledged) {
+            this._deathSaveAcknowledged = true;
+            this._deathSaveFlash = 0.8;
+        }
+
+        // Desperate Fury trigger (once per threshold crossing)
+        const furyThreshold = player.getMaxHp() * 0.2;
+        if (player.hp > 0 && player.hp <= furyThreshold && !this._furyTriggered) {
+            this._furyTriggered = true;
+            Game.notify('★ DESPERATE FURY ★  ATK +30%!', '#ff4020');
+            Combat.addFloatingText(player.x, player.y, 'FURY!', '#ff4020');
+            Game.renderer.shake(5, 0.3);
+        } else if (player.hp > furyThreshold) {
+            this._furyTriggered = false;
+        }
 
         // Death check
         if (player.hp <= 0) {
@@ -649,6 +721,23 @@ const DungeonScene = {
         }
 
         // ── Player ──
+        // Desperate Fury aura (below 20% HP)
+        if (player.hp > 0 && player.hp <= player.getMaxHp() * 0.2) {
+            const ctx = r.getCtx();
+            const px = (player.x - this.viewX) * 32 + 16;
+            const py = (player.y - this.viewY) * 32 + 16;
+            const pulse = 0.3 + Math.sin(Game.renderer.time * 8) * 0.15;
+            ctx.save();
+            ctx.globalAlpha = pulse;
+            const grad = ctx.createRadialGradient(px, py, 4, px, py, 24);
+            grad.addColorStop(0, 'rgba(255,60,20,0.6)');
+            grad.addColorStop(1, 'rgba(255,60,20,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(px, py, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
         r.putPlayer(player.x - this.viewX, player.y - this.viewY, player);
 
         // ── Combat floating text / particles ──
@@ -715,6 +804,36 @@ const DungeonScene = {
             ctx.save();
             ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, Abilities._screenFlash * 3) + ')';
             ctx.fillRect(0, 0, r.canvas.width, r.canvas.height);
+            ctx.restore();
+        }
+
+        // ── Death save golden flash ──
+        if (this._deathSaveFlash > 0) {
+            const ctx = r.getCtx();
+            ctx.save();
+            ctx.fillStyle = 'rgba(255,215,0,' + Math.min(0.5, this._deathSaveFlash) + ')';
+            ctx.fillRect(0, 0, 800, 720);
+            ctx.restore();
+        }
+
+        // ── Loot fanfare particles ──
+        if (this._lootFanfare.length > 0) {
+            const ctx = r.getCtx();
+            ctx.save();
+            for (const lf of this._lootFanfare) {
+                const t = lf.timer / lf.duration;
+                const alpha = t < 0.6 ? 1 : 1 - (t - 0.6) / 0.4;
+                const sx = lf.x + lf.vx * lf.timer - this.viewX * 32;
+                const sy = lf.y + lf.vy * lf.timer - this.viewY * 32;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = lf.color;
+                ctx.shadowColor = lf.color;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(sx, sy, lf.size * (1 - t * 0.5), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
             ctx.restore();
         }
 
@@ -922,6 +1041,71 @@ const DungeonScene = {
             ctx.fillStyle = '#ffaa30';
             ctx.font = '18px "Courier New"';
             ctx.fillText(`Press [${ua.key}] to unleash`, r.canvas.width / 2, r.canvas.height / 2 + 22);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        // ── Boss intro cinematic ──
+        if (this._bossIntro) {
+            const bi = this._bossIntro;
+            const elapsed = bi.maxTimer - bi.timer;
+            const ctx = r.getCtx();
+            ctx.save();
+
+            // Letterbox bars (cinematic widescreen)
+            const barH = 80;
+            const barSlide = Math.min(1, elapsed / 0.4);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 800, barH * barSlide);
+            ctx.fillRect(0, 720 - barH * barSlide, 800, barH * barSlide);
+
+            // Dark vignette overlay
+            const fade = Math.min(1, elapsed / 0.6);
+            ctx.fillStyle = `rgba(0,0,0,${0.5 * fade})`;
+            ctx.fillRect(0, 0, 800, 720);
+
+            // Name card — fade in, hold, then slide out
+            const nameAlpha = elapsed < 0.5 ? elapsed / 0.5
+                : bi.timer < 0.4 ? bi.timer / 0.4 : 1;
+            ctx.globalAlpha = nameAlpha;
+            ctx.textAlign = 'center';
+
+            // Boss tier label
+            const tierLabel = bi.tier === 'final' ? '★ FINAL BOSS ★'
+                : bi.tier === 'major' ? '◆ MAJOR BOSS ◆' : '▸ MINI-BOSS ▸';
+            const tierColor = bi.tier === 'final' ? '#ff0044'
+                : bi.tier === 'major' ? '#ff8800' : '#ffcc00';
+
+            ctx.fillStyle = tierColor;
+            ctx.font = 'bold 14px "Courier New"';
+            ctx.fillText(tierLabel, 400, 300);
+
+            // Boss name with glow
+            ctx.shadowColor = tierColor;
+            ctx.shadowBlur = bi.tier === 'final' ? 30 : 20;
+            ctx.fillStyle = '#fff';
+            ctx.font = bi.tier === 'final' ? 'bold 42px "Courier New"'
+                : bi.tier === 'major' ? 'bold 36px "Courier New"'
+                : 'bold 28px "Courier New"';
+            ctx.fillText(bi.name, 400, 340);
+            ctx.shadowBlur = 0;
+
+            // Decorative line
+            const lineW = Math.min(300, elapsed * 600);
+            ctx.strokeStyle = tierColor;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = nameAlpha * 0.7;
+            ctx.beginPath();
+            ctx.moveTo(400 - lineW / 2, 355);
+            ctx.lineTo(400 + lineW / 2, 355);
+            ctx.stroke();
+
+            // Floor label
+            ctx.globalAlpha = nameAlpha * 0.6;
+            ctx.fillStyle = '#888';
+            ctx.font = '13px "Courier New"';
+            ctx.fillText(`Floor ${Game.state.currentFloor}`, 400, 380);
+
             ctx.textAlign = 'left';
             ctx.restore();
         }

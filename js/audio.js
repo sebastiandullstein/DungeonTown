@@ -65,6 +65,10 @@ const Audio = {
             case 'deathJingle':  this._playDeathJingle(t); break;
             case 'villageReturn': this._playVillageReturn(t); break;
             case 'bossEncounter': this._playBossEncounter(t); break;
+            case 'bossIntro':     this._playBossIntro(t); break;
+            case 'rareLoot':      this._playRareLoot(t); break;
+            case 'deathSave':     this._playDeathSave(t); break;
+            case 'bossKill':      this._playBossKill(t); break;
         }
     },
 
@@ -250,6 +254,134 @@ const Audio = {
         gain.gain.linearRampToValueAtTime(0, t + 2.0);
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(t); osc.stop(t + 2.01);
+    },
+
+    _playBossIntro(t) {
+        // Dramatic rising power chord — announces boss presence
+        const v = this._vol() * 0.25;
+        // Deep rumble building up
+        const rumble = this.ctx.createOscillator();
+        const rGain = this.ctx.createGain();
+        rumble.type = 'sawtooth';
+        rumble.frequency.setValueAtTime(40, t);
+        rumble.frequency.linearRampToValueAtTime(80, t + 2.0);
+        rGain.gain.setValueAtTime(0, t);
+        rGain.gain.linearRampToValueAtTime(v * 0.5, t + 0.8);
+        rGain.gain.setValueAtTime(v * 0.5, t + 1.5);
+        rGain.gain.linearRampToValueAtTime(0, t + 2.5);
+        rumble.connect(rGain); rGain.connect(this.ctx.destination);
+        rumble.start(t); rumble.stop(t + 2.51);
+        // Dissonant power notes
+        const notes = [
+            { freq: 110, delay: 0.3, dur: 1.5 },
+            { freq: 138.6, delay: 0.6, dur: 1.2 }, // Eb
+            { freq: 164.8, delay: 0.9, dur: 1.0 },  // E (dissonance)
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = n.freq;
+            gain.gain.setValueAtTime(0, t + n.delay);
+            gain.gain.linearRampToValueAtTime(v * 0.4, t + n.delay + 0.15);
+            gain.gain.setValueAtTime(v * 0.3, t + n.delay + n.dur * 0.6);
+            gain.gain.linearRampToValueAtTime(0, t + n.delay + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + n.delay); osc.stop(t + n.delay + n.dur + 0.01);
+        }
+        // Impact hit at the end
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this._noiseBuffer;
+        const nGain = this.ctx.createGain();
+        const nFilter = this.ctx.createBiquadFilter();
+        nFilter.type = 'lowpass'; nFilter.frequency.value = 500;
+        nGain.gain.setValueAtTime(0, t + 1.8);
+        nGain.gain.linearRampToValueAtTime(v * 0.6, t + 1.85);
+        nGain.gain.linearRampToValueAtTime(0, t + 2.2);
+        noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(this.ctx.destination);
+        noise.start(t + 1.8); noise.stop(t + 2.21);
+    },
+
+    _playRareLoot(t) {
+        // Sparkle fanfare — ascending bright tones
+        const v = this._vol() * 0.2;
+        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const start = t + i * 0.08;
+            gain.gain.setValueAtTime(v, start);
+            gain.gain.setValueAtTime(v * 0.6, start + 0.15);
+            gain.gain.linearRampToValueAtTime(0, start + 0.35);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(start); osc.stop(start + 0.36);
+        });
+    },
+
+    _playDeathSave(t) {
+        // Dramatic reversal — low hit into rising heroic chord
+        const v = this._vol() * 0.3;
+        // Impact
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this._noiseBuffer;
+        const nGain = this.ctx.createGain();
+        const nFilter = this.ctx.createBiquadFilter();
+        nFilter.type = 'lowpass'; nFilter.frequency.value = 400;
+        nGain.gain.setValueAtTime(v * 0.5, t);
+        nGain.gain.linearRampToValueAtTime(0, t + 0.2);
+        noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(this.ctx.destination);
+        noise.start(t); noise.stop(t + 0.21);
+        // Rising heroic notes
+        const notes = [
+            { freq: 196, delay: 0.15, dur: 0.6 },  // G3
+            { freq: 262, delay: 0.3, dur: 0.6 },    // C4
+            { freq: 330, delay: 0.45, dur: 0.8 },   // E4
+            { freq: 392, delay: 0.6, dur: 1.0 },    // G4 (resolve)
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = n.freq;
+            gain.gain.setValueAtTime(0, t + n.delay);
+            gain.gain.linearRampToValueAtTime(v * 0.4, t + n.delay + 0.08);
+            gain.gain.setValueAtTime(v * 0.3, t + n.delay + n.dur * 0.5);
+            gain.gain.linearRampToValueAtTime(0, t + n.delay + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + n.delay); osc.stop(t + n.delay + n.dur + 0.01);
+        }
+    },
+
+    _playBossKill(t) {
+        // Triumphant fanfare — boss defeated celebration
+        const v = this._vol() * 0.25;
+        // Impact crash
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this._noiseBuffer;
+        const nGain = this.ctx.createGain();
+        nGain.gain.setValueAtTime(v * 0.6, t);
+        nGain.gain.linearRampToValueAtTime(0, t + 0.3);
+        const nFilter = this.ctx.createBiquadFilter();
+        nFilter.type = 'lowpass'; nFilter.frequency.value = 600;
+        noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(this.ctx.destination);
+        noise.start(t); noise.stop(t + 0.31);
+        // Rising victory chord: C4 → E4 → G4 → C5
+        const notes = [262, 330, 392, 523];
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const start = t + 0.1 + i * 0.12;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(v * 0.5, start + 0.06);
+            gain.gain.setValueAtTime(v * 0.4, start + 0.5);
+            gain.gain.linearRampToValueAtTime(0, start + 0.9);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(start); osc.stop(start + 0.91);
+        });
     },
 
     // ── Ambient Music ────────────────────────────────────────────────────────
