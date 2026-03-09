@@ -54,7 +54,11 @@ const DungeonScene = {
         this._tutorialTimer = 0;
         // Run stats tracking
         if (!Game.state.runStats || floor === 1) {
-            Game.state.runStats = { kills: 0, floorsReached: floor, goldAtStart: p.gold };
+            Game.state.runStats = {
+                kills: 0, floorsReached: floor, goldAtStart: p.gold,
+                itemsFound: 0, goldEarned: 0, damageDealt: 0, damageTaken: 0,
+                potionsUsed: 0, runTime: 0, deathCause: null, deathFloor: 0
+            };
         }
         Game.state.runStats.floorsReached = Math.max(Game.state.runStats.floorsReached, floor);
         // Generate floor events
@@ -257,22 +261,35 @@ const DungeonScene = {
 
         if (this.deathTimer > 0) {
             this.deathTimer -= dt;
+            // Allow skip after 2 seconds
+            const elapsed = 5.0 - this.deathTimer;
+            if (elapsed > 2.0 && (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('Escape'))) {
+                this.deathTimer = 0;
+            }
             if (this.deathTimer <= 0) {
                 const p = Game.state.player;
-                p.hp = p.maxHp;
-                p.mp = p.maxMp;
-                // Lose gold on death (reduced by Death's Embrace blessing)
+                // Calculate gold lost before modifying
                 const savePercent = p.getDeathGoldSavePercent ? p.getDeathGoldSavePercent() : 0;
                 const lossPercent = 0.5 * (1 - savePercent);
                 const goldLost = Math.floor((p.gold || 0) * lossPercent);
+                p.hp = p.maxHp;
+                p.mp = p.maxMp;
                 p.gold = (p.gold || 0) - goldLost;
-                // Clear tavern buffs on death
                 if (p.clearTavernBuffs) p.clearTavernBuffs();
                 Game.state.currentFloor = 1;
-                Game.switchScene('village', { fromDeath: true });
+                // Track total deaths (persisted)
+                Game.state.totalDeaths = (Game.state.totalDeaths || 0) + 1;
+                Game.switchScene('village', {
+                    fromDeath: true,
+                    runStats: Game.state.runStats,
+                    goldLost: goldLost
+                });
             }
             return;
         }
+
+        // Track run time
+        if (Game.state.runStats) Game.state.runStats.runTime += dt;
 
         // UI menus take priority
         if (UI.isOpen()) {
@@ -386,10 +403,12 @@ const DungeonScene = {
                 if (item.type === 'gold') {
                     // Gold goes to player's personal wallet, spent in shops
                     player.gold = (player.gold || 0) + item.value;
+                    if (Game.state.runStats) Game.state.runStats.goldEarned += item.value;
                     Game.notify(`+${item.value} Gold`, '#ffd020');
                     this.map.items.splice(i, 1);
                 } else {
                     if (player.addToInventory(item)) {
+                        if (Game.state.runStats) Game.state.runStats.itemsFound++;
                         Game.notify(`Picked up ${item.name}`, '#40c0e0');
                         this.map.items.splice(i, 1);
                     } else {
@@ -447,10 +466,12 @@ const DungeonScene = {
 
         // Death check
         if (player.hp <= 0) {
-            this.deathTimer = 3.0;
-            Audio.play('playerDeath');
+            this.deathTimer = 5.0;
+            if (Game.state.runStats) {
+                Game.state.runStats.deathFloor = Game.state.currentFloor;
+            }
+            Audio.play('deathJingle');
             Game.renderer.shake(15, 0.8);
-            Game.notify('YOUR SOUL IS CLAIMED', '#ff0000');
         }
     },
 
@@ -742,61 +763,128 @@ const DungeonScene = {
             return; // skip death overlay
         }
 
-        // ── Death overlay with run summary ──
+        // ── Death overlay with rich run summary ──
         if (this.deathTimer > 0) {
             const ctx = r.getCtx();
-            const deathFade = Math.min(1, (3.0 - this.deathTimer) / 1.5);
+            const elapsed = 5.0 - this.deathTimer;
+            const deathFade = Math.min(1, elapsed / 1.2);
             // Red vignette
-            const vg = ctx.createRadialGradient(r.canvas.width/2, r.canvas.height/2, 50, r.canvas.width/2, r.canvas.height/2, r.canvas.width/2);
+            const vg = ctx.createRadialGradient(400, 360, 50, 400, 360, 400);
             vg.addColorStop(0, 'rgba(40,0,0,' + (0.3 * deathFade) + ')');
-            vg.addColorStop(1, 'rgba(120,0,0,' + (0.8 * deathFade) + ')');
+            vg.addColorStop(1, 'rgba(120,0,0,' + (0.85 * deathFade) + ')');
             ctx.fillStyle = vg;
-            ctx.fillRect(0, 0, r.canvas.width, r.canvas.height);
+            ctx.fillRect(0, 0, 800, 720);
             ctx.save();
+            ctx.textAlign = 'center';
+            const cx = 400;
+
+            // "YOU DIED" title
             ctx.globalAlpha = deathFade;
             ctx.shadowColor = '#ff0000';
             ctx.shadowBlur = 30;
             ctx.fillStyle = '#ff2020';
-            ctx.font = 'bold 64px "Courier New"';
-            ctx.textAlign = 'center';
-            const cx = r.canvas.width / 2;
-            ctx.fillText('YOU DIED', cx, r.canvas.height / 2 - 60);
+            ctx.font = 'bold 56px "Courier New"';
+            ctx.fillText('YOU DIED', cx, 140);
             ctx.shadowBlur = 0;
-            ctx.fillStyle = '#cc4444';
-            ctx.font = 'italic 16px "Courier New"';
-            ctx.fillText('The dungeon claims another soul...', cx, r.canvas.height / 2 - 20);
 
-            // Run summary
-            const stats = Game.state.runStats || { kills: 0, floorsReached: 1, goldAtStart: 0 };
+            // Death cause subtitle
+            const stats = Game.state.runStats || { kills: 0, floorsReached: 1, goldAtStart: 0,
+                itemsFound: 0, goldEarned: 0, damageDealt: 0, damageTaken: 0,
+                potionsUsed: 0, runTime: 0, deathCause: null, deathFloor: 0 };
+            const cause = stats.deathCause || 'the dungeon';
+            const floor = stats.deathFloor || Game.state.currentFloor;
+            ctx.fillStyle = '#cc4444';
+            ctx.font = 'italic 15px "Courier New"';
+            ctx.fillText(`Slain by ${cause} on Floor ${floor}`, cx, 172);
+
+            // Run summary panel — fades in after title
+            const summaryFade = Math.min(1, Math.max(0, (elapsed - 0.8) / 1.0));
+            ctx.globalAlpha = summaryFade;
+
+            // Panel background
+            const pw = 360, ph = 310;
+            const px = cx - pw / 2, py = 195;
+            ctx.fillStyle = 'rgba(8,3,2,0.82)';
+            ctx.fillRect(px, py, pw, ph);
+            ctx.strokeStyle = '#6a2020';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(px, py, pw, ph);
+
+            // Panel title
+            ctx.fillStyle = '#886655';
+            ctx.font = 'bold 13px "Courier New"';
+            ctx.fillText('─── RUN SUMMARY ───', cx, py + 22);
+
+            // Stats rows (left-aligned labels, right-aligned values)
+            const rows = [];
+            const minutes = Math.floor((stats.runTime || 0) / 60);
+            const seconds = Math.floor((stats.runTime || 0) % 60);
+            const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+            rows.push({ label: 'Floors Reached', value: `${stats.floorsReached}`, color: '#aa8866' });
+            rows.push({ label: 'Enemies Slain', value: `${stats.kills}`, color: '#aa8866' });
+            rows.push({ label: 'Damage Dealt', value: `${stats.damageDealt}`, color: '#aa8866' });
+            rows.push({ label: 'Damage Taken', value: `${stats.damageTaken}`, color: '#aa8866' });
+            rows.push({ label: 'Items Found', value: `${stats.itemsFound}`, color: '#aa8866' });
+            rows.push({ label: 'Gold Earned', value: `${stats.goldEarned}`, color: '#ddaa44' });
+            rows.push({ label: 'Potions Used', value: `${stats.potionsUsed}`, color: '#aa8866' });
+            rows.push({ label: 'Time', value: timeStr, color: '#aa8866' });
+
+            ctx.font = '13px "Courier New"';
+            let ry = py + 44;
+            for (const row of rows) {
+                ctx.fillStyle = '#887766';
+                ctx.textAlign = 'left';
+                ctx.fillText(row.label, px + 24, ry);
+                ctx.fillStyle = row.color;
+                ctx.textAlign = 'right';
+                ctx.fillText(row.value, px + pw - 24, ry);
+                ry += 19;
+            }
+
+            // Divider line
+            ry += 4;
+            ctx.strokeStyle = 'rgba(100,60,40,0.4)';
+            ctx.beginPath();
+            ctx.moveTo(px + 20, ry);
+            ctx.lineTo(px + pw - 20, ry);
+            ctx.stroke();
+            ry += 14;
+
+            // Gold lost
             const player = Game.state.player;
             const savePercent = player.getDeathGoldSavePercent ? player.getDeathGoldSavePercent() : 0;
             const goldLost = Math.floor((player.gold || 0) * 0.5 * (1 - savePercent));
-
-            const summaryFade = Math.min(1, (3.0 - this.deathTimer) / 2.5);
-            ctx.globalAlpha = summaryFade;
-
-            // Summary box
-            ctx.fillStyle = 'rgba(10,4,2,0.7)';
-            ctx.fillRect(cx - 160, r.canvas.height / 2, 320, 100);
-            ctx.strokeStyle = '#6a2020';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(cx - 160, r.canvas.height / 2, 320, 100);
-
-            ctx.font = '13px "Courier New"';
-            let sy = r.canvas.height / 2 + 22;
-            ctx.fillStyle = '#aa6666';
-            ctx.fillText(`Floors Reached: ${stats.floorsReached}`, cx, sy);
-            sy += 20;
-            ctx.fillText(`Enemies Slain: ${stats.kills}`, cx, sy);
-            sy += 20;
-            ctx.fillStyle = '#cc6644';
-            ctx.fillText(`Gold Lost: ${goldLost}`, cx, sy);
-            sy += 20;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#cc5533';
+            ctx.font = 'bold 14px "Courier New"';
+            ctx.fillText(`Gold Lost: ${goldLost}`, cx, ry);
+            ry += 18;
             if (savePercent > 0) {
                 ctx.fillStyle = '#c040ff';
                 ctx.font = '11px "Courier New"';
-                ctx.fillText(`(Death's Embrace saved ${Math.floor(savePercent * 100)}%)`, cx, sy);
+                ctx.fillText(`(Death's Embrace saved ${Math.floor(savePercent * 100)}%)`, cx, ry);
+                ry += 16;
             }
+
+            // Narrative flavor based on run performance
+            ry += 6;
+            ctx.font = 'italic 12px "Courier New"';
+            ctx.fillStyle = '#997766';
+            let flavor;
+            if (stats.floorsReached >= 40) flavor = 'So close to the end... the town mourns.';
+            else if (stats.floorsReached >= 25) flavor = 'The deep floors are unforgiving.';
+            else if (stats.kills >= 50) flavor = 'A warrior\'s death. The town remembers.';
+            else if (stats.floorsReached >= 10) flavor = 'Each attempt carves the path deeper.';
+            else if (stats.kills === 0) flavor = 'Retreat is not defeat... not yet.';
+            else flavor = 'The dungeon is patient. You will return.';
+            ctx.fillText(`"${flavor}"`, cx, ry);
+
+            // Skip prompt
+            const skipFade = Math.min(1, Math.max(0, (elapsed - 2.0) / 0.5));
+            ctx.globalAlpha = skipFade * (0.5 + 0.3 * Math.sin(elapsed * 3));
+            ctx.font = '12px "Courier New"';
+            ctx.fillStyle = '#887766';
+            ctx.fillText('[Enter / Space] Continue', cx, py + ph - 8);
 
             ctx.textAlign = 'left';
             ctx.restore();

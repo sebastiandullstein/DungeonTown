@@ -62,6 +62,8 @@ const Audio = {
             case 'levelUp':      this._playLevelUp(t); break;
             case 'buildComplete': this._playBuildComplete(t); break;
             case 'playerDeath':  this._playPlayerDeath(t); break;
+            case 'deathJingle':  this._playDeathJingle(t); break;
+            case 'villageReturn': this._playVillageReturn(t); break;
             case 'bossEncounter': this._playBossEncounter(t); break;
         }
     },
@@ -176,6 +178,61 @@ const Audio = {
         gain.gain.linearRampToValueAtTime(0, t + 0.8);
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(t); osc.stop(t + 0.81);
+    },
+
+    _playDeathJingle(t) {
+        // Dramatic descending minor chord death jingle
+        const v = this._vol() * 0.25;
+        const notes = [
+            { freq: 392, delay: 0,    dur: 0.6 },   // G4
+            { freq: 349, delay: 0.15, dur: 0.5 },   // F4
+            { freq: 311, delay: 0.3,  dur: 0.6 },   // Eb4
+            { freq: 233, delay: 0.5,  dur: 1.2 },   // Bb3 (low, held)
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(n.freq, t + n.delay);
+            osc.frequency.linearRampToValueAtTime(n.freq * 0.97, t + n.delay + n.dur);
+            gain.gain.setValueAtTime(v, t + n.delay);
+            gain.gain.setValueAtTime(v * 0.8, t + n.delay + n.dur * 0.3);
+            gain.gain.linearRampToValueAtTime(0, t + n.delay + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + n.delay); osc.stop(t + n.delay + n.dur + 0.01);
+        }
+        // Low rumble underneath
+        const rumble = this.ctx.createOscillator();
+        const rGain = this.ctx.createGain();
+        rumble.type = 'sawtooth';
+        rumble.frequency.setValueAtTime(55, t);
+        rumble.frequency.exponentialRampToValueAtTime(30, t + 1.8);
+        rGain.gain.setValueAtTime(v * 0.4, t);
+        rGain.gain.linearRampToValueAtTime(0, t + 1.8);
+        rumble.connect(rGain); rGain.connect(this.ctx.destination);
+        rumble.start(t); rumble.stop(t + 1.81);
+    },
+
+    _playVillageReturn(t) {
+        // Warm ascending chime — relief after death
+        const v = this._vol() * 0.2;
+        const notes = [
+            { freq: 262, delay: 0,    dur: 0.4 },   // C4
+            { freq: 330, delay: 0.15, dur: 0.4 },   // E4
+            { freq: 392, delay: 0.3,  dur: 0.6 },   // G4
+            { freq: 523, delay: 0.5,  dur: 0.8 },   // C5 (resolve)
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = n.freq;
+            gain.gain.setValueAtTime(v, t + n.delay);
+            gain.gain.setValueAtTime(v * 0.7, t + n.delay + n.dur * 0.5);
+            gain.gain.linearRampToValueAtTime(0, t + n.delay + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + n.delay); osc.stop(t + n.delay + n.dur + 0.01);
+        }
     },
 
     _playBossEncounter(t) {

@@ -322,6 +322,10 @@ class Enemy {
                     // Deal damage to player
                     const damage = player.takeDamage(enemy.atk);
                     if (damage > 0) {
+                        if (Game.state.runStats) {
+                            Game.state.runStats.damageTaken += damage;
+                            Game.state.runStats.deathCause = enemy.name;
+                        }
                         Audio.play('playerHurt');
                         Combat.addFloatingText(player.x, player.y, `-${damage}`, '#f44');
                         Combat.addHitParticles(player.x, player.y, '#cc2222');
@@ -342,6 +346,7 @@ class Enemy {
         const def = enemy.def;
         const actualDmg = Math.max(1, damage - def + Math.floor(Math.random() * 3) - 1);
         enemy.hp -= actualDmg;
+        if (Game.state.runStats) Game.state.runStats.damageDealt += actualDmg;
         enemy.stunTimer = 0.15;
         enemy.state = 'chase';
 
@@ -377,6 +382,7 @@ class Enemy {
                 const bonus = player.getGoldFindBonus ? player.getGoldFindBonus() : 0;
                 if (bonus > 0) amount = Math.floor(amount * (1 + bonus));
                 player.gold = (player.gold || 0) + amount;
+                if (Game.state.runStats) Game.state.runStats.goldEarned += amount;
                 Game.notify(`+${amount} Gold`, '#ffd020');
             } else if (drop.type === 'resource') {
                 if (Game.state.village && Game.state.village.resources) {

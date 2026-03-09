@@ -356,6 +356,7 @@ class Player {
                 Game.notify(`Restored ${restored} MP!`, '#55f');
             }
             this.inventory.splice(idx, 1);
+            if (Game.state.runStats) Game.state.runStats.potionsUsed++;
         } else {
             Game.notify(`No ${type} potions!`, '#f00');
         }

@@ -65,12 +65,14 @@ const VillageScene = {
         if (data && data.fromDeath) {
             this.cursor.x = 40;
             this.cursor.y = 25;
-            this._buildingPulse = 2.0; // 2 second pulse
-            Game.notify('You have returned... weaker, but wiser.', '#c8a050');
+            this._buildingPulse = 2.0;
+            Audio.play('villageReturn');
+            this._showDeathReactions(data.runStats, data.goldLost);
+        } else {
+            Game.notify('You return to DungeonTown.', '#0f0');
         }
 
         this._centerOnCursor();
-        Game.notify('You return to DungeonTown.', '#0f0');
         Audio.startMusic('village');
 
         // Init decorative NPCs
@@ -85,6 +87,60 @@ const VillageScene = {
             { x: 44, y: 25, dx: -1, dy: 0, color: '#6080a0', timer: 0, speed: 2.0 },
             { x: 40, y: 22, dx: 0, dy: 1, color: '#a06060', timer: 0, speed: 1.8 },
         ];
+    },
+
+    _showDeathReactions(runStats, goldLost) {
+        const stats = runStats || {};
+        const deaths = Game.state.totalDeaths || 0;
+        const floor = stats.deathFloor || stats.floorsReached || 1;
+        const kills = stats.kills || 0;
+        const cause = stats.deathCause || 'the dungeon';
+
+        // Context-aware villager reaction (delayed 0.5s via notify queue)
+        const reactions = [];
+        if (deaths === 1) {
+            reactions.push({ text: 'First fall? The dungeon tests everyone.', color: '#c8a050' });
+            reactions.push({ text: 'The Smithy and Tavern can help you prepare.', color: '#80b0c0' });
+        } else if (floor >= 40) {
+            reactions.push({ text: `Floor ${floor}... You were so close.`, color: '#c8a050' });
+        } else if (floor >= 25) {
+            reactions.push({ text: `The deep floors claim many. You fought well.`, color: '#c8a050' });
+        } else if (kills >= 30) {
+            reactions.push({ text: `${kills} slain! The town feels safer already.`, color: '#c8a050' });
+        } else if (floor <= 3 && deaths > 3) {
+            reactions.push({ text: 'Try the Tavern buffs before your next run.', color: '#80b0c0' });
+        } else {
+            // Rotating generic reactions
+            const generic = [
+                'The dungeon is patient. So must we be.',
+                'Every fall teaches something new.',
+                'Rest up. The town needs you strong.',
+                'The deeper you go, the more we prosper.',
+                'Your courage inspires the villagers.',
+            ];
+            reactions.push({ text: generic[deaths % generic.length], color: '#c8a050' });
+        }
+
+        // Gold lost notification
+        if (goldLost > 0) {
+            Game.notify(`Lost ${goldLost} gold in the dungeon.`, '#cc6644');
+        }
+
+        // Show reactions with slight delay
+        for (const r of reactions) {
+            Game.notify(r.text, r.color);
+        }
+
+        // Death milestone events
+        if (deaths === 1) {
+            Game.notify('Tip: Soul Shards (purple) are never lost!', '#c040ff');
+        } else if (deaths === 5) {
+            Game.notify('The village grows stronger with each return.', '#40c0e0');
+        } else if (deaths === 10) {
+            Game.notify('Ten falls. Ten lessons. The dungeon respects persistence.', '#ffd700');
+        } else if (deaths % 25 === 0) {
+            Game.notify(`${deaths} deaths. A legend in the making.`, '#ffd700');
+        }
     },
 
     _updateNPCs(dt) {

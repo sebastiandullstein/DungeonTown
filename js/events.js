@@ -132,10 +132,12 @@ const DungeonEvents = {
             // Fallback to gold
             const gold = floor * 15;
             player.gold += gold;
+            if (Game.state.runStats) Game.state.runStats.goldEarned += gold;
             return { text: 'Found ' + gold + ' gold!', color: '#ff0' };
         } else if (roll < 0.85) {
             const gold = floor * (10 + Math.floor(Math.random() * 11));
             player.gold += gold;
+            if (Game.state.runStats) Game.state.runStats.goldEarned += gold;
             return { text: 'The chest holds ' + gold + ' gold!', color: '#ff0' };
         } else {
             // Trap!
