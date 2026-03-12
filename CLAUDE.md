@@ -42,11 +42,11 @@ Dark fantasy dungeon scene with:
 |-------|------|--------|
 | 1 | Enhanced dungeon tiles (stone texture, lava, moss) | ✅ DONE |
 | 2 | Per-weapon-name detailed icons (Dagger, Sword, Axe…) | ✅ DONE |
-| 3 | Combat Log panel in top-right HUD | ⬜ TODO |
-| 4 | Enemy sprites: winged beholder + skeleton warrior | ⬜ TODO |
-| 5 | Detailed spell icons (Dash, Whirlwind, Execute) | ⬜ TODO |
-| 6 | Parchment minimap with compass rose | ⬜ TODO |
-| 7 | Player effects: ice magic pulse aura + fire near lava | ⬜ TODO |
+| 3 | Combat Log panel in top-right HUD | ✅ DONE |
+| 4 | Enemy sprites: winged beholder (bat redesign) + skeleton rusted shield | ✅ DONE |
+| 5 | Detailed spell icons (Dash, Whirlwind, Execute) | ✅ DONE |
+| 6 | Parchment minimap with compass rose | ✅ DONE |
+| 7 | Player effects: ice magic pulse aura (orbiting sparks when MP > 50%) | ✅ DONE |
 
 ### Implementation Notes
 - Combat Log: add `combatLog` array to dungeon state, push entries on attack/cast, render in `uiRenderer.js` `drawHUD()` top-right ~160x200px panel
@@ -56,11 +56,11 @@ Dark fantasy dungeon scene with:
 - Player effects: `spriteRenderer.js` `drawPlayer()` — add ice aura ring (blue pulse) when MP > 50%, fire flicker near lava tiles
 
 ## Recent Commits
+- `2998e33` Graphic upgrade phases 3-7: combat log, minimap, enemy sprites, spell icons, player aura
+- `7d0b576` Add CLAUDE.md session memory with graphic upgrade milestone plan
 - `c8971a4` Improve sprite and tile rendering with detailed weapon icons and visual polish
 - `e3a7e6b` Streamer moments: boss intros, death defied, desperate fury, loot fanfare
 - `5190fcb` Strengthen Village↔Dungeon loops
-- `e7a1783` Add Assist Mode
-- `a8a1b69` Death storytelling system
 
 ## Conventions
 - All canvas drawing uses `ctx.save()`/`ctx.restore()` around complex shapes
