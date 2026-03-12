@@ -11,6 +11,7 @@ const DUNGEON_THEMES = {
         water1: '#0a1a3a', water2: '#050e20', waterRipple: 'rgba(40,120,200,0.5)',
         waterShimmer: [100, 180, 255],
         ambient: null,
+        hasMoss: true,
     },
     frost: {
         wall1: '#3a4860', wall2: '#2a3850', wall3: '#1a2838',
@@ -20,6 +21,7 @@ const DUNGEON_THEMES = {
         water1: '#0a2840', water2: '#061828', waterRipple: 'rgba(80,180,255,0.6)',
         waterShimmer: [140, 210, 255],
         ambient: 'rgba(100,160,255,0.06)',
+        hasMoss: true,
     },
     magma: {
         wall1: '#4a2020', wall2: '#3a1818', wall3: '#281010',
@@ -29,6 +31,7 @@ const DUNGEON_THEMES = {
         water1: '#3a1000', water2: '#280800', waterRipple: 'rgba(255,100,20,0.6)',
         waterShimmer: [255, 120, 40],
         ambient: 'rgba(255,80,20,0.05)',
+        hasMoss: false,
     },
     abyss: {
         wall1: '#302040', wall2: '#201830', wall3: '#141020',
@@ -38,6 +41,7 @@ const DUNGEON_THEMES = {
         water1: '#100828', water2: '#08041a', waterRipple: 'rgba(140,60,255,0.5)',
         waterShimmer: [160, 100, 255],
         ambient: 'rgba(120,60,200,0.05)',
+        hasMoss: false,
     },
     infernal: {
         wall1: '#3a1820', wall2: '#2a1018', wall3: '#1a0810',
@@ -47,6 +51,7 @@ const DUNGEON_THEMES = {
         water1: '#281000', water2: '#1a0800', waterRipple: 'rgba(200,255,60,0.5)',
         waterShimmer: [200, 255, 80],
         ambient: 'rgba(180,255,40,0.04)',
+        hasMoss: false,
     },
 };
 
@@ -89,6 +94,8 @@ const TileRenderer = {
 
     drawWall(ctx, x, y, w, h) {
         const t = this.currentTheme;
+        const seed = ((x * 7 + y * 13) & 0xffff) % 8;
+
         // Base stone gradient
         const grad = ctx.createLinearGradient(x, y, x + w, y + h);
         grad.addColorStop(0,   t.wall1);
@@ -97,34 +104,116 @@ const TileRenderer = {
         ctx.fillStyle = grad;
         ctx.fillRect(x, y, w, h);
 
-        // Two rows of bricks (offset pattern)
-        // Top row
-        ctx.fillStyle = t.brick1;
-        ctx.fillRect(x + 2,  y + 2,  13, 11);
-        ctx.fillRect(x + 17, y + 2,  13, 11);
-        // Bottom row (offset by half)
-        ctx.fillStyle = t.brick2;
-        ctx.fillRect(x + 2,  y + 17, 7,  11);
-        ctx.fillRect(x + 11, y + 17, 11, 11);
-        ctx.fillRect(x + 24, y + 17, 6,  11);
+        // --- 3 rows of varied bricks ---
+        // Parse base brick colors for per-brick variation
+        const b1 = t.brick1, b2 = t.brick2;
 
-        // Mortar (dark lines)
+        // Row definitions: [yStart, height, brickWidths[]]
+        const rows = [
+            { yOff: 2,  bh: 8,  widths: [14, 14] },           // row 0
+            { yOff: 12, bh: 8,  widths: [8, 12, 8] },         // row 1 (offset)
+            { yOff: 22, bh: 8,  widths: [10, 10, 8] },        // row 2
+        ];
+
+        // Vary brick widths slightly based on seed
+        const wVar = [0, 1, -1, 2, -1, 0, 1, -2];
+        let brickIndex = 0;
+
+        for (let r = 0; r < rows.length; r++) {
+            const row = rows[r];
+            let bx = x + 2;
+            for (let b = 0; b < row.widths.length; b++) {
+                const bw = Math.max(4, row.widths[b] + wVar[(brickIndex + seed) % 8]);
+                const by = y + row.yOff;
+
+                // Per-brick color variation: parse hex and adjust brightness
+                const baseBrick = (r + b) % 2 === 0 ? b1 : b2;
+                const bSeed = ((brickIndex * 3 + seed * 5) & 0xff) % 8;
+                const brightShift = [-8, 4, -4, 8, 0, -6, 6, -2][bSeed];
+                // Apply brightness shift to brick color
+                const bHex = baseBrick.replace('#', '');
+                const br = Math.min(255, Math.max(0, parseInt(bHex.slice(0,2),16) + brightShift));
+                const bg = Math.min(255, Math.max(0, parseInt(bHex.slice(2,4),16) + brightShift));
+                const bb = Math.min(255, Math.max(0, parseInt(bHex.slice(4,6),16) + brightShift));
+                ctx.fillStyle = `rgb(${br},${bg},${bb})`;
+                ctx.fillRect(bx, by, bw, row.bh);
+
+                // Individual brick highlight — subtle lighter line on top edge
+                ctx.fillStyle = 'rgba(255,220,160,0.08)';
+                ctx.fillRect(bx, by, bw, 1);
+
+                // Moss patches (stone and frost themes only, ~30% of bricks)
+                if (t.hasMoss && (bSeed < 3)) {
+                    ctx.fillStyle = 'rgba(42,80,32,0.4)';
+                    // Small moss patch at bottom-left or bottom-right of brick
+                    const mossX = bSeed === 0 ? bx : bx + bw - 3;
+                    ctx.fillRect(mossX, by + row.bh - 3, 3, 3);
+                    if (bSeed === 2) {
+                        ctx.fillRect(bx + 1, by + row.bh - 2, 4, 2);
+                    }
+                }
+
+                bx += bw + 2; // 2px mortar gap
+                brickIndex++;
+            }
+        }
+
+        // Mortar lines (dark)
         ctx.fillStyle = t.mortar;
-        ctx.fillRect(x,      y + 14, w,  2);   // horizontal mortar
-        ctx.fillRect(x + 15, y + 2,  2,  12);  // top row vertical
-        ctx.fillRect(x + 9,  y + 17, 2,  12);  // bottom row V1
-        ctx.fillRect(x + 22, y + 17, 2,  12);  // bottom row V2
+        ctx.fillRect(x, y + 10, w, 2);    // horizontal mortar row 0-1
+        ctx.fillRect(x, y + 20, w, 2);    // horizontal mortar row 1-2
 
-        // Edge shadows for depth
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.fillRect(x, y, w, 2);
-        ctx.fillRect(x, y + h - 2, w, 2);
+        // Vertical mortar for row 0
+        ctx.fillRect(x + 16 + wVar[seed % 8], y + 2, 2, 8);
+        // Vertical mortar for row 1
+        ctx.fillRect(x + 10 + wVar[(seed+1) % 8], y + 12, 2, 8);
+        ctx.fillRect(x + 24 + wVar[(seed+2) % 8], y + 12, 2, 8);
+        // Vertical mortar for row 2
+        ctx.fillRect(x + 12 + wVar[(seed+3) % 8], y + 22, 2, 8);
+        ctx.fillRect(x + 24 + wVar[(seed+4) % 8], y + 22, 2, 8);
+
+        // Crack details — thin dark diagonal lines across 1-2 bricks
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 1;
+        if (seed < 4) {
+            // Crack on first area
+            const cx1 = x + 4 + seed * 3;
+            const cy1 = y + 3 + seed * 2;
+            ctx.beginPath();
+            ctx.moveTo(cx1, cy1);
+            ctx.lineTo(cx1 + 6, cy1 + 8);
+            ctx.stroke();
+        }
+        if (seed >= 3 && seed < 7) {
+            // Second crack
+            const cx2 = x + 18 + (seed - 3) * 2;
+            const cy2 = y + 14 + (seed - 3) * 2;
+            ctx.beginPath();
+            ctx.moveTo(cx2, cy2);
+            ctx.lineTo(cx2 + 5, cy2 + 6);
+            ctx.stroke();
+        }
+
+        // Deeper edge shadows: 3px top, 2px left
+        const topShadow = ctx.createLinearGradient(x, y, x, y + 3);
+        topShadow.addColorStop(0, 'rgba(0,0,0,0.5)');
+        topShadow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = topShadow;
+        ctx.fillRect(x, y, w, 3);
+
+        const leftShadow = ctx.createLinearGradient(x, y, x + 2, y);
+        leftShadow.addColorStop(0, 'rgba(0,0,0,0.5)');
+        leftShadow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = leftShadow;
         ctx.fillRect(x, y, 2, h);
 
-        // Highlight top-left brick edge
-        ctx.fillStyle = 'rgba(255,220,160,0.06)';
-        ctx.fillRect(x + 2, y + 2, 13, 2);
-        ctx.fillRect(x + 2, y + 2, 2, 11);
+        // Bottom edge shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(x, y + h - 2, w, 2);
+
+        // Wall cap — slightly lighter 2px strip at very top suggesting a ledge
+        ctx.fillStyle = 'rgba(255,220,160,0.1)';
+        ctx.fillRect(x, y, w, 2);
     },
 
     // ─── FLOOR ──────────────────────────────────────────────────────────────
@@ -138,29 +227,82 @@ const TileRenderer = {
 
         if (!bright) return; // skip details for dim tiles (performance)
 
-        // Stone slab edge lines
-        ctx.fillStyle = t.floorCrack;
-        ctx.fillRect(x + 2, y + 15, w - 4, 1);  // horizontal crack
-        ctx.fillRect(x + 14, y + 2, 1, 13);     // vertical crack
-
-        // Worn corner shading
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
-        ctx.fillRect(x, y, 4, 4);
-        ctx.fillRect(x + w - 4, y + h - 4, 4, 4);
-
-        // Deterministic speckle (based on position to avoid flickering)
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
         const seed = ((x * 7 + y * 13) & 0xffff) % 8;
-        const speckles = [[3,4],[8,12],[20,6],[25,22],[12,26],[28,10],[6,20],[18,28]];
-        const sp = speckles[seed];
-        ctx.fillRect(x + sp[0], y + sp[1], 2, 2);
+
+        // Sub-tile grid: faint mortar lines suggesting 16x16 stone blocks
+        ctx.fillStyle = t.floorCrack;
+        ctx.fillRect(x, y + 15, w, 1);           // horizontal mortar
+        ctx.fillRect(x + 15, y, 1, h);           // vertical mortar
+        // Secondary faint lines for added texture
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(x, y + 16, w, 1);
+        ctx.fillRect(x + 16, y, 1, h);
+
+        // Edge weathering: faint dark line along top or left edge
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        if (seed % 2 === 0) {
+            ctx.fillRect(x, y, w, 1);   // top edge wear
+        } else {
+            ctx.fillRect(x, y, 1, h);   // left edge wear
+        }
+
+        // Improved corner shadows: 6px triangular gradient shadows at two corners
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        // Top-left triangle shadow
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 6, y);
+        ctx.lineTo(x, y + 6);
+        ctx.closePath();
+        ctx.fill();
+        // Bottom-right triangle shadow
+        ctx.beginPath();
+        ctx.moveTo(x + w, y + h);
+        ctx.lineTo(x + w - 6, y + h);
+        ctx.lineTo(x + w, y + h - 6);
+        ctx.closePath();
+        ctx.fill();
+
+        // Multiple speckle points: 3-4 speckles per tile, varying sizes
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        const speckleData = [
+            [[3,4,1],[8,12,2],[20,6,1]],
+            [[5,18,2],[25,8,1],[14,26,1],[28,3,2]],
+            [[10,5,1],[22,20,2],[4,28,1]],
+            [[7,10,2],[26,14,1],[15,24,1],[2,20,2]],
+            [[12,3,1],[20,22,2],[6,16,1]],
+            [[28,10,1],[8,26,2],[18,6,1],[24,28,1]],
+            [[4,14,2],[22,4,1],[14,20,1]],
+            [[16,8,1],[6,24,2],[26,18,1],[10,2,2]],
+        ];
+        const speckles = speckleData[seed];
+        for (let i = 0; i < speckles.length; i++) {
+            ctx.fillRect(x + speckles[i][0], y + speckles[i][1], speckles[i][2], speckles[i][2]);
+        }
+
+        // Stone debris: small dark rectangles, 1-2 per tile
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        const debrisData = [
+            [[18,10,1,2]],
+            [[6,22,2,1],[24,4,1,2]],
+            [[14,28,2,1]],
+            [[22,16,1,2],[8,6,2,1]],
+            [[4,20,2,1]],
+            [[20,26,1,2],[10,8,2,1]],
+            [[26,12,2,1]],
+            [[12,18,1,2],[28,24,2,1]],
+        ];
+        const debris = debrisData[seed];
+        for (let i = 0; i < debris.length; i++) {
+            ctx.fillRect(x + debris[i][0], y + debris[i][1], debris[i][2], debris[i][3]);
+        }
 
         // Subtle highlight in center
         ctx.fillStyle = t.floorHighlight;
         ctx.fillRect(x + 8, y + 8, 16, 16);
 
-        // Subtle per-tile brightness variation (seeded dark/light noise)
-        const brightOffsets = [-0.04, 0, 0.025, -0.02, 0.03, 0, -0.03, 0.04];
+        // Subtle per-tile brightness variation (increased range)
+        const brightOffsets = [-0.06, 0, 0.04, -0.03, 0.05, 0, -0.05, 0.06];
         const brightVar = brightOffsets[seed];
         if (brightVar > 0) {
             ctx.fillStyle = `rgba(255,200,100,${brightVar})`;
@@ -168,6 +310,47 @@ const TileRenderer = {
         } else if (brightVar < 0) {
             ctx.fillStyle = `rgba(0,0,0,${-brightVar})`;
             ctx.fillRect(x, y, w, h);
+        }
+
+        // --- Theme-specific floor effects ---
+        // Magma: occasional orange-red crack veins
+        if (t === DUNGEON_THEMES.magma) {
+            if (seed < 4) {
+                ctx.strokeStyle = 'rgba(255,64,32,0.08)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + 2 + seed * 4, y + 4 + seed * 3);
+                ctx.lineTo(x + 14 + seed * 3, y + 18 + seed * 2);
+                ctx.stroke();
+                if (seed < 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 18 + seed * 3, y + 6);
+                    ctx.lineTo(x + 28, y + 20 + seed * 3);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Abyss: purple mist wisp arcs
+        if (t === DUNGEON_THEMES.abyss) {
+            if (seed >= 3 && seed <= 6) {
+                ctx.strokeStyle = 'rgba(96,32,160,0.1)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x + 10 + seed * 2, y + 14 + seed, 8, 0, Math.PI * 0.8);
+                ctx.stroke();
+            }
+        }
+
+        // Infernal: tiny ember sparkles
+        if (t === DUNGEON_THEMES.infernal) {
+            if (seed < 5) {
+                ctx.fillStyle = 'rgba(255,128,32,0.15)';
+                ctx.fillRect(x + 6 + seed * 4, y + 8 + seed * 3, 2, 2);
+                if (seed < 3) {
+                    ctx.fillRect(x + 22 - seed * 2, y + 22 + seed, 2, 2);
+                }
+            }
         }
     },
 

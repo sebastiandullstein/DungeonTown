@@ -1070,60 +1070,504 @@ const SpriteRenderer = {
     },
 
     _drawWeaponIcon(ctx, cx, cy, item) {
-        const tierColor = this._tierColor(item.tier);
-        ctx.strokeStyle = tierColor;
-        ctx.lineWidth = 2.5;
+        ctx.save();
         ctx.lineCap = 'round';
-        // Blade
-        ctx.beginPath();
-        ctx.moveTo(cx - 6, cy + 8);
-        ctx.lineTo(cx + 6, cy - 8);
-        ctx.stroke();
-        // Crossguard
-        ctx.strokeStyle = '#c8a030';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx - 4, cy + 2);
-        ctx.lineTo(cx + 4, cy - 2);
-        ctx.stroke();
-        // Handle
-        ctx.strokeStyle = '#7a4820';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx - 6, cy + 8);
-        ctx.lineTo(cx - 3, cy + 4);
-        ctx.stroke();
-        // Tier glow
-        if (item.tier >= 4) {
-            ctx.shadowColor = tierColor;
-            ctx.shadowBlur = 6;
-            ctx.strokeStyle = tierColor;
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(cx - 6, cy + 8); ctx.lineTo(cx + 6, cy - 8); ctx.stroke();
-            ctx.shadowBlur = 0;
+        ctx.lineJoin = 'round';
+        switch (item.name) {
+            case 'Dagger': {
+                // Wide triangular blade pointing up-right
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.moveTo(cx + 4, cy - 8);   // tip
+                ctx.lineTo(cx - 4, cy + 2);   // left base
+                ctx.lineTo(cx + 2, cy + 2);   // right base
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                // Handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - 1, cy + 2);
+                ctx.lineTo(cx - 3, cy + 8);
+                ctx.stroke();
+                break;
+            }
+            case 'Short Sword': {
+                // Medium straight blade (diagonal)
+                ctx.strokeStyle = '#bbb';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 6);
+                ctx.lineTo(cx + 5, cy - 7);
+                ctx.stroke();
+                // Crossguard
+                ctx.strokeStyle = '#c8a030';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 1);
+                ctx.lineTo(cx + 3, cy - 2);
+                ctx.stroke();
+                // Handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 6);
+                ctx.lineTo(cx - 2, cy + 3);
+                ctx.stroke();
+                break;
+            }
+            case 'Longsword': {
+                // Long silver blade with fuller
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy + 9);
+                ctx.lineTo(cx + 7, cy - 9);
+                ctx.stroke();
+                // Fuller line (darker center)
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(cx - 2, cy + 5);
+                ctx.lineTo(cx + 5, cy - 6);
+                ctx.stroke();
+                // Curved crossguard quillons
+                ctx.strokeStyle = '#c8a030';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy + 2);
+                ctx.quadraticCurveTo(cx - 2, cy + 4, cx, cy + 1);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx, cy + 1);
+                ctx.quadraticCurveTo(cx + 2, cy - 2, cx + 5, cy - 1);
+                ctx.stroke();
+                // Round gold pommel
+                ctx.fillStyle = '#c8a030';
+                ctx.beginPath();
+                ctx.arc(cx - 5, cy + 9, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                // Handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy + 9);
+                ctx.lineTo(cx - 3, cy + 4);
+                ctx.stroke();
+                break;
+            }
+            case 'Battle Axe': {
+                // Wooden shaft
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - 2, cy + 9);
+                ctx.lineTo(cx + 1, cy - 6);
+                ctx.stroke();
+                // Large crescent axe head
+                ctx.fillStyle = '#c88';
+                ctx.beginPath();
+                ctx.moveTo(cx + 1, cy - 6);
+                ctx.arc(cx + 1, cy - 3, 7, -Math.PI * 0.8, Math.PI * 0.2, false);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#a66';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                break;
+            }
+            case 'War Hammer': {
+                // Long wooden handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy + 9);
+                ctx.lineTo(cx, cy - 5);
+                ctx.stroke();
+                // Rectangular metal head
+                ctx.fillStyle = '#88c';
+                ctx.fillRect(cx - 4, cy - 9, 8, 4);
+                ctx.strokeStyle = '#669';
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(cx - 4, cy - 9, 8, 4);
+                // Small spike on back
+                ctx.fillStyle = '#88c';
+                ctx.beginPath();
+                ctx.moveTo(cx + 4, cy - 9);
+                ctx.lineTo(cx + 7, cy - 7);
+                ctx.lineTo(cx + 4, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                break;
+            }
+            case 'Flame Blade': {
+                // Wavy fire blade
+                ctx.shadowColor = '#ff6000';
+                ctx.shadowBlur = 6;
+                ctx.strokeStyle = '#ff8020';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 6);
+                ctx.bezierCurveTo(cx - 6, cy + 2, cx + 4, cy, cx - 2, cy - 3);
+                ctx.bezierCurveTo(cx + 2, cy - 5, cx, cy - 7, cx + 4, cy - 9);
+                ctx.stroke();
+                // Second edge pass with redder color
+                ctx.strokeStyle = '#ff2000';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 6);
+                ctx.bezierCurveTo(cx - 6, cy + 2, cx + 4, cy, cx - 2, cy - 3);
+                ctx.bezierCurveTo(cx + 2, cy - 5, cx, cy - 7, cx + 4, cy - 9);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                // Handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 6);
+                ctx.lineTo(cx - 5, cy + 9);
+                ctx.stroke();
+                break;
+            }
+            case 'Frost Edge': {
+                // Jagged crystalline blade - zigzag edges
+                ctx.shadowColor = '#40c8ff';
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = '#80e8ff';
+                ctx.beginPath();
+                ctx.moveTo(cx + 3, cy - 9);  // tip
+                ctx.lineTo(cx + 5, cy - 5);
+                ctx.lineTo(cx + 1, cy - 4);
+                ctx.lineTo(cx + 4, cy - 1);
+                ctx.lineTo(cx, cy);
+                ctx.lineTo(cx + 3, cy + 3);
+                ctx.lineTo(cx - 1, cy + 4);
+                ctx.lineTo(cx - 3, cy + 2);
+                ctx.lineTo(cx - 1, cy - 1);
+                ctx.lineTo(cx - 3, cy - 3);
+                ctx.lineTo(cx, cy - 5);
+                ctx.lineTo(cx - 2, cy - 7);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#40c8f0';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+                // Crystal shards near blade
+                ctx.fillStyle = '#a0f0ff';
+                ctx.beginPath();
+                ctx.moveTo(cx + 6, cy - 6);
+                ctx.lineTo(cx + 8, cy - 8);
+                ctx.lineTo(cx + 5, cy - 8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy - 5);
+                ctx.lineTo(cx - 6, cy - 7);
+                ctx.lineTo(cx - 3, cy - 7);
+                ctx.closePath();
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // Handle
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 1, cy + 4);
+                ctx.lineTo(cx - 2, cy + 9);
+                ctx.stroke();
+                break;
+            }
+            case 'Doom Sword': {
+                // Wide broad blade
+                ctx.shadowColor = '#8800cc';
+                ctx.shadowBlur = 8;
+                // Purple edge glow
+                ctx.fillStyle = '#6a00aa';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);       // tip
+                ctx.lineTo(cx + 4, cy - 6);
+                ctx.lineTo(cx + 4, cy + 4);
+                ctx.lineTo(cx, cy + 6);
+                ctx.lineTo(cx - 4, cy + 4);
+                ctx.lineTo(cx - 4, cy - 6);
+                ctx.closePath();
+                ctx.fill();
+                // Dark center
+                ctx.fillStyle = '#220030';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 7);
+                ctx.lineTo(cx + 2, cy - 5);
+                ctx.lineTo(cx + 2, cy + 3);
+                ctx.lineTo(cx, cy + 5);
+                ctx.lineTo(cx - 2, cy + 3);
+                ctx.lineTo(cx - 2, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                // Rune mark (tiny triangle)
+                ctx.fillStyle = '#cc44ff';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 2);
+                ctx.lineTo(cx + 1.5, cy + 1);
+                ctx.lineTo(cx - 1.5, cy + 1);
+                ctx.closePath();
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                // Handle
+                ctx.strokeStyle = '#3a3a3a';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy + 6);
+                ctx.lineTo(cx, cy + 9);
+                ctx.stroke();
+                // Crossguard
+                ctx.strokeStyle = '#6a00aa';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy + 5);
+                ctx.lineTo(cx + 5, cy + 5);
+                ctx.stroke();
+                break;
+            }
+            default: {
+                // Generic fallback — original diagonal sword
+                const tierColor = this._tierColor(item.tier);
+                ctx.strokeStyle = tierColor;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy + 8);
+                ctx.lineTo(cx + 6, cy - 8);
+                ctx.stroke();
+                ctx.strokeStyle = '#c8a030';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 4, cy + 2);
+                ctx.lineTo(cx + 4, cy - 2);
+                ctx.stroke();
+                ctx.strokeStyle = '#7a4820';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy + 8);
+                ctx.lineTo(cx - 3, cy + 4);
+                ctx.stroke();
+                break;
+            }
         }
+        ctx.restore();
     },
 
     _drawArmorIcon(ctx, cx, cy, item) {
-        const col = this._tierColor(item.tier);
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 9);
-        ctx.lineTo(cx - 8, cy - 5);
-        ctx.lineTo(cx - 8, cy + 5);
-        ctx.lineTo(cx, cy + 9);
-        ctx.lineTo(cx + 8, cy + 5);
-        ctx.lineTo(cx + 8, cy - 5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = this._lighten(col, 0.3);
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        // Emblem
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.beginPath();
-        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        switch (item.name) {
+            case 'Cloth Shirt': {
+                // Simple tunic with V-neck
+                ctx.fillStyle = '#c8b898';
+                // Body (rounded rect approximation)
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy - 7);
+                ctx.quadraticCurveTo(cx - 7, cy - 7, cx - 7, cy - 5);
+                ctx.lineTo(cx - 7, cy + 7);
+                ctx.quadraticCurveTo(cx - 7, cy + 8, cx - 6, cy + 8);
+                ctx.lineTo(cx + 6, cy + 8);
+                ctx.quadraticCurveTo(cx + 7, cy + 8, cx + 7, cy + 7);
+                ctx.lineTo(cx + 7, cy - 5);
+                ctx.quadraticCurveTo(cx + 7, cy - 7, cx + 6, cy - 7);
+                // V-neck
+                ctx.lineTo(cx + 2, cy - 7);
+                ctx.lineTo(cx, cy - 3);
+                ctx.lineTo(cx - 2, cy - 7);
+                ctx.closePath();
+                ctx.fill();
+                // Fold lines
+                ctx.strokeStyle = '#a89878';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy + 1); ctx.lineTo(cx + 5, cy + 1);
+                ctx.moveTo(cx - 4, cy + 4); ctx.lineTo(cx + 4, cy + 4);
+                ctx.moveTo(cx - 5, cy - 2); ctx.lineTo(cx + 5, cy - 2);
+                ctx.stroke();
+                break;
+            }
+            case 'Leather Armor': {
+                // Chest shape wider at shoulders
+                ctx.fillStyle = '#a07040';
+                ctx.beginPath();
+                ctx.moveTo(cx - 8, cy - 7);
+                ctx.lineTo(cx + 8, cy - 7);
+                ctx.lineTo(cx + 6, cy + 8);
+                ctx.lineTo(cx - 6, cy + 8);
+                ctx.closePath();
+                ctx.fill();
+                // Diagonal strap lines
+                ctx.strokeStyle = '#805830';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy - 5); ctx.lineTo(cx + 2, cy + 3);
+                ctx.moveTo(cx + 6, cy - 5); ctx.lineTo(cx - 2, cy + 3);
+                ctx.stroke();
+                // Studs
+                ctx.fillStyle = '#c8a060';
+                const studPositions = [[-3, -3], [3, -3], [-4, 1], [4, 1], [-2, 5], [2, 5]];
+                for (const [sx, sy] of studPositions) {
+                    ctx.beginPath();
+                    ctx.arc(cx + sx, cy + sy, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+            }
+            case 'Chain Mail': {
+                // Hexagon shape
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);
+                ctx.lineTo(cx - 8, cy - 5);
+                ctx.lineTo(cx - 8, cy + 5);
+                ctx.lineTo(cx, cy + 9);
+                ctx.lineTo(cx + 8, cy + 5);
+                ctx.lineTo(cx + 8, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                // Chain ring pattern (3x3 grid of small circles)
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 0.7;
+                for (let row = -1; row <= 1; row++) {
+                    for (let col = -1; col <= 1; col++) {
+                        ctx.beginPath();
+                        ctx.arc(cx + col * 4, cy + row * 4, 2, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                break;
+            }
+            case 'Plate Armor': {
+                // Wider hexagon breastplate
+                ctx.fillStyle = '#ccc';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);
+                ctx.lineTo(cx - 9, cy - 5);
+                ctx.lineTo(cx - 9, cy + 5);
+                ctx.lineTo(cx, cy + 9);
+                ctx.lineTo(cx + 9, cy + 5);
+                ctx.lineTo(cx + 9, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#eee';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Center ridge line
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 7); ctx.lineTo(cx, cy + 7);
+                ctx.stroke();
+                // Abdominal segment lines
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy + 2); ctx.lineTo(cx + 6, cy + 2);
+                ctx.moveTo(cx - 5, cy + 5); ctx.lineTo(cx + 5, cy + 5);
+                ctx.stroke();
+                // Upper-right highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.arc(cx + 4, cy - 4, 3, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+            case 'Dragon Scale': {
+                // Hexagon shape
+                ctx.fillStyle = '#4a7030';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);
+                ctx.lineTo(cx - 8, cy - 5);
+                ctx.lineTo(cx - 8, cy + 5);
+                ctx.lineTo(cx, cy + 9);
+                ctx.lineTo(cx + 8, cy + 5);
+                ctx.lineTo(cx + 8, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#6a9040';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                // Overlapping scale arcs (3 rows)
+                ctx.strokeStyle = '#5a8038';
+                ctx.lineWidth = 0.8;
+                for (let row = 0; row < 3; row++) {
+                    const y = cy - 5 + row * 5;
+                    for (let col = -1; col <= 1; col++) {
+                        const offset = (row % 2 === 0) ? 0 : 3;
+                        ctx.beginPath();
+                        ctx.arc(cx + col * 6 + offset, y, 3, Math.PI, 0);
+                        ctx.stroke();
+                    }
+                }
+                // Center gem
+                ctx.fillStyle = '#40ff40';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+            case 'Mythril Mail': {
+                // Glowing shield shape
+                ctx.shadowColor = '#40c8ff';
+                ctx.shadowBlur = 5;
+                ctx.fillStyle = '#80e8ff';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);
+                ctx.lineTo(cx - 8, cy - 5);
+                ctx.lineTo(cx - 8, cy + 5);
+                ctx.lineTo(cx, cy + 9);
+                ctx.lineTo(cx + 8, cy + 5);
+                ctx.lineTo(cx + 8, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = '#b0f0ff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                // Glowing chain pattern
+                ctx.strokeStyle = '#40c8f0';
+                ctx.lineWidth = 0.7;
+                for (let row = -1; row <= 1; row++) {
+                    for (let col = -1; col <= 1; col++) {
+                        ctx.beginPath();
+                        ctx.arc(cx + col * 4, cy + row * 4, 2, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                ctx.shadowBlur = 0;
+                break;
+            }
+            default: {
+                // Generic fallback — original hexagon
+                const col = this._tierColor(item.tier);
+                ctx.fillStyle = col;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 9);
+                ctx.lineTo(cx - 8, cy - 5);
+                ctx.lineTo(cx - 8, cy + 5);
+                ctx.lineTo(cx, cy + 9);
+                ctx.lineTo(cx + 8, cy + 5);
+                ctx.lineTo(cx + 8, cy - 5);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = this._lighten(col, 0.3);
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+            }
+        }
+        ctx.restore();
     },
 
     _drawHelmetIcon(ctx, cx, cy, item) {
