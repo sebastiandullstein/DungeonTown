@@ -64,6 +64,20 @@ const SpriteRenderer = {
         ctx.ellipse(cx, groundY + h - 4, 8, 3, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // Sprite-based player rendering
+        const _pFrame = isAttacking ? 'attack_' + Math.min(Math.floor(player.attackFrame), 2) :
+                        isMoving ? 'walk_' + (Math.floor(time * 8) % 4) : 'idle_0';
+        if (Assets.hasAtlas('player')) {
+            ctx.save();
+            if (fx < 0) { ctx.translate(x + w, 0); ctx.scale(-1, 1); x = 0; }
+            if (invuln) ctx.globalAlpha = 0.5 + Math.sin(time * 20) * 0.3;
+            if (Assets.drawSprite(ctx, 'player', _pFrame, x, y, w, h)) {
+                ctx.restore();
+                return;
+            }
+            ctx.restore();
+        }
+
         // Ice magic aura — shown when MP is above 50%
         if (player.mp > 0 && player.maxMp > 0 && player.mp / player.maxMp > 0.5) {
             const auPulse = 0.5 + 0.5 * Math.sin(time * 3.5);
@@ -296,6 +310,7 @@ const SpriteRenderer = {
     },
 
     _drawRat(ctx, x, y, w, h, cx, cy, time) {
+        if (Assets.drawSprite(ctx, 'enemies', 'rat_idle_0', x, y, w, h)) return;
         // Body oval
         ctx.fillStyle = '#9a7050';
         ctx.beginPath();
@@ -360,6 +375,7 @@ const SpriteRenderer = {
     },
 
     _drawBat(ctx, x, y, w, h, cx, cy, time) {
+        if (Assets.drawSprite(ctx, 'enemies', 'bat_idle_0', x, y, w, h)) return;
         // Grotesque winged beholder
         const t = time || 0;
         const flap = Math.sin(t * 7) * 6;
@@ -468,6 +484,7 @@ const SpriteRenderer = {
     },
 
     _drawSkeleton(ctx, x, y, w, h, cx, cy, time) {
+        if (Assets.drawSprite(ctx, 'enemies', 'skeleton_idle_0', x, y, w, h)) return;
         const jitter = Math.sin((time || 0) * 20) * 0.5;
         cx += jitter;
         const bone = '#ddd8c0';
@@ -581,6 +598,7 @@ const SpriteRenderer = {
     },
 
     _drawOrc(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'orc_idle_0', x, y, w, h)) return;
         // Legs (thick)
         ctx.fillStyle = '#2a4020';
         ctx.fillRect(cx - 7, cy + 4, 6, 10);
@@ -669,6 +687,7 @@ const SpriteRenderer = {
     },
 
     _drawDemon(ctx, x, y, w, h, cx, cy, time) {
+        if (Assets.drawSprite(ctx, 'enemies', 'demon_idle_0', x, y, w, h)) return;
         // Wings (large, membrane, animated flutter)
         const wf = AnimManager.phase(time || 0, 3) * 3;
         ctx.fillStyle = '#5a0a0a';
@@ -762,6 +781,7 @@ const SpriteRenderer = {
     },
 
     _drawDragon(ctx, x, y, w, h, cx, cy, time) {
+        if (Assets.drawSprite(ctx, 'enemies', 'dragon_idle_0', x, y, w, h)) return;
         // Large wings (animated flutter)
         const wf = AnimManager.phase(time || 0, 2.5) * 4;
         ctx.fillStyle = '#1a3a08';
@@ -870,6 +890,7 @@ const SpriteRenderer = {
     // ─── BOSS SPRITES ────────────────────────────────────────────────────────
 
     _drawCursedKnight(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'cursed_idle_0', x, y, w, h)) return;
         // Plate armour, purple-tinted, with cursed glow
         ctx.fillStyle = '#3a2a60';
         ctx.fillRect(cx - 7, cy + 2, 6, 12);
@@ -902,6 +923,7 @@ const SpriteRenderer = {
     },
 
     _drawGolem(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'stone_idle_0', x, y, w, h)) return;
         // Rocky stone body, large and hulking
         ctx.fillStyle = '#555550';
         ctx.fillRect(cx - 10, cy + 4, 8, 12);
@@ -933,6 +955,7 @@ const SpriteRenderer = {
     },
 
     _drawLich(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'lich_idle_0', x, y, w, h)) return;
         // Skeletal robed figure with purple magic aura
         ctx.fillStyle = '#2a0a3a';
         ctx.beginPath();
@@ -970,6 +993,7 @@ const SpriteRenderer = {
     },
 
     _drawVampire(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'vampire_idle_0', x, y, w, h)) return;
         // Elegant, red-eyed vampire lord in dark cape
         ctx.fillStyle = '#1a0a10';
         ctx.beginPath();
@@ -997,6 +1021,7 @@ const SpriteRenderer = {
     },
 
     _drawChaos(ctx, x, y, w, h, cx, cy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'chaos_idle_0', x, y, w, h)) return;
         // Titanic chaos warrior — massive, multi-armed, crackling with energy
         ctx.fillStyle = '#3a0808';
         ctx.fillRect(cx - 8, cy + 4, 7, 13);
@@ -1037,6 +1062,7 @@ const SpriteRenderer = {
     },
 
     _drawDemonLord(ctx, x, y, w, h, cx, cy, time, enemy) {
+        if (Assets.drawSprite(ctx, 'enemies', 'malphas_idle_0', x, y, w, h)) return;
         // Malphas — massive final boss, crimson and black, towering horns, dark halo
         const t = time || 0;
         const isAtk = enemy && enemy.state === 'attack';
@@ -1147,6 +1173,11 @@ const SpriteRenderer = {
     // ─── ITEMS ──────────────────────────────────────────────────────────────
 
     drawItem(ctx, x, y, w, h, item) {
+        // Sprite-based item rendering
+        const _itemKey = item.type === 'gold' ? 'gold' :
+                         item.name ? item.name.toLowerCase().replace(/\s+/g, '_') : null;
+        if (_itemKey && Assets.drawSprite(ctx, 'items', _itemKey, x, y, w, h)) return;
+
         const cx = x + w / 2, cy = y + h / 2;
 
         // Subtle glow background
@@ -1169,6 +1200,8 @@ const SpriteRenderer = {
     },
 
     _drawWeaponIcon(ctx, cx, cy, item) {
+        const _iconKey = item.name ? item.name.toLowerCase().replace(/\s+/g, '_') : null;
+        if (_iconKey && Assets.drawSprite(ctx, 'items', _iconKey, cx - 12, cy - 12, 24, 24)) return;
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -1457,6 +1490,8 @@ const SpriteRenderer = {
     },
 
     _drawArmorIcon(ctx, cx, cy, item) {
+        const _iconKey = item.name ? item.name.toLowerCase().replace(/\s+/g, '_') : null;
+        if (_iconKey && Assets.drawSprite(ctx, 'items', _iconKey, cx - 12, cy - 12, 24, 24)) return;
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -1670,6 +1705,8 @@ const SpriteRenderer = {
     },
 
     _drawHelmetIcon(ctx, cx, cy, item) {
+        const _iconKey = item.name ? item.name.toLowerCase().replace(/\s+/g, '_') : null;
+        if (_iconKey && Assets.drawSprite(ctx, 'items', _iconKey, cx - 12, cy - 12, 24, 24)) return;
         const col = this._tierColor(item.tier);
         ctx.fillStyle = col;
         ctx.beginPath();
@@ -1687,6 +1724,8 @@ const SpriteRenderer = {
     },
 
     _drawBootsIcon(ctx, cx, cy, item) {
+        const _iconKey = item.name ? item.name.toLowerCase().replace(/\s+/g, '_') : null;
+        if (_iconKey && Assets.drawSprite(ctx, 'items', _iconKey, cx - 12, cy - 12, 24, 24)) return;
         const col = this._tierColor(item.tier);
         ctx.fillStyle = col;
         // Boot shaft
@@ -1842,6 +1881,7 @@ const SpriteRenderer = {
     // ─── GOLD ───────────────────────────────────────────────────────────────
 
     drawGold(ctx, x, y, w, h) {
+        if (Assets.drawSprite(ctx, 'items', 'gold', x, y, w, h)) return;
         const cx = x + w / 2, cy = y + h / 2 + 2;
 
         // Coin shadow

@@ -35,7 +35,7 @@ const Game = {
         victory: false,       // true when Demon Lord is slain
     },
 
-    init() {
+    async init() {
         // Migrate save key from old name
         const oldSave = localStorage.getItem('roguevillage_save');
         if (oldSave && !localStorage.getItem('dungeontown_save')) {
@@ -46,6 +46,10 @@ const Game = {
         this.loadSettings();
 
         const canvas = document.getElementById('gameCanvas');
+
+        // Load all sprite/image assets (shows loading screen)
+        await Assets.loadAll(canvas);
+
         this.renderer = new Renderer(canvas, 25, 18);
         Input.init(canvas);
         canvas.focus();

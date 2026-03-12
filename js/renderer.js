@@ -99,6 +99,9 @@ class Renderer {
         this.ctx.restore();
         // UI layer drawn without shake so HUD stays stable
         this.ctx.drawImage(this._uiLayer.canvas,     0, 0);
+
+        // Ornate border frame overlay (drawn last, on top of everything)
+        Assets.drawImage(this.ctx, 'ui_frame', 0, 0, 800, 720);
     }
 
     // ── Tile layer ─────────────────────────────────────────────────────────

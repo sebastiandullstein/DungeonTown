@@ -204,6 +204,9 @@ const UIRenderer = {
     drawHUD(ctx, player, currentFloor, mapTile, gold, time = 0) {
         const HY = 576, W = 800;
 
+        // Sprite-based HUD background
+        Assets.drawImage(ctx, 'hud_bg', 0, 576, 800, 144);
+
         // Panel background (wood grain)
         const bgGrad = ctx.createLinearGradient(0, HY, 0, HY + 144);
         bgGrad.addColorStop(0,   '#3a2212');

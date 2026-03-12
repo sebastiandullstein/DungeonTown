@@ -58,13 +58,14 @@ const DUNGEON_THEMES = {
 const TileRenderer = {
 
     currentTheme: DUNGEON_THEMES.stone,
+    _currentThemeKey: 'stone',
 
     setTheme(floor) {
-        if (floor <= 10)      this.currentTheme = DUNGEON_THEMES.stone;
-        else if (floor <= 20) this.currentTheme = DUNGEON_THEMES.frost;
-        else if (floor <= 30) this.currentTheme = DUNGEON_THEMES.magma;
-        else if (floor <= 40) this.currentTheme = DUNGEON_THEMES.abyss;
-        else                  this.currentTheme = DUNGEON_THEMES.infernal;
+        if (floor <= 10)      { this.currentTheme = DUNGEON_THEMES.stone; this._currentThemeKey = 'stone'; }
+        else if (floor <= 20) { this.currentTheme = DUNGEON_THEMES.frost; this._currentThemeKey = 'frost'; }
+        else if (floor <= 30) { this.currentTheme = DUNGEON_THEMES.magma; this._currentThemeKey = 'magma'; }
+        else if (floor <= 40) { this.currentTheme = DUNGEON_THEMES.abyss; this._currentThemeKey = 'abyss'; }
+        else                  { this.currentTheme = DUNGEON_THEMES.infernal; this._currentThemeKey = 'infernal'; }
     },
 
     // ─── Helpers ────────────────────────────────────────────────────────────
@@ -93,6 +94,10 @@ const TileRenderer = {
     // ─── WALL ───────────────────────────────────────────────────────────────
 
     drawWall(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        const gx = Math.floor(x / w), gy = Math.floor(y / h);
+        if (Assets.drawSprite(ctx, themeKey, 'wall_' + ((gx * 7 + gy * 13) & 3), x, y, w, h)) return;
+
         const t = this.currentTheme;
         const seed = ((x * 7 + y * 13) & 0xffff) % 8;
 
@@ -219,6 +224,10 @@ const TileRenderer = {
     // ─── FLOOR ──────────────────────────────────────────────────────────────
 
     drawFloor(ctx, x, y, w, h, dimFactor = 1.0) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        const gx = Math.floor(x / w), gy = Math.floor(y / h);
+        if (Assets.drawSprite(ctx, themeKey, 'floor_' + ((gx * 7 + gy * 13) & 7), x, y, w, h)) return;
+
         const t = this.currentTheme;
         // Base worn stone
         const bright = dimFactor >= 1.0;
@@ -357,6 +366,9 @@ const TileRenderer = {
     // ─── DOOR ───────────────────────────────────────────────────────────────
 
     drawDoor(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'door', x, y, w, h)) return;
+
         // Floor base
         this.drawFloor(ctx, x, y, w, h);
 
@@ -394,6 +406,9 @@ const TileRenderer = {
     // ─── STAIRS DOWN ────────────────────────────────────────────────────────
 
     drawStairsDown(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'stairs_down', x, y, w, h)) return;
+
         this.drawFloor(ctx, x, y, w, h);
 
         // Stair steps
@@ -427,6 +442,9 @@ const TileRenderer = {
     // ─── STAIRS UP ──────────────────────────────────────────────────────────
 
     drawStairsUp(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'stairs_up', x, y, w, h)) return;
+
         this.drawFloor(ctx, x, y, w, h);
 
         // Stair steps (ascending)
@@ -456,6 +474,9 @@ const TileRenderer = {
     // ─── WATER ──────────────────────────────────────────────────────────────
 
     drawWater(ctx, x, y, w, h, time = 0) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'water_' + (Math.floor((time || 0) * 4) % 4), x, y, w, h)) return;
+
         const t = this.currentTheme;
         // Deep water base
         const grad = ctx.createLinearGradient(x, y, x, y + h);
@@ -488,6 +509,9 @@ const TileRenderer = {
     // ─── CHEST ──────────────────────────────────────────────────────────────
 
     drawChest(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'chest', x, y, w, h)) return;
+
         this.drawFloor(ctx, x, y, w, h);
 
         const cx = x + w / 2, cy = y + h / 2 + 2;
@@ -539,6 +563,9 @@ const TileRenderer = {
     // ─── VILLAGE TILES ──────────────────────────────────────────────────────
 
     drawGrass(ctx, x, y, w, h, variant = 0) {
+        const gx = Math.floor(x / w), gy = Math.floor(y / h);
+        if (Assets.drawSprite(ctx, 'village_terrain', 'grass_' + ((gx * 7 + gy * 13) & 3), x, y, w, h)) return;
+
         // Base green
         const grad = ctx.createLinearGradient(x, y, x + w, y + h);
         grad.addColorStop(0, '#1e3d10');
@@ -571,6 +598,8 @@ const TileRenderer = {
     },
 
     drawPath(ctx, x, y, w, h) {
+        if (Assets.drawSprite(ctx, 'village_terrain', 'path', x, y, w, h)) return;
+
         // Dirt base
         const grad = ctx.createLinearGradient(x, y, x, y + h);
         grad.addColorStop(0, '#5a3e22');
@@ -591,6 +620,8 @@ const TileRenderer = {
     },
 
     drawTree(ctx, x, y, w, h) {
+        if (Assets.drawSprite(ctx, 'village_terrain', 'tree', x, y, w, h)) return;
+
         const cx = x + w / 2;
         const ty = y + 4;
 
@@ -632,6 +663,8 @@ const TileRenderer = {
 
     // Ground tile under buildings — flat grassy dirt
     drawBuildingGround(ctx, x, y, w, h) {
+        if (Assets.drawSprite(ctx, 'village_terrain', 'bldg_ground', x, y, w, h)) return;
+
         const grad = ctx.createLinearGradient(x, y, x + w, y + h);
         grad.addColorStop(0, '#1a3510');
         grad.addColorStop(1, '#14280c');
@@ -644,6 +677,8 @@ const TileRenderer = {
 
     // Building — drawn at 3×3 tile size (96×96) in second pass
     drawBuilding(ctx, x, y, w, h, def, level) {
+        if (def && Assets.drawSprite(ctx, 'village_buildings', def.type, x, y, w, h)) return;
+
         const cx = x + w / 2;
         const roofColor = def ? def.fg : '#888888';
 
@@ -822,6 +857,8 @@ const TileRenderer = {
     },
 
     drawDungeonEntrance(ctx, x, y, w, h) {
+        if (Assets.drawImage(ctx, 'dungeon_entrance', x, y, w, h)) return;
+
         // Stone arch base
         this.drawPath(ctx, x, y, w, h);
 
@@ -928,6 +965,9 @@ const TileRenderer = {
     // --- Event Tiles ---
 
     drawShrine(ctx, x, y, w, h, time) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'shrine', x, y, w, h)) return;
+
         ctx.fillStyle = '#300';
         ctx.fillRect(x, y, w, h);
         // Pulsing red glow
@@ -941,6 +981,9 @@ const TileRenderer = {
     },
 
     drawMerchant(ctx, x, y, w, h, time) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'merchant', x, y, w, h)) return;
+
         ctx.fillStyle = '#1a1000';
         ctx.fillRect(x, y, w, h);
         const flicker = 0.7 + Math.sin(time * 5) * 0.15;
@@ -951,6 +994,9 @@ const TileRenderer = {
     },
 
     drawCursedChest(ctx, x, y, w, h, time) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'cursed_chest', x, y, w, h)) return;
+
         ctx.fillStyle = '#200030';
         ctx.fillRect(x, y, w, h);
         const pulse = 0.5 + Math.sin(time * 2) * 0.4;
@@ -963,6 +1009,9 @@ const TileRenderer = {
     },
 
     drawFountain(ctx, x, y, w, h, time) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'fountain', x, y, w, h)) return;
+
         ctx.fillStyle = '#001828';
         ctx.fillRect(x, y, w, h);
         const shimmer = 0.6 + Math.sin(time * 4) * 0.25;
@@ -975,6 +1024,9 @@ const TileRenderer = {
     },
 
     drawFountainDry(ctx, x, y, w, h) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'fountain_dry', x, y, w, h)) return;
+
         ctx.fillStyle = '#111';
         ctx.fillRect(x, y, w, h);
         ctx.fillStyle = '#555';
@@ -984,6 +1036,9 @@ const TileRenderer = {
     },
 
     drawPrisoner(ctx, x, y, w, h, time) {
+        const themeKey = 'tiles_' + this._currentThemeKey;
+        if (Assets.drawSprite(ctx, themeKey, 'prisoner', x, y, w, h)) return;
+
         ctx.fillStyle = '#1a001a';
         ctx.fillRect(x, y, w, h);
         const flicker = 0.5 + Math.sin(time * 2.5) * 0.4;
