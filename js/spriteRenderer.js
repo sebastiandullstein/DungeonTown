@@ -64,6 +64,33 @@ const SpriteRenderer = {
         ctx.ellipse(cx, groundY + h - 4, 8, 3, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // Ice magic aura — shown when MP is above 50%
+        if (player.mp > 0 && player.maxMp > 0 && player.mp / player.maxMp > 0.5) {
+            const auPulse = 0.5 + 0.5 * Math.sin(time * 3.5);
+            const auR = 15 + auPulse * 2;
+            const iceGrad = ctx.createRadialGradient(cx, cy, auR * 0.4, cx, cy, auR);
+            iceGrad.addColorStop(0, `rgba(100,200,255,${0.06 + auPulse * 0.04})`);
+            iceGrad.addColorStop(0.6, `rgba(60,160,255,${0.12 + auPulse * 0.06})`);
+            iceGrad.addColorStop(1, 'rgba(20,80,200,0)');
+            ctx.fillStyle = iceGrad;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, auR, auR * 0.85, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Orbiting ice crystal sparks
+            ctx.shadowColor = '#80d0ff';
+            ctx.shadowBlur = 4;
+            for (let s = 0; s < 3; s++) {
+                const sa = time * 2 + (s / 3) * Math.PI * 2;
+                const sx = cx + Math.cos(sa) * 13;
+                const sy = cy + Math.sin(sa) * 10;
+                ctx.fillStyle = `rgba(160,220,255,${0.6 + auPulse * 0.4})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+
         // Legs (alternate during walk)
         const legOff = isMoving ? Math.sin(time * 10) * 2 : 0;
         ctx.fillStyle = invuln ? '#aa5555' : '#3a2a50';
@@ -333,70 +360,111 @@ const SpriteRenderer = {
     },
 
     _drawBat(ctx, x, y, w, h, cx, cy, time) {
-        // Wings (bezier curves, animated flap)
-        const wingFlap = Math.sin((time || 0) * 8) * 5;
-        ctx.fillStyle = '#4a2860';
+        // Grotesque winged beholder
+        const t = time || 0;
+        const flap = Math.sin(t * 7) * 6;
+        const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+
+        // Large leathery wings
+        ctx.fillStyle = '#2a1040';
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx - 8, cy - 10 + wingFlap, cx - 16, cy - 6 + wingFlap, cx - 14, cy + 2);
-        ctx.bezierCurveTo(cx - 10, cy + 6, cx - 6, cy + 2, cx, cy + 2);
+        ctx.moveTo(cx - 2, cy + 2);
+        ctx.bezierCurveTo(cx - 10, cy - 8 + flap, cx - 20, cy - 4 + flap, cx - 18, cy + 6);
+        ctx.bezierCurveTo(cx - 14, cy + 12, cx - 8, cy + 8, cx - 2, cy + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx + 2, cy + 2);
+        ctx.bezierCurveTo(cx + 10, cy - 8 + flap, cx + 20, cy - 4 + flap, cx + 18, cy + 6);
+        ctx.bezierCurveTo(cx + 14, cy + 12, cx + 8, cy + 8, cx + 2, cy + 4);
         ctx.closePath();
         ctx.fill();
 
+        // Wing membrane veins
+        ctx.strokeStyle = '#4a1860';
+        ctx.lineWidth = 0.6;
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx + 8, cy - 10 + wingFlap, cx + 16, cy - 6 + wingFlap, cx + 14, cy + 2);
-        ctx.bezierCurveTo(cx + 10, cy + 6, cx + 6, cy + 2, cx, cy + 2);
-        ctx.closePath();
-        ctx.fill();
-
-        // Wing membrane detail
-        ctx.strokeStyle = '#6a3880';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy); ctx.lineTo(cx - 12, cy - 4);
-        ctx.moveTo(cx, cy); ctx.lineTo(cx + 12, cy - 4);
+        ctx.moveTo(cx - 2, cy + 2); ctx.lineTo(cx - 15, cy - 1 + flap * 0.5);
+        ctx.moveTo(cx - 2, cy + 2); ctx.lineTo(cx - 10, cy + 8);
+        ctx.moveTo(cx + 2, cy + 2); ctx.lineTo(cx + 15, cy - 1 + flap * 0.5);
+        ctx.moveTo(cx + 2, cy + 2); ctx.lineTo(cx + 10, cy + 8);
         ctx.stroke();
 
-        // Body
-        ctx.fillStyle = '#3a1a50';
+        // Bloated central body
+        const bodyGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, 9);
+        bodyGrad.addColorStop(0, '#5a2878');
+        bodyGrad.addColorStop(1, '#280a40');
+        ctx.fillStyle = bodyGrad;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, 5, 6, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy + 1, 9, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Head
-        ctx.fillStyle = '#4a2860';
+        // Tentacles dangling below
+        ctx.strokeStyle = '#3a1058';
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        for (let i = -2; i <= 2; i++) {
+            const tx = cx + i * 3.5;
+            const wave = Math.sin(t * 4 + i * 1.2) * 2;
+            ctx.beginPath();
+            ctx.moveTo(tx, cy + 8);
+            ctx.quadraticCurveTo(tx + wave, cy + 13, tx + wave * 0.5, cy + 16);
+            ctx.stroke();
+        }
+
+        // Giant central eye — sclera
+        ctx.fillStyle = '#f0e8d0';
+        ctx.shadowColor = '#ff4000';
+        ctx.shadowBlur = 6 + pulse * 6;
         ctx.beginPath();
-        ctx.arc(cx, cy - 6, 5, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, 6, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ears
-        ctx.fillStyle = '#5a3870';
+        // Iris
+        ctx.fillStyle = `rgb(${Math.floor(180 + pulse * 60)}, ${Math.floor(20 + pulse * 20)}, 0)`;
         ctx.beginPath();
-        ctx.moveTo(cx - 4, cy - 9);
-        ctx.lineTo(cx - 6, cy - 14);
-        ctx.lineTo(cx - 1, cy - 11);
-        ctx.closePath();
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(cx + 4, cy - 9);
-        ctx.lineTo(cx + 6, cy - 14);
-        ctx.lineTo(cx + 1, cy - 11);
-        ctx.closePath();
+        ctx.ellipse(cx, cy, 4, 3.5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glowing eyes
-        ctx.fillStyle = '#ff4444';
-        ctx.shadowColor = '#ff0000';
-        ctx.shadowBlur = 4;
-        ctx.beginPath(); ctx.arc(cx - 2, cy - 7, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(cx + 2, cy - 7, 1.5, 0, Math.PI * 2); ctx.fill();
+        // Slit pupil
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 1, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye glint
+        ctx.fillStyle = 'rgba(255,255,200,0.8)';
         ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(cx - 1.5, cy - 1, 1, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Fangs
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(cx - 2, cy - 3, 1, 3);
-        ctx.fillRect(cx + 1, cy - 3, 1, 3);
+        // Smaller eyestalks around the body (3 stalks)
+        const eyeData = [[-7, -4, 0.8], [7, -3, 0.7], [0, -8, 0.75]];
+        for (const [ex, ey, er] of eyeData) {
+            // Stalk
+            ctx.strokeStyle = '#3a1058';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cx + ex * 0.5, cy + ey * 0.5);
+            ctx.lineTo(cx + ex, cy + ey);
+            ctx.stroke();
+            // Mini eye
+            ctx.fillStyle = '#f0e060';
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 3;
+            ctx.beginPath();
+            ctx.arc(cx + ex, cy + ey, er * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(cx + ex, cy + ey, er * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.lineCap = 'butt';
     },
 
     _drawSkeleton(ctx, x, y, w, h, cx, cy, time) {
@@ -479,6 +547,37 @@ const SpriteRenderer = {
         for (let i = 0; i < 4; i++) {
             ctx.fillRect(cx - 4 + i * 2, cy - 4, 1, 3);
         }
+
+        // Rusted shield (left arm)
+        ctx.save();
+        // Shield body — dented kite shield
+        const shieldGrad = ctx.createLinearGradient(cx - 18, cy - 4, cx - 10, cy + 8);
+        shieldGrad.addColorStop(0, '#6a5030');
+        shieldGrad.addColorStop(0.4, '#4a3820');
+        shieldGrad.addColorStop(1, '#2a1c10');
+        ctx.fillStyle = shieldGrad;
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, cy - 4);
+        ctx.lineTo(cx - 10, cy - 4);
+        ctx.lineTo(cx - 10, cy + 6);
+        ctx.lineTo(cx - 14, cy + 10);
+        ctx.lineTo(cx - 18, cy + 6);
+        ctx.closePath();
+        ctx.fill();
+        // Shield rim (worn metal)
+        ctx.strokeStyle = '#7a6040';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Rust patches
+        ctx.fillStyle = 'rgba(140,60,20,0.5)';
+        ctx.fillRect(cx - 17, cy - 2, 3, 2);
+        ctx.fillRect(cx - 13, cy + 4, 2, 3);
+        // Shield boss (center rivet)
+        ctx.fillStyle = '#5a4828';
+        ctx.beginPath();
+        ctx.arc(cx - 14, cy + 2, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     },
 
     _drawOrc(ctx, x, y, w, h, cx, cy) {

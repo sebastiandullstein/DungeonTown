@@ -251,6 +251,10 @@ class Renderer {
         UIRenderer.drawMinimap(this._uiLayer.ctx, dungeonMap, px, py);
     }
 
+    drawCombatLog(combatLog) {
+        UIRenderer.drawCombatLog(this._uiLayer.ctx, combatLog);
+    }
+
     drawInventoryPanel(player, selectedIndex) {
         UIRenderer.drawInventoryPanel(this._uiLayer.ctx, player, selectedIndex);
     }

@@ -30,6 +30,8 @@ const DungeonScene = {
     // Tutorial hints (non-blocking, overlay during play)
     _tutorialHint: null,  // { text, timer }
     _tutorialTimer: 0,    // time spent on this floor (for movement hint delay)
+    // Combat log entries: { text, color, age }
+    combatLog: [],
 
     init() {},
 
@@ -59,6 +61,8 @@ const DungeonScene = {
         this._tutorialHint = null;
         this._tutorialTimer = 0;
         this._bossIntro = null;
+        this.combatLog = [];
+        this._prevPlayerHp = p.hp;
         this._lootFanfare = [];
         this._furyTriggered = false;
         this._deathSaveFlash = 0;
@@ -343,13 +347,16 @@ const DungeonScene = {
         // Ability cooldowns and input
         Abilities.update(dt);
         if (Input.wasPressed('Shift')) {
-            Abilities.tryActivate('dash', player, this.map, this.map.enemies);
+            if (Abilities.tryActivate('dash', player, this.map, this.map.enemies))
+                this._log('Dash!', '#60c8ff');
         }
         if (Input.wasPressed('q') || Input.wasPressed('Q')) {
-            Abilities.tryActivate('whirlwind', player, this.map, this.map.enemies);
+            if (Abilities.tryActivate('whirlwind', player, this.map, this.map.enemies))
+                this._log('Whirlwind!', '#a0e0ff');
         }
         if ((Input.wasPressed('e') || Input.wasPressed('E')) && (!this._nearEvent || this._nearEvent.used)) {
-            Abilities.tryActivate('execute', player, this.map, this.map.enemies);
+            if (Abilities.tryActivate('execute', player, this.map, this.map.enemies))
+                this._log('Execute!', '#ff6040');
         }
 
         player.update(dt, this.map);
@@ -438,6 +445,7 @@ const DungeonScene = {
                     player.gold = (player.gold || 0) + item.value;
                     if (Game.state.runStats) Game.state.runStats.goldEarned += item.value;
                     Game.notify(`+${item.value} Gold`, '#ffd020');
+                    this._log(`+${item.value} gold`, '#ffd020');
                     this.map.items.splice(i, 1);
                 } else {
                     if (player.addToInventory(item)) {
@@ -459,8 +467,10 @@ const DungeonScene = {
                                 });
                             }
                             Game.notify(`★ ${item.name} ★`, col);
+                            this._log(`★ ${item.name}`, col);
                         } else {
                             Game.notify(`Picked up ${item.name}`, '#40c0e0');
+                            this._log(`Found: ${item.name}`, '#40c0e0');
                         }
                         this.map.items.splice(i, 1);
                     } else {
@@ -484,8 +494,22 @@ const DungeonScene = {
             if (enemy.hp <= 0 && !enemy.deathTimer) enemy.deathTimer = 0.3;
             if (enemy.deathTimer > 0) enemy.deathTimer -= dt;
         }
-        // Remove fully-dead enemies (after death animation)
+        // Remove fully-dead enemies (after death animation), log kills
+        const justDied = this.map.enemies.filter(e => e.hp <= 0 && (e.deathTimer === undefined || e.deathTimer <= 0));
+        for (const dead of justDied) {
+            if (dead.name) this._log(`${dead.name} slain`, '#ff9040');
+        }
         this.map.enemies = this.map.enemies.filter(e => e.hp > 0 || (e.deathTimer !== undefined && e.deathTimer > 0));
+
+        // Detect player damage taken
+        if (player.hp < this._prevPlayerHp && player.hp > 0) {
+            const dmg = Math.round(this._prevPlayerHp - player.hp);
+            this._log(`-${dmg} HP`, '#ff4040');
+        }
+        this._prevPlayerHp = player.hp;
+
+        // Age combat log entries (fade out old ones)
+        for (const entry of this.combatLog) entry.age += dt;
 
         // Combat effects
         Combat.update(dt);
@@ -552,6 +576,11 @@ const DungeonScene = {
             if (ev.x === x && ev.y === y) return ev;
         }
         return null;
+    },
+
+    _log(text, color = '#ddd') {
+        this.combatLog.push({ text, color, age: 0 });
+        if (this.combatLog.length > 7) this.combatLog.shift();
     },
 
     _updateSettings() {
@@ -845,6 +874,7 @@ const DungeonScene = {
             this.map.get(player.x, player.y),
             player.gold || 0);
         r.drawMinimap(this.map, player.x, player.y);
+        r.drawCombatLog(this.combatLog);
 
         // ── Victory overlay ──
         if (Game.state.victory) {

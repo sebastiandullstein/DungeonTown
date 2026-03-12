@@ -366,51 +366,71 @@ const UIRenderer = {
         // ── Ability Bar ──
         const abY = HY + 112;
         const abNames = ['dash', 'whirlwind', 'execute'];
-        const abIcons = ['→', '⚡', '☠'];
         let abX = 8;
         for (let ai = 0; ai < abNames.length; ai++) {
             const ab = Abilities.list[abNames[ai]];
             const unlocked = player.level >= ab.unlockLevel;
-            // Slot background
-            ctx.fillStyle = unlocked ? '#1a1208' : '#0a0808';
-            ctx.fillRect(abX, abY, 24, 24);
-            ctx.strokeStyle = unlocked ? '#6a4820' : '#333';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(abX, abY, 24, 24);
+            const onCooldown = ab.cooldown > 0;
+            const icx = abX + 12, icy = abY + 12;
+
+            // Slot background with gradient
+            const slotGrad = ctx.createLinearGradient(abX, abY, abX, abY + 24);
             if (unlocked) {
-                // Icon
-                ctx.fillStyle = ab.cooldown > 0 ? '#666' : '#ffd040';
-                ctx.font = 'bold 13px "Courier New"';
-                ctx.textAlign = 'center';
-                ctx.fillText(abIcons[ai], abX + 12, abY + 17);
+                slotGrad.addColorStop(0, onCooldown ? '#1a1010' : '#241808');
+                slotGrad.addColorStop(1, onCooldown ? '#0e0808' : '#160e04');
+            } else {
+                slotGrad.addColorStop(0, '#0e0808');
+                slotGrad.addColorStop(1, '#080606');
+            }
+            this._roundRect(ctx, abX, abY, 24, 24, 3);
+            ctx.fillStyle = slotGrad;
+            ctx.fill();
+            ctx.strokeStyle = unlocked ? (onCooldown ? '#5a2010' : '#8a5820') : '#2a2020';
+            ctx.lineWidth = 1;
+            this._roundRect(ctx, abX, abY, 24, 24, 3);
+            ctx.stroke();
+
+            if (unlocked) {
+                ctx.save();
+                ctx.globalAlpha = onCooldown ? 0.4 : 1.0;
+                // Draw ability-specific icon
+                if (ai === 0) this._drawDashIcon(ctx, icx, icy);
+                else if (ai === 1) this._drawWhirlwindIcon(ctx, icx, icy);
+                else if (ai === 2) this._drawExecuteIcon(ctx, icx, icy);
+                ctx.restore();
+
                 // Circular cooldown overlay (pie-chart style)
-                if (ab.cooldown > 0) {
+                if (onCooldown) {
                     const pct = ab.cooldown / ab.maxCooldown;
-                    const cx2 = abX + 12, cy2 = abY + 12, r2 = 11;
+                    const r2 = 11;
                     const startAngle = -Math.PI / 2;
                     const endAngle = startAngle + Math.PI * 2 * pct;
                     ctx.save();
                     ctx.globalAlpha = 0.65;
                     ctx.fillStyle = '#000';
                     ctx.beginPath();
-                    ctx.moveTo(cx2, cy2);
-                    ctx.arc(cx2, cy2, r2, startAngle, endAngle);
+                    ctx.moveTo(icx, icy);
+                    ctx.arc(icx, icy, r2, startAngle, endAngle);
                     ctx.closePath();
                     ctx.fill();
                     ctx.restore();
                     ctx.fillStyle = '#ff8830';
                     ctx.font = 'bold 9px "Courier New"';
                     ctx.textAlign = 'center';
-                    ctx.fillText(Math.ceil(ab.cooldown).toString(), abX + 12, abY + 16);
+                    ctx.fillText(Math.ceil(ab.cooldown).toString(), icx, icy + 4);
                 }
             } else {
-                ctx.fillStyle = '#444';
-                ctx.font = '11px "Courier New"';
-                ctx.textAlign = 'center';
-                ctx.fillText('🔒', abX + 12, abY + 17);
+                // Lock icon
+                ctx.fillStyle = '#333';
+                ctx.fillRect(icx - 3, icy - 1, 6, 5);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(icx, icy - 3, 3, Math.PI, 0);
+                ctx.stroke();
             }
             // Key label
-            ctx.fillStyle = unlocked ? '#8a6830' : '#444';
+            ctx.fillStyle = unlocked ? '#9a7840' : '#3a3030';
             ctx.font = '8px "Courier New"';
             ctx.textAlign = 'center';
             ctx.fillText(ab.key, abX + 12, abY - 2);
@@ -423,31 +443,127 @@ const UIRenderer = {
         ctx.fillRect(600, HY, 1, 144);
     },
 
+    // ─── COMBAT LOG ──────────────────────────────────────────────────────────
+
+    drawCombatLog(ctx, combatLog) {
+        if (!combatLog || combatLog.length === 0) return;
+        const LX = 604, LY = 8, LW = 190, LH = 148;
+
+        // Parchment-dark background with subtle border
+        ctx.save();
+        ctx.globalAlpha = 0.78;
+        const bg = ctx.createLinearGradient(LX, LY, LX, LY + LH);
+        bg.addColorStop(0, '#1a1008');
+        bg.addColorStop(1, '#0e0804');
+        this._roundRect(ctx, LX, LY, LW, LH, 6);
+        ctx.fillStyle = bg;
+        ctx.fill();
+        ctx.strokeStyle = '#6a4010';
+        ctx.lineWidth = 1.5;
+        this._roundRect(ctx, LX, LY, LW, LH, 6);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Title banner
+        ctx.fillStyle = '#8a5010';
+        ctx.fillRect(LX + 1, LY + 1, LW - 2, 18);
+        ctx.fillStyle = '#c8a040';
+        ctx.shadowColor = '#ffc060';
+        ctx.shadowBlur = 4;
+        ctx.font = 'bold 9px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚔ COMBAT LOG', LX + LW / 2, LY + 13);
+        ctx.shadowBlur = 0;
+        ctx.textAlign = 'left';
+
+        // Divider
+        ctx.strokeStyle = '#6a4010';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(LX + 4, LY + 20);
+        ctx.lineTo(LX + LW - 4, LY + 20);
+        ctx.stroke();
+
+        // Entries (newest at bottom)
+        const maxAge = 6.0;
+        const entries = combatLog.slice(-7);
+        const lineH = 17;
+        for (let i = 0; i < entries.length; i++) {
+            const e = entries[i];
+            const fade = Math.max(0, 1 - e.age / maxAge);
+            if (fade <= 0) continue;
+            ctx.globalAlpha = Math.min(1, fade * 1.4);
+            const ey = LY + 23 + i * lineH;
+            // Row highlight for newest entry
+            if (i === entries.length - 1 && e.age < 0.5) {
+                ctx.fillStyle = 'rgba(180,120,20,0.15)';
+                ctx.fillRect(LX + 3, ey - 12, LW - 6, 15);
+            }
+            ctx.fillStyle = e.color || '#ddd';
+            ctx.font = (i === entries.length - 1 && e.age < 1.0) ? 'bold 10px "Courier New"' : '10px "Courier New"';
+            // Truncate long text
+            const maxChars = 22;
+            const text = e.text.length > maxChars ? e.text.substring(0, maxChars) + '…' : e.text;
+            ctx.fillText(text, LX + 7, ey);
+        }
+        ctx.globalAlpha = 1;
+        ctx.restore();
+    },
+
     // ─── MINIMAP ─────────────────────────────────────────────────────────────
 
     drawMinimap(ctx, dungeonMap, playerX, playerY) {
         const MX = 610, MY = 580, MW = 184, MH = 134;
 
-        // Panel
-        ctx.fillStyle = '#0a0a0a';
+        // Parchment background
+        ctx.save();
+        const parchment = ctx.createLinearGradient(MX, MY, MX + MW, MY + MH);
+        parchment.addColorStop(0,   '#1e1208');
+        parchment.addColorStop(0.4, '#160e06');
+        parchment.addColorStop(1,   '#0e0a04');
+        ctx.fillStyle = parchment;
         ctx.fillRect(MX, MY, MW, MH);
-        ctx.strokeStyle = '#5a3810';
+
+        // Outer border — double-line ornate
+        ctx.strokeStyle = '#8a5820';
         ctx.lineWidth = 2;
         ctx.strokeRect(MX, MY, MW, MH);
+        ctx.strokeStyle = '#4a2c08';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(MX + 3, MY + 3, MW - 6, MH - 6);
+
+        // Corner ornaments
+        ctx.fillStyle = '#c8a030';
+        const corners = [[MX + 3, MY + 3], [MX + MW - 3, MY + 3], [MX + 3, MY + MH - 3], [MX + MW - 3, MY + MH - 3]];
+        for (const [cx2, cy2] of corners) {
+            ctx.beginPath(); ctx.arc(cx2, cy2, 2, 0, Math.PI * 2); ctx.fill();
+        }
 
         // Title
-        ctx.fillStyle = '#8a6030';
-        ctx.font = '9px "Courier New"';
+        ctx.fillStyle = '#a07830';
+        ctx.shadowColor = '#c09020';
+        ctx.shadowBlur = 3;
+        ctx.font = 'bold 8px "Courier New"';
         ctx.textAlign = 'center';
-        ctx.fillText('MAP', MX + MW / 2, MY + 10);
+        ctx.fillText('MAP', MX + MW / 2, MY + 12);
+        ctx.shadowBlur = 0;
         ctx.textAlign = 'left';
 
-        // Draw explored tiles as 2×2 pixel squares
-        const tileSize = 2;
+        // Subtle parchment texture lines
+        ctx.strokeStyle = 'rgba(100,60,10,0.12)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(MX + 4, MY + 18 + i * 20);
+            ctx.lineTo(MX + MW - 4, MY + 20 + i * 20);
+            ctx.stroke();
+        }
+
+        // Draw explored tiles
         const mapW = dungeonMap.width, mapH = dungeonMap.height;
-        const scale = Math.min((MW - 8) / mapW, (MH - 16) / mapH);
-        const offX = MX + 4 + (MW - 8 - mapW * scale) / 2;
-        const offY = MY + 14;
+        const scale = Math.min((MW - 12) / mapW, (MH - 22) / mapH);
+        const offX = MX + 6 + (MW - 12 - mapW * scale) / 2;
+        const offY = MY + 16;
 
         for (let y = 0; y < mapH; y++) {
             for (let x = 0; x < mapW; x++) {
@@ -455,12 +571,12 @@ const UIRenderer = {
                 const tile = dungeonMap.get(x, y);
                 let color = null;
                 switch (tile) {
-                    case 1: color = '#4a3828'; break; // wall
-                    case 2: color = '#3a2a18'; break; // floor
-                    case 3: color = '#6a4a18'; break; // door
-                    case 4: case 5: color = '#00cccc'; break; // stairs
-                    case 6: color = '#1020a0'; break; // water
-                    case 7: color = '#c0a010'; break; // chest
+                    case 1: color = '#5a4030'; break; // wall — warm stone
+                    case 2: color = '#c8a878'; break; // floor — parchment tan
+                    case 3: color = '#8a6840'; break; // door — amber
+                    case 4: case 5: color = '#40d0d0'; break; // stairs — cyan
+                    case 6: color = '#3050c0'; break; // water
+                    case 7: color = '#d0a020'; break; // chest — gold
                     default: continue;
                 }
                 ctx.fillStyle = color;
@@ -473,14 +589,138 @@ const UIRenderer = {
             }
         }
 
-        // Player dot
-        ctx.fillStyle = '#ffff00';
+        // Player dot — bright with glow
+        ctx.fillStyle = '#ffff40';
         ctx.shadowColor = '#ffff00';
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = 5;
         ctx.beginPath();
-        ctx.arc(offX + playerX * scale, offY + playerY * scale, 2, 0, Math.PI * 2);
+        ctx.arc(offX + playerX * scale, offY + playerY * scale, 2.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
+
+        // Compass rose — bottom-right corner of minimap
+        this._drawCompassRose(ctx, MX + MW - 18, MY + MH - 18, 11);
+
+        ctx.restore();
+    },
+
+    _drawCompassRose(ctx, cx, cy, r) {
+        ctx.save();
+        const dirs = [
+            { a: -Math.PI / 2, label: 'N', color: '#ff6040' },
+            { a:  Math.PI / 2, label: 'S', color: '#a08060' },
+            { a:  0,           label: 'E', color: '#a08060' },
+            { a:  Math.PI,     label: 'W', color: '#a08060' },
+        ];
+        // Cardinal spokes
+        for (const d of dirs) {
+            ctx.strokeStyle = d.color;
+            ctx.lineWidth = d.label === 'N' ? 1.5 : 1;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(d.a) * r, cy + Math.sin(d.a) * r);
+            ctx.stroke();
+        }
+        // Center dot
+        ctx.fillStyle = '#c8a030';
+        ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, Math.PI * 2); ctx.fill();
+        // N label
+        ctx.fillStyle = '#ff8060';
+        ctx.font = 'bold 6px "Courier New"';
+        ctx.textAlign = 'center';
+        ctx.fillText('N', cx, cy - r - 1);
+        ctx.restore();
+    },
+
+    // ─── ABILITY ICONS ───────────────────────────────────────────────────────
+
+    _drawDashIcon(ctx, cx, cy) {
+        // Dash: lightning bolt / directional streak
+        ctx.save();
+        ctx.strokeStyle = '#60d0ff';
+        ctx.shadowColor = '#40b8ff';
+        ctx.shadowBlur = 5;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        // Three motion lines
+        for (let i = -1; i <= 1; i++) {
+            const y = cy + i * 3;
+            ctx.globalAlpha = 1 - Math.abs(i) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(cx - 7, y);
+            ctx.lineTo(cx + 5, y);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        // Arrow head
+        ctx.fillStyle = '#80e8ff';
+        ctx.beginPath();
+        ctx.moveTo(cx + 8, cy);
+        ctx.lineTo(cx + 3, cy - 4);
+        ctx.lineTo(cx + 3, cy + 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    },
+
+    _drawWhirlwindIcon(ctx, cx, cy) {
+        // Whirlwind: spiral with blade tips
+        ctx.save();
+        ctx.strokeStyle = '#a0d8ff';
+        ctx.shadowColor = '#80c0ff';
+        ctx.shadowBlur = 5;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        // Outer spiral arc
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, -Math.PI * 0.2, Math.PI * 1.6);
+        ctx.stroke();
+        // Inner spiral arc
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, Math.PI * 0.3, Math.PI * 1.9);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        // Center dot
+        ctx.fillStyle = '#c0e8ff';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    },
+
+    _drawExecuteIcon(ctx, cx, cy) {
+        // Execute: skull above crossed blades
+        ctx.save();
+        ctx.shadowColor = '#ff3000';
+        ctx.shadowBlur = 5;
+        // Crossed swords
+        ctx.strokeStyle = '#cc8040';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 6, cy + 5); ctx.lineTo(cx + 5, cy - 4);
+        ctx.moveTo(cx + 6, cy + 5); ctx.lineTo(cx - 5, cy - 4);
+        ctx.stroke();
+        // Skull
+        ctx.fillStyle = '#e8d8b0';
+        ctx.beginPath();
+        ctx.arc(cx, cy - 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+        // Jaw
+        ctx.fillStyle = '#d0c098';
+        ctx.fillRect(cx - 2.5, cy - 2, 5, 2);
+        // Eye sockets
+        ctx.fillStyle = '#200a00';
+        ctx.beginPath(); ctx.arc(cx - 1.5, cy - 6, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 1.5, cy - 6, 1.2, 0, Math.PI * 2); ctx.fill();
+        // Glowing red eyes
+        ctx.fillStyle = '#ff2000';
+        ctx.shadowBlur = 3;
+        ctx.beginPath(); ctx.arc(cx - 1.5, cy - 6, 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 1.5, cy - 6, 0.6, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
     },
 
     // ─── INVENTORY PANEL ─────────────────────────────────────────────────────
