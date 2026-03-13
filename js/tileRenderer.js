@@ -406,6 +406,11 @@ const TileRenderer = {
     // ─── STAIRS DOWN ────────────────────────────────────────────────────────
 
     drawStairsDown(ctx, x, y, w, h) {
+        if (Assets.has('stairs_down')) {
+            this.drawFloor(ctx, x, y, w, h);
+            Assets.drawImage(ctx, 'stairs_down', x, y, w, h);
+            return;
+        }
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_down', x, y, w, h)) return;
 
@@ -442,6 +447,11 @@ const TileRenderer = {
     // ─── STAIRS UP ──────────────────────────────────────────────────────────
 
     drawStairsUp(ctx, x, y, w, h) {
+        if (Assets.has('stairs_up')) {
+            this.drawFloor(ctx, x, y, w, h);
+            Assets.drawImage(ctx, 'stairs_up', x, y, w, h);
+            return;
+        }
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_up', x, y, w, h)) return;
 
