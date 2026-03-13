@@ -94,9 +94,5 @@ Assets.registerAtlas('tiles_stone', 'assets/tiles/dungeon_stone.png', {
 // Assets.registerAtlas('tiles_abyss', 'assets/tiles/dungeon_abyss.png', { ... });
 // Assets.registerAtlas('tiles_infernal', 'assets/tiles/dungeon_infernal.png', { ... });
 
-// ─── STAIRS ─────────────────────────────────────────────────────────────────
-Assets.register('stairs_down', 'assets/tiles/stairs_down.png');
-Assets.register('stairs_up', 'assets/tiles/stairs_up.png');
-
 // ─── VILLAGE ─────────────────────────────────────────────────────────────────
 Assets.register('dungeon_entrance', 'assets/tiles/dungeon_entrance.png');

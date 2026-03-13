@@ -406,79 +406,103 @@ const TileRenderer = {
     // ─── STAIRS DOWN ────────────────────────────────────────────────────────
 
     drawStairsDown(ctx, x, y, w, h) {
-        if (Assets.has('stairs_down')) {
-            this.drawFloor(ctx, x, y, w, h);
-            Assets.drawImage(ctx, 'stairs_down', x, y, w, h);
-            return;
-        }
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_down', x, y, w, h)) return;
 
-        this.drawFloor(ctx, x, y, w, h);
+        // Dark pit base
+        ctx.fillStyle = '#080404';
+        ctx.fillRect(x, y, w, h);
 
-        // Stair steps
-        const steps = 4;
-        for (let i = 0; i < steps; i++) {
-            const sy = y + 4 + i * 6;
-            const indent = i * 3;
-            ctx.fillStyle = `rgb(${40 - i * 5}, ${30 - i * 4}, ${20 - i * 3})`;
-            ctx.fillRect(x + 4 + indent, sy, w - 8 - indent * 2, 5);
-            // Step highlight
-            ctx.fillStyle = 'rgba(255,220,120,0.15)';
-            ctx.fillRect(x + 4 + indent, sy, w - 8 - indent * 2, 1);
+        // 5 stone steps descending into darkness
+        const t = this.currentTheme;
+        for (let i = 0; i < 5; i++) {
+            const sy = y + 2 + i * 6;
+            const indent = i * 2;
+            const brightness = 50 - i * 8;
+            const r = Math.max(8, brightness * 0.8);
+            const g = Math.max(6, brightness * 0.6);
+            const b = Math.max(4, brightness * 0.4);
+            // Step face
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 5);
+            // Step edge highlight
+            ctx.fillStyle = `rgba(255,220,140,${0.2 - i * 0.03})`;
+            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 1);
+            // Step shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(x + 3 + indent, sy + 4, w - 6 - indent * 2, 1);
         }
 
-        // Down arrow overlay
-        ctx.fillStyle = 'rgba(0,200,200,0.7)';
+        // Pulsing cyan glow border
+        ctx.strokeStyle = 'rgba(0,220,220,0.6)';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 8;
+        ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+        ctx.shadowBlur = 0;
+
+        // Down arrow
+        ctx.fillStyle = 'rgba(0,220,220,0.8)';
         ctx.beginPath();
-        ctx.moveTo(x + w / 2, y + h - 5);
-        ctx.lineTo(x + w / 2 - 5, y + h - 12);
-        ctx.lineTo(x + w / 2 + 5, y + h - 12);
+        ctx.moveTo(x + w / 2, y + h - 3);
+        ctx.lineTo(x + w / 2 - 4, y + h - 8);
+        ctx.lineTo(x + w / 2 + 4, y + h - 8);
         ctx.closePath();
         ctx.fill();
-
-        // Glow
-        ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 6;
-        ctx.fill();
-        ctx.shadowBlur = 0;
     },
 
     // ─── STAIRS UP ──────────────────────────────────────────────────────────
 
     drawStairsUp(ctx, x, y, w, h) {
-        if (Assets.has('stairs_up')) {
-            this.drawFloor(ctx, x, y, w, h);
-            Assets.drawImage(ctx, 'stairs_up', x, y, w, h);
-            return;
-        }
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_up', x, y, w, h)) return;
 
-        this.drawFloor(ctx, x, y, w, h);
+        // Light stone base
+        ctx.fillStyle = '#2a1e14';
+        ctx.fillRect(x, y, w, h);
 
-        // Stair steps (ascending)
-        const steps = 4;
-        for (let i = 0; i < steps; i++) {
-            const sy = y + 4 + i * 6;
-            const indent = (steps - 1 - i) * 3;
-            ctx.fillStyle = `rgb(${30 + i * 5}, ${24 + i * 4}, ${16 + i * 3})`;
-            ctx.fillRect(x + 4 + indent, sy, w - 8 - indent * 2, 5);
-            ctx.fillStyle = 'rgba(255,220,120,0.15)';
-            ctx.fillRect(x + 4 + indent, sy, w - 8 - indent * 2, 1);
+        // 5 stone steps ascending toward light
+        for (let i = 0; i < 5; i++) {
+            const sy = y + 2 + i * 6;
+            const indent = (4 - i) * 2;
+            const brightness = 25 + i * 8;
+            const r = Math.min(70, brightness * 0.9);
+            const g = Math.min(55, brightness * 0.7);
+            const b = Math.min(40, brightness * 0.5);
+            // Step face
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 5);
+            // Step edge highlight (brighter for higher steps)
+            ctx.fillStyle = `rgba(255,230,160,${0.08 + i * 0.04})`;
+            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 1);
+            // Step shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(x + 3 + indent, sy + 4, w - 6 - indent * 2, 1);
         }
 
-        // Up arrow
-        ctx.fillStyle = 'rgba(0,200,200,0.7)';
-        ctx.beginPath();
-        ctx.moveTo(x + w / 2, y + 5);
-        ctx.lineTo(x + w / 2 - 5, y + 12);
-        ctx.lineTo(x + w / 2 + 5, y + 12);
-        ctx.closePath();
+        // Warm glow at top (suggesting light from above)
+        const glow = ctx.createLinearGradient(x, y, x, y + 12);
+        glow.addColorStop(0, 'rgba(255,200,100,0.2)');
+        glow.addColorStop(1, 'rgba(255,200,100,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(x, y, w, 12);
+
+        // Pulsing cyan glow border
+        ctx.strokeStyle = 'rgba(0,220,220,0.6)';
+        ctx.lineWidth = 1;
         ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 6;
-        ctx.fill();
+        ctx.shadowBlur = 8;
+        ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
         ctx.shadowBlur = 0;
+
+        // Up arrow
+        ctx.fillStyle = 'rgba(0,220,220,0.8)';
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y + 3);
+        ctx.lineTo(x + w / 2 - 4, y + 8);
+        ctx.lineTo(x + w / 2 + 4, y + 8);
+        ctx.closePath();
+        ctx.fill();
     },
 
     // ─── WATER ──────────────────────────────────────────────────────────────
