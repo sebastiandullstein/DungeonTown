@@ -83,7 +83,7 @@ const SpriteRenderer = {
             // Scale up sprite to fill tile (PixelLab chars use ~60% of canvas)
             const pScale = 1.7;
             const pw = w * pScale, ph = h * pScale;
-            const px = x + (w - pw) / 2, py = y + (h - ph) - 2; // anchor at feet
+            const px = x + (w - pw) / 2, py = y + h - ph; // anchor at feet
             Assets.drawImage(ctx, spriteKey, px, py, pw, ph);
             ctx.restore();
             // Still draw attack swing arc if attacking
@@ -283,7 +283,7 @@ const SpriteRenderer = {
             // Scale up sprite to fill tile (PixelLab chars use ~60% of canvas)
             const eScale = 1.7;
             const ew = w * eScale, eh = h * eScale;
-            const ex = x + (w - ew) / 2, ey = y + (h - eh) - 2; // anchor at feet
+            const ex = x + (w - ew) / 2, ey = y + h - eh; // anchor at feet
             Assets.drawImage(ctx, Assets.has(_eSpriteKey) ? _eSpriteKey : _eFallback, ex, ey, ew, eh);
             if (enemy.hp <= 0 && enemy.deathTimer !== undefined) ctx.restore();
             return;

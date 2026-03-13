@@ -420,6 +420,10 @@ const VillageScene = {
         const village = Game.state.village;
         village.updateProduction(dt);
 
+        // Decrement player moveTimer for walk animation in village
+        const p = Game.state.player;
+        if (p.moveTimer > 0) p.moveTimer = Math.max(0, p.moveTimer - dt);
+
         // Tick building pulse
         if (this._buildingPulse > 0) this._buildingPulse = Math.max(0, this._buildingPulse - dt);
 
