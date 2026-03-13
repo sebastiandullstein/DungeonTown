@@ -80,7 +80,11 @@ const SpriteRenderer = {
         if (Assets.has(spriteKey)) {
             ctx.save();
             if (invuln) ctx.globalAlpha = 0.5 + Math.sin(time * 20) * 0.3;
-            Assets.drawImage(ctx, spriteKey, x, y, w, h);
+            // Scale up sprite to fill tile (PixelLab chars use ~60% of canvas)
+            const pScale = 1.7;
+            const pw = w * pScale, ph = h * pScale;
+            const px = x + (w - pw) / 2, py = y + (h - ph) - 2; // anchor at feet
+            Assets.drawImage(ctx, spriteKey, px, py, pw, ph);
             ctx.restore();
             // Still draw attack swing arc if attacking
             if (isAttacking) {
@@ -276,7 +280,11 @@ const SpriteRenderer = {
         const _eSpriteKey = enemy.type + '_' + _eDir;
         const _eFallback = enemy.type + '_south';
         if (Assets.has(_eSpriteKey) || Assets.has(_eFallback)) {
-            Assets.drawImage(ctx, Assets.has(_eSpriteKey) ? _eSpriteKey : _eFallback, x, y, w, h);
+            // Scale up sprite to fill tile (PixelLab chars use ~60% of canvas)
+            const eScale = 1.7;
+            const ew = w * eScale, eh = h * eScale;
+            const ex = x + (w - ew) / 2, ey = y + (h - eh) - 2; // anchor at feet
+            Assets.drawImage(ctx, Assets.has(_eSpriteKey) ? _eSpriteKey : _eFallback, ex, ey, ew, eh);
             if (enemy.hp <= 0 && enemy.deathTimer !== undefined) ctx.restore();
             return;
         }
