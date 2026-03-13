@@ -405,104 +405,103 @@ const TileRenderer = {
 
     // ─── STAIRS DOWN ────────────────────────────────────────────────────────
 
-    drawStairsDown(ctx, x, y, w, h) {
+    drawStairsDown(ctx, x, y, w, h, time) {
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_down', x, y, w, h)) return;
+        time = time || 0;
+        const pulse = 0.6 + 0.4 * Math.sin(time * 3);
 
-        // Dark pit base
-        ctx.fillStyle = '#080404';
-        ctx.fillRect(x, y, w, h);
+        // Floor base so it doesn't look like void
+        this.drawFloor(ctx, x, y, w, h);
 
-        // 5 stone steps descending into darkness
-        const t = this.currentTheme;
-        for (let i = 0; i < 5; i++) {
-            const sy = y + 2 + i * 6;
-            const indent = i * 2;
-            const brightness = 50 - i * 8;
-            const r = Math.max(8, brightness * 0.8);
-            const g = Math.max(6, brightness * 0.6);
-            const b = Math.max(4, brightness * 0.4);
-            // Step face
-            ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 5);
-            // Step edge highlight
-            ctx.fillStyle = `rgba(255,220,140,${0.2 - i * 0.03})`;
-            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 1);
-            // Step shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.fillRect(x + 3 + indent, sy + 4, w - 6 - indent * 2, 1);
+        // Dark hole in center
+        ctx.fillStyle = '#040204';
+        ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
+
+        // 4 stone steps descending into darkness
+        for (let i = 0; i < 4; i++) {
+            const sy = y + 5 + i * 5;
+            const indent = 5 + i * 2;
+            const brightness = 60 - i * 12;
+            ctx.fillStyle = `rgb(${brightness},${brightness * 0.7 | 0},${brightness * 0.5 | 0})`;
+            ctx.fillRect(x + indent, sy, w - indent * 2, 4);
+            ctx.fillStyle = `rgba(255,220,140,${0.25 - i * 0.05})`;
+            ctx.fillRect(x + indent, sy, w - indent * 2, 1);
         }
 
-        // Pulsing cyan glow border
-        ctx.strokeStyle = 'rgba(0,220,220,0.6)';
-        ctx.lineWidth = 1;
+        // Bright cyan pulsing glow border
+        ctx.strokeStyle = `rgba(0,255,255,${0.5 + pulse * 0.5})`;
+        ctx.lineWidth = 2;
         ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 12 + pulse * 6;
         ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
         ctx.shadowBlur = 0;
 
-        // Down arrow
-        ctx.fillStyle = 'rgba(0,220,220,0.8)';
+        // Down arrow (bright)
+        ctx.fillStyle = `rgba(0,255,255,${0.7 + pulse * 0.3})`;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.moveTo(x + w / 2, y + h - 3);
-        ctx.lineTo(x + w / 2 - 4, y + h - 8);
-        ctx.lineTo(x + w / 2 + 4, y + h - 8);
+        ctx.moveTo(x + w / 2, y + h - 2);
+        ctx.lineTo(x + w / 2 - 5, y + h - 9);
+        ctx.lineTo(x + w / 2 + 5, y + h - 9);
         ctx.closePath();
         ctx.fill();
+        ctx.shadowBlur = 0;
     },
 
     // ─── STAIRS UP ──────────────────────────────────────────────────────────
 
-    drawStairsUp(ctx, x, y, w, h) {
+    drawStairsUp(ctx, x, y, w, h, time) {
         const themeKey = 'tiles_' + this._currentThemeKey;
         if (Assets.drawSprite(ctx, themeKey, 'stairs_up', x, y, w, h)) return;
+        time = time || 0;
+        const pulse = 0.6 + 0.4 * Math.sin(time * 3);
 
-        // Light stone base
+        // Floor base
+        this.drawFloor(ctx, x, y, w, h);
+
+        // Lighter opening in center
         ctx.fillStyle = '#2a1e14';
-        ctx.fillRect(x, y, w, h);
+        ctx.fillRect(x + 4, y + 4, w - 8, h - 8);
 
-        // 5 stone steps ascending toward light
-        for (let i = 0; i < 5; i++) {
-            const sy = y + 2 + i * 6;
-            const indent = (4 - i) * 2;
-            const brightness = 25 + i * 8;
-            const r = Math.min(70, brightness * 0.9);
-            const g = Math.min(55, brightness * 0.7);
-            const b = Math.min(40, brightness * 0.5);
-            // Step face
-            ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 5);
-            // Step edge highlight (brighter for higher steps)
-            ctx.fillStyle = `rgba(255,230,160,${0.08 + i * 0.04})`;
-            ctx.fillRect(x + 3 + indent, sy, w - 6 - indent * 2, 1);
-            // Step shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.fillRect(x + 3 + indent, sy + 4, w - 6 - indent * 2, 1);
+        // 4 stone steps ascending toward light
+        for (let i = 0; i < 4; i++) {
+            const sy = y + 5 + i * 5;
+            const indent = 5 + (3 - i) * 2;
+            const brightness = 30 + i * 12;
+            ctx.fillStyle = `rgb(${brightness},${brightness * 0.8 | 0},${brightness * 0.6 | 0})`;
+            ctx.fillRect(x + indent, sy, w - indent * 2, 4);
+            ctx.fillStyle = `rgba(255,230,160,${0.1 + i * 0.06})`;
+            ctx.fillRect(x + indent, sy, w - indent * 2, 1);
         }
 
-        // Warm glow at top (suggesting light from above)
-        const glow = ctx.createLinearGradient(x, y, x, y + 12);
-        glow.addColorStop(0, 'rgba(255,200,100,0.2)');
+        // Warm glow at top
+        const glow = ctx.createRadialGradient(x + w / 2, y + h / 2, 2, x + w / 2, y + h / 2, w / 2);
+        glow.addColorStop(0, `rgba(255,200,100,${0.15 + pulse * 0.1})`);
         glow.addColorStop(1, 'rgba(255,200,100,0)');
         ctx.fillStyle = glow;
-        ctx.fillRect(x, y, w, 12);
+        ctx.fillRect(x, y, w, h);
 
-        // Pulsing cyan glow border
-        ctx.strokeStyle = 'rgba(0,220,220,0.6)';
-        ctx.lineWidth = 1;
+        // Bright cyan pulsing glow border
+        ctx.strokeStyle = `rgba(0,255,255,${0.5 + pulse * 0.5})`;
+        ctx.lineWidth = 2;
         ctx.shadowColor = '#00ffff';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 12 + pulse * 6;
         ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
         ctx.shadowBlur = 0;
 
-        // Up arrow
-        ctx.fillStyle = 'rgba(0,220,220,0.8)';
+        // Up arrow (bright)
+        ctx.fillStyle = `rgba(0,255,255,${0.7 + pulse * 0.3})`;
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.moveTo(x + w / 2, y + 3);
-        ctx.lineTo(x + w / 2 - 4, y + 8);
-        ctx.lineTo(x + w / 2 + 4, y + 8);
+        ctx.moveTo(x + w / 2, y + 2);
+        ctx.lineTo(x + w / 2 - 5, y + 9);
+        ctx.lineTo(x + w / 2 + 5, y + 9);
         ctx.closePath();
         ctx.fill();
+        ctx.shadowBlur = 0;
     },
 
     // ─── WATER ──────────────────────────────────────────────────────────────
@@ -978,8 +977,8 @@ const TileRenderer = {
             case 1: this.drawWall(ctx, x, y, w, h); break;         // WALL
             case 2: this.drawFloor(ctx, x, y, w, h, dimFactor); break; // FLOOR
             case 3: this.drawDoor(ctx, x, y, w, h); break;         // DOOR
-            case 4: this.drawStairsDown(ctx, x, y, w, h); break;   // STAIRS_DOWN
-            case 5: this.drawStairsUp(ctx, x, y, w, h); break;     // STAIRS_UP
+            case 4: this.drawStairsDown(ctx, x, y, w, h, time); break;   // STAIRS_DOWN
+            case 5: this.drawStairsUp(ctx, x, y, w, h, time); break;     // STAIRS_UP
             case 6: this.drawWater(ctx, x, y, w, h, time); break;  // WATER
             case 7: this.drawChest(ctx, x, y, w, h); break;        // CHEST
             case 8: this.drawShrine(ctx, x, y, w, h, time); break;  // SHRINE
