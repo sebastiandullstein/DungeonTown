@@ -153,6 +153,7 @@ const Game = {
             unlockedFloors: Game.state.unlockedFloors,
             victory: Game.state.victory,
             totalDeaths: Game.state.totalDeaths || 0,
+            totalEscapes: Game.state.totalEscapes || 0,
             milestones: Game.state.milestones || {},
             abilityCooldowns: Abilities.serialize(),
         };
@@ -172,6 +173,7 @@ const Game = {
             Game.state.unlockedFloors = data.unlockedFloors || [1];
             Game.state.victory = data.victory || false;
             Game.state.totalDeaths = data.totalDeaths || 0;
+            Game.state.totalEscapes = data.totalEscapes || 0;
             Game.state.milestones = data.milestones || {};
             if (data.abilityCooldowns) Abilities.deserialize(data.abilityCooldowns);
             return true;
@@ -190,6 +192,7 @@ const Game = {
         Game.state.gameStarted = true;
         Game.state.victory = false;
         Game.state.totalDeaths = 0;
+        Game.state.totalEscapes = 0;
         Game.state.milestones = {};
     },
 

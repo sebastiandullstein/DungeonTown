@@ -67,12 +67,14 @@ const DungeonScene = {
         this._furyTriggered = false;
         this._deathSaveFlash = 0;
         this._deathSaveAcknowledged = false;
+        this._escapeSummaryTimer = 0;
         // Run stats tracking
         if (!Game.state.runStats || floor === 1) {
             Game.state.runStats = {
                 kills: 0, floorsReached: floor, goldAtStart: p.gold,
                 itemsFound: 0, goldEarned: 0, damageDealt: 0, damageTaken: 0,
-                potionsUsed: 0, runTime: 0, deathCause: null, deathFloor: 0
+                potionsUsed: 0, runTime: 0, deathCause: null, deathFloor: 0,
+                bossesKilled: 0, bestKill: null
             };
         }
         Game.state.runStats.floorsReached = Math.max(Game.state.runStats.floorsReached, floor);
@@ -87,20 +89,24 @@ const DungeonScene = {
         Audio.startMusic('dungeon');
 
         if (floor === 50) {
+            Audio.play('bossFloorWarning');
             Audio.play('bossIntro');
             this._bossIntro = { name: 'Malphas the Demon Lord', tier: 'final', timer: 3.5, maxTimer: 3.5 };
             Game.renderer.shake(15, 1.0);
         } else if (floor % 10 === 0) {
             const boss = EnemyTypes.getMajorBossForFloor(floor);
+            Audio.play('bossFloorWarning');
             Audio.play('bossIntro');
             this._bossIntro = { name: boss.name, tier: 'major', timer: 3.0, maxTimer: 3.0 };
             Game.renderer.shake(10, 0.6);
         } else if (floor % 5 === 0) {
             const boss = EnemyTypes.getMiniBossForFloor(floor);
+            Audio.play('bossFloorWarning');
             Audio.play('bossEncounter');
             this._bossIntro = { name: boss.name, tier: 'mini', timer: 2.0, maxTimer: 2.0 };
             Game.renderer.shake(6, 0.4);
         } else {
+            Audio.play('floorTransition');
             Game.notify(`Dungeon Floor ${floor}`, '#40e0e0');
         }
     },
@@ -173,12 +179,22 @@ const DungeonScene = {
         // Escape confirmation mode
         if (this.mode === 'escapeConfirm') {
             if (Input.wasPressed('Enter') || Input.wasPressed('y') || Input.wasPressed('Y')) {
-                this.mode = 'play';
-                this.returnToVillage();
+                this.mode = 'escapeSummary';
+                this._escapeSummaryTimer = 0;
+                Audio.play('escapeJingle');
                 return;
             }
             if (Input.wasPressed('Escape') || Input.wasPressed('n') || Input.wasPressed('N')) {
                 this.mode = 'play';
+            }
+            return;
+        }
+
+        // Escape summary overlay
+        if (this.mode === 'escapeSummary') {
+            this._escapeSummaryTimer += dt;
+            if (this._escapeSummaryTimer > 1.5 && (Input.wasPressed('Enter') || Input.wasPressed(' ') || Input.wasPressed('Escape'))) {
+                this.returnToVillage();
             }
             return;
         }
@@ -389,7 +405,10 @@ const DungeonScene = {
                     this.mode = 'escapeConfirm';
                     return;
                 }
-                this.returnToVillage();
+                // Floor 1 escape — show summary then return
+                this.mode = 'escapeSummary';
+                this._escapeSummaryTimer = 0;
+                Audio.play('escapeJingle');
                 return;
             }
         }
@@ -569,6 +588,143 @@ const DungeonScene = {
             Audio.play('deathJingle');
             Game.renderer.shake(15, 0.8);
         }
+    },
+
+    _getRunRating(stats) {
+        // S/A/B/C/D rating based on performance
+        let score = 0;
+        score += Math.min(50, (stats.floorsReached || 0)) * 2;      // up to 100
+        score += Math.min(100, (stats.kills || 0));                   // up to 100
+        score += Math.min(50, (stats.bossesKilled || 0) * 15);       // up to 50
+        score += Math.min(30, (stats.goldEarned || 0) / 10);         // up to 30
+        const time = stats.runTime || 1;
+        if (time < 300 && stats.floorsReached >= 10) score += 20;    // speed bonus
+        if (stats.floorsReached >= 50) score += 50;                   // completion bonus
+        if (score >= 250) return { grade: 'S', color: '#ffd700' };
+        if (score >= 180) return { grade: 'A', color: '#40e0e0' };
+        if (score >= 120) return { grade: 'B', color: '#80ff40' };
+        if (score >= 60)  return { grade: 'C', color: '#c8a050' };
+        return { grade: 'D', color: '#887766' };
+    },
+
+    _drawEscapeSummary(ctx, elapsed) {
+        const stats = Game.state.runStats || { kills: 0, floorsReached: 1, goldEarned: 0,
+            itemsFound: 0, damageDealt: 0, damageTaken: 0, potionsUsed: 0, runTime: 0,
+            bossesKilled: 0, bestKill: null };
+
+        // Darken background
+        const bgFade = Math.min(0.75, elapsed * 1.5);
+        ctx.save();
+        ctx.fillStyle = `rgba(0,8,4,${bgFade})`;
+        ctx.fillRect(0, 0, 800, 720);
+        ctx.textAlign = 'center';
+        const cx = 400;
+
+        // Title: "ESCAPED"
+        const titleFade = Math.min(1, elapsed / 0.5);
+        ctx.globalAlpha = titleFade;
+        ctx.shadowColor = '#00ff80';
+        ctx.shadowBlur = 25;
+        ctx.fillStyle = '#40ff80';
+        ctx.font = 'bold 48px "Courier New"';
+        ctx.fillText('ESCAPED', cx, 130);
+        ctx.shadowBlur = 0;
+
+        // Subtitle
+        ctx.fillStyle = '#80c0a0';
+        ctx.font = 'italic 14px "Courier New"';
+        ctx.fillText(`Returned safely from Floor ${stats.floorsReached}`, cx, 158);
+
+        // Summary panel — fades in
+        const summaryFade = Math.min(1, Math.max(0, (elapsed - 0.5) / 0.8));
+        ctx.globalAlpha = summaryFade;
+
+        const pw = 360, ph = 310;
+        const px = cx - pw / 2, py = 175;
+        ctx.fillStyle = 'rgba(2,8,4,0.85)';
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeStyle = '#206040';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px, py, pw, ph);
+
+        // Panel title
+        ctx.fillStyle = '#609080';
+        ctx.font = 'bold 13px "Courier New"';
+        ctx.fillText('─── RUN SUMMARY ───', cx, py + 22);
+
+        // Stats rows
+        const minutes = Math.floor((stats.runTime || 0) / 60);
+        const seconds = Math.floor((stats.runTime || 0) % 60);
+        const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+        const rows = [
+            { label: 'Floors Reached', value: `${stats.floorsReached}`, color: '#88aa88' },
+            { label: 'Enemies Slain', value: `${stats.kills}`, color: '#88aa88' },
+            { label: 'Bosses Killed', value: `${stats.bossesKilled || 0}`, color: '#ddaa44' },
+            { label: 'Damage Dealt', value: `${stats.damageDealt}`, color: '#88aa88' },
+            { label: 'Items Found', value: `${stats.itemsFound}`, color: '#88aa88' },
+            { label: 'Gold Earned', value: `${stats.goldEarned}`, color: '#ddaa44' },
+            { label: 'Potions Used', value: `${stats.potionsUsed}`, color: '#88aa88' },
+            { label: 'Time', value: timeStr, color: '#88aa88' },
+        ];
+        if (stats.bestKill) {
+            rows.push({ label: 'Strongest Kill', value: stats.bestKill, color: '#ff9040' });
+        }
+
+        ctx.font = '13px "Courier New"';
+        let ry = py + 44;
+        for (const row of rows) {
+            ctx.fillStyle = '#778877';
+            ctx.textAlign = 'left';
+            ctx.fillText(row.label, px + 24, ry);
+            ctx.fillStyle = row.color;
+            ctx.textAlign = 'right';
+            ctx.fillText(row.value, px + pw - 24, ry);
+            ry += 19;
+        }
+
+        // Divider
+        ry += 4;
+        ctx.strokeStyle = 'rgba(60,100,70,0.4)';
+        ctx.beginPath();
+        ctx.moveTo(px + 20, ry);
+        ctx.lineTo(px + pw - 20, ry);
+        ctx.stroke();
+        ry += 16;
+
+        // Run rating
+        const rating = this._getRunRating(stats);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = rating.color;
+        ctx.font = 'bold 28px "Courier New"';
+        ctx.shadowColor = rating.color;
+        ctx.shadowBlur = 10;
+        ctx.fillText(`RANK: ${rating.grade}`, cx, ry);
+        ctx.shadowBlur = 0;
+        ry += 20;
+
+        // Flavor text
+        ctx.font = 'italic 12px "Courier New"';
+        ctx.fillStyle = '#80a090';
+        let flavor;
+        if (stats.floorsReached >= 50) flavor = 'The Demon Lord falls. DungeonTown is saved!';
+        else if (stats.floorsReached >= 40) flavor = 'The deepest halls tremble at your return.';
+        else if (stats.bossesKilled >= 3) flavor = 'The bosses fall, one by one. Victory draws near.';
+        else if (stats.kills >= 50) flavor = 'A legendary warrior returns triumphant.';
+        else if (stats.floorsReached >= 20) flavor = 'The dungeon remembers your blade.';
+        else if (stats.floorsReached >= 10) flavor = 'Steady progress. The town grows stronger.';
+        else flavor = 'Every safe return is a victory.';
+        ctx.fillText(`"${flavor}"`, cx, ry);
+
+        // Skip prompt
+        const skipFade = Math.min(1, Math.max(0, (elapsed - 1.5) / 0.5));
+        ctx.globalAlpha = skipFade * (0.5 + 0.3 * Math.sin(elapsed * 3));
+        ctx.font = '12px "Courier New"';
+        ctx.fillStyle = '#609080';
+        ctx.fillText('[Enter / Space] Continue', cx, py + ph - 8);
+
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+        ctx.restore();
     },
 
     _findEvent(x, y) {
@@ -979,12 +1135,12 @@ const DungeonScene = {
             const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
             rows.push({ label: 'Floors Reached', value: `${stats.floorsReached}`, color: '#aa8866' });
             rows.push({ label: 'Enemies Slain', value: `${stats.kills}`, color: '#aa8866' });
+            rows.push({ label: 'Bosses Killed', value: `${stats.bossesKilled || 0}`, color: '#ddaa44' });
             rows.push({ label: 'Damage Dealt', value: `${stats.damageDealt}`, color: '#aa8866' });
-            rows.push({ label: 'Damage Taken', value: `${stats.damageTaken}`, color: '#aa8866' });
             rows.push({ label: 'Items Found', value: `${stats.itemsFound}`, color: '#aa8866' });
             rows.push({ label: 'Gold Earned', value: `${stats.goldEarned}`, color: '#ddaa44' });
-            rows.push({ label: 'Potions Used', value: `${stats.potionsUsed}`, color: '#aa8866' });
             rows.push({ label: 'Time', value: timeStr, color: '#aa8866' });
+            if (stats.bestKill) rows.push({ label: 'Strongest Kill', value: stats.bestKill, color: '#ff9040' });
 
             ctx.font = '13px "Courier New"';
             let ry = py + 44;
@@ -1023,8 +1179,18 @@ const DungeonScene = {
                 ry += 16;
             }
 
+            // Run rating
+            ry += 4;
+            const rating = this._getRunRating(stats);
+            ctx.fillStyle = rating.color;
+            ctx.font = 'bold 22px "Courier New"';
+            ctx.shadowColor = rating.color;
+            ctx.shadowBlur = 8;
+            ctx.fillText(`RANK: ${rating.grade}`, cx, ry);
+            ctx.shadowBlur = 0;
+            ry += 18;
+
             // Narrative flavor based on run performance
-            ry += 6;
             ctx.font = 'italic 12px "Courier New"';
             ctx.fillStyle = '#997766';
             let flavor;
@@ -1166,6 +1332,11 @@ const DungeonScene = {
         // ── Escape confirmation overlay ──
         if (this.mode === 'escapeConfirm') {
             r.drawEscapeConfirm(Game.state.currentFloor);
+        }
+
+        // ── Escape summary overlay ──
+        if (this.mode === 'escapeSummary') {
+            this._drawEscapeSummary(r.getCtx(), this._escapeSummaryTimer);
         }
 
         // ── Event prompt overlay (shrine, fountain, cursed chest) ──

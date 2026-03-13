@@ -69,6 +69,9 @@ const Audio = {
             case 'rareLoot':      this._playRareLoot(t); break;
             case 'deathSave':     this._playDeathSave(t); break;
             case 'bossKill':      this._playBossKill(t); break;
+            case 'escapeJingle':  this._playEscapeJingle(t); break;
+            case 'floorTransition': this._playFloorTransition(t); break;
+            case 'bossFloorWarning': this._playBossFloorWarning(t); break;
         }
     },
 
@@ -382,6 +385,97 @@ const Audio = {
             osc.connect(gain); gain.connect(this.ctx.destination);
             osc.start(start); osc.stop(start + 0.91);
         });
+    },
+
+    _playEscapeJingle(t) {
+        // Triumphant rising fanfare — escaped the dungeon alive
+        const v = this._vol() * 0.22;
+        const notes = [
+            { freq: 330, delay: 0,    dur: 0.3 },   // E4
+            { freq: 392, delay: 0.12, dur: 0.3 },   // G4
+            { freq: 494, delay: 0.24, dur: 0.35 },  // B4
+            { freq: 523, delay: 0.38, dur: 0.5 },   // C5
+            { freq: 659, delay: 0.55, dur: 0.7 },   // E5 (bright resolve)
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = n.freq;
+            gain.gain.setValueAtTime(v, t + n.delay);
+            gain.gain.setValueAtTime(v * 0.6, t + n.delay + n.dur * 0.6);
+            gain.gain.linearRampToValueAtTime(0, t + n.delay + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + n.delay); osc.stop(t + n.delay + n.dur + 0.01);
+        }
+        // Shimmer overtone
+        const shimmer = this.ctx.createOscillator();
+        const sGain = this.ctx.createGain();
+        shimmer.type = 'triangle';
+        shimmer.frequency.setValueAtTime(1047, t + 0.5); // C6
+        sGain.gain.setValueAtTime(v * 0.15, t + 0.5);
+        sGain.gain.linearRampToValueAtTime(0, t + 1.4);
+        shimmer.connect(sGain); sGain.connect(this.ctx.destination);
+        shimmer.start(t + 0.5); shimmer.stop(t + 1.41);
+    },
+
+    _playFloorTransition(t) {
+        // Subtle whoosh + chime — descending to next floor
+        const v = this._vol() * 0.18;
+        // Whoosh (filtered noise sweep)
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(v * 0.5, t);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.5);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(200, t);
+            filter.frequency.exponentialRampToValueAtTime(2000, t + 0.3);
+            filter.Q.value = 1.5;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.51);
+        }
+        // Chime
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, t + 0.15);
+        osc.frequency.exponentialRampToValueAtTime(440, t + 0.55);
+        gain.gain.setValueAtTime(v * 0.4, t + 0.15);
+        gain.gain.linearRampToValueAtTime(0, t + 0.6);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t + 0.15); osc.stop(t + 0.61);
+    },
+
+    _playBossFloorWarning(t) {
+        // Ominous rumble + dissonant chord — boss floor ahead
+        const v = this._vol() * 0.2;
+        // Deep rumble
+        const rumble = this.ctx.createOscillator();
+        const rGain = this.ctx.createGain();
+        rumble.type = 'sawtooth';
+        rumble.frequency.setValueAtTime(45, t);
+        rumble.frequency.linearRampToValueAtTime(35, t + 1.2);
+        rGain.gain.setValueAtTime(v * 0.5, t);
+        rGain.gain.linearRampToValueAtTime(v * 0.6, t + 0.4);
+        rGain.gain.linearRampToValueAtTime(0, t + 1.2);
+        rumble.connect(rGain); rGain.connect(this.ctx.destination);
+        rumble.start(t); rumble.stop(t + 1.21);
+        // Dissonant minor second stab
+        const freqs = [165, 175]; // E3 + F3 — clashing
+        for (const freq of freqs) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, t + 0.3);
+            gain.gain.linearRampToValueAtTime(v * 0.35, t + 0.4);
+            gain.gain.linearRampToValueAtTime(0, t + 1.0);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(t + 0.3); osc.stop(t + 1.01);
+        }
     },
 
     // ── Ambient Music ────────────────────────────────────────────────────────

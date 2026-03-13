@@ -69,11 +69,11 @@ const VillageScene = {
             Audio.play('villageReturn');
             this._showDeathReactions(data.runStats, data.goldLost);
         } else if (data && data.fromEscape) {
-            // Successful escape
+            // Successful escape — escapeJingle already played in dungeon summary
             this.cursor.x = 40;
             this.cursor.y = 25;
             Audio.play('villageReturn');
-            this._showEscapeReactions(data.runStats);
+            this._showEscapeReactions(data.runStats, data.runRating);
         } else {
             Game.notify('You return to DungeonTown.', '#0f0');
         }
@@ -192,21 +192,41 @@ const VillageScene = {
         }
     },
 
-    _showEscapeReactions(runStats) {
+    _showEscapeReactions(runStats, runRating) {
         const stats = runStats || {};
         const floor = stats.floorsReached || 1;
         const kills = stats.kills || 0;
         const gold = stats.goldEarned || 0;
+        const bosses = stats.bossesKilled || 0;
 
         Game.notify('You escaped the dungeon safely!', '#40e0e0');
+
+        // Context-aware villager reactions
         if (floor >= 40) {
             Game.notify(`Floor ${floor}! The village celebrates your bravery.`, '#ffd700');
-        } else if (kills >= 30) {
-            Game.notify(`${kills} slain and home alive. Well fought!`, '#c8a050');
-        } else if (gold >= 100) {
-            Game.notify(`${gold} gold earned. The town prospers!`, '#ffd020');
+        } else if (bosses >= 2) {
+            Game.notify(`${bosses} bosses felled! Your legend grows.`, '#ffd700');
+        } else if (kills >= 50) {
+            Game.notify(`${kills} slain! The town sleeps safer tonight.`, '#c8a050');
+        } else if (gold >= 200) {
+            Game.notify(`${gold} gold earned. The coffers overflow!`, '#ffd020');
+        } else if (floor >= 20) {
+            Game.notify('The deep floors respect your strength.', '#c8a050');
         } else if (floor >= 10) {
             Game.notify('Another successful expedition. The dungeon weakens.', '#c8a050');
+        } else if (kills >= 10) {
+            Game.notify(`${kills} monsters cleared. Steady progress!`, '#c8a050');
+        }
+
+        // Positive milestone for total escapes
+        const escapes = (Game.state.totalEscapes || 0);
+        Game.state.totalEscapes = escapes + 1;
+        if (Game.state.totalEscapes === 1) {
+            Game.notify('First successful escape! The villagers cheer.', '#40ff80');
+        } else if (Game.state.totalEscapes === 10) {
+            Game.notify('10 expeditions survived. A seasoned adventurer!', '#ffd700');
+        } else if (Game.state.totalEscapes % 25 === 0) {
+            Game.notify(`${Game.state.totalEscapes} runs completed. Living legend.`, '#ffd700');
         }
     },
 

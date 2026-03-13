@@ -431,6 +431,14 @@ class Enemy {
             player.hp = Math.min(player.maxHp, player.hp + 2);
         }
         // Track run kills
-        if (Game.state.runStats) Game.state.runStats.kills++;
+        if (Game.state.runStats) {
+            Game.state.runStats.kills++;
+            if (enemy.isBoss) Game.state.runStats.bossesKilled = (Game.state.runStats.bossesKilled || 0) + 1;
+            // Track strongest kill by enemy maxHp
+            if (!Game.state.runStats.bestKill || (enemy.maxHp || 0) > (Game.state.runStats._bestKillHp || 0)) {
+                Game.state.runStats.bestKill = enemy.name;
+                Game.state.runStats._bestKillHp = enemy.maxHp || 0;
+            }
+        }
     }
 }
