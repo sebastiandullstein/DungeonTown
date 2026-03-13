@@ -344,30 +344,8 @@ const UIRenderer = {
             ctx.textAlign = 'left';
         }
 
-        // ── Row C: Controls ──
-        ctx.fillStyle = '#5a4028';
-        ctx.font = '11px "Courier New"';
-        ctx.fillText('[WASD] Move  [Space] Atk  [Shift] Dash  [Q] Whirl  [E] Exec  [1] HP  [2] MP  [I] Inv  [C] Stats', 8, HY + 98);
-
-        // ── Row D: Stair / context hint ──
-        if (mapTile === 4) { // STAIRS_DOWN
-            ctx.fillStyle = '#40e0e0';
-            ctx.shadowColor = '#00ffff';
-            ctx.shadowBlur = 4;
-            ctx.font = 'bold 12px "Courier New"';
-            ctx.fillText('▼  [Enter] Descend to next floor', 8, HY + 118);
-            ctx.shadowBlur = 0;
-        } else if (mapTile === 5) { // STAIRS_UP
-            ctx.fillStyle = '#40e0e0';
-            ctx.shadowColor = '#00ffff';
-            ctx.shadowBlur = 4;
-            ctx.font = 'bold 12px "Courier New"';
-            ctx.fillText('▲  [Enter] Return to village', 8, HY + 118);
-            ctx.shadowBlur = 0;
-        }
-
-        // ── Ability Bar ──
-        const abY = HY + 112;
+        // ── Ability Bar (moved up, no more control hints row) ──
+        const abY = HY + 90;
         const abNames = ['dash', 'whirlwind', 'execute'];
         let abX = 8;
         for (let ai = 0; ai < abNames.length; ai++) {
@@ -439,6 +417,28 @@ const UIRenderer = {
             ctx.fillText(ab.key, abX + 12, abY - 2);
             ctx.textAlign = 'left';
             abX += 32;
+        }
+
+        // ── Context hint (stairs, events, interact) ──
+        const hintY = abY + 30;
+        if (mapTile === 4) { // STAIRS_DOWN
+            ctx.fillStyle = '#40e0e0';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 4;
+            ctx.font = 'bold 11px "Courier New"';
+            ctx.fillText('▼ [Enter] Descend to next floor', 8, hintY);
+            ctx.shadowBlur = 0;
+        } else if (mapTile === 5) { // STAIRS_UP
+            ctx.fillStyle = '#40e0e0';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 4;
+            ctx.font = 'bold 11px "Courier New"';
+            ctx.fillText('▲ [Enter] Return to village', 8, hintY);
+            ctx.shadowBlur = 0;
+        } else if (mapTile >= 8 && mapTile <= 13) { // Event tiles (shrine, merchant, etc)
+            ctx.fillStyle = '#e0c060';
+            ctx.font = 'bold 11px "Courier New"';
+            ctx.fillText('[E] Interact', 8, hintY);
         }
 
         // ── HUD separator ──
@@ -1053,10 +1053,10 @@ const UIRenderer = {
         ctx.fillStyle = '#5a3818';
         ctx.fillRect(0, HY + 52, W, 1);
 
-        // ── Row B: Controls ──
+        // ── Row B: Key actions (contextual only) ──
         ctx.fillStyle = '#5a4028';
         ctx.font = '11px "Courier New"';
-        ctx.fillText('[WASD]Move  [Enter]Interact  [B]Build  [R]Recruit  [I]Inventory  [C]Stats  [F5]Save', 12, HY + 68);
+        ctx.fillText('[E] Interact  [B] Build  [I] Inv  [C] Stats', 12, HY + 68);
 
         // ── Row C: Production timer ──
         ctx.fillStyle = '#4a3010';
