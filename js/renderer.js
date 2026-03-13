@@ -202,7 +202,7 @@ class Renderer {
         SpriteRenderer.drawChestOpening(this._entityLayer.ctx, px, py, this.tileW, this.tileH, progress);
     }
 
-    // Cursor ring for village
+    // Subtle ground marker for village (replaces old yellow rectangle)
     putCursor(col, row) {
         if (col < 0 || col >= this.viewportCols || row < 0 || row >= this.viewportRows) return;
         const px = col * this.tileW;
@@ -210,11 +210,16 @@ class Renderer {
         const ctx = this._entityLayer.ctx;
         const pulse = 0.5 + 0.5 * Math.sin(this.time * 4);
         ctx.save();
-        ctx.strokeStyle = `rgba(255,220,80,${0.5 + pulse * 0.5})`;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#ffcc20';
-        ctx.shadowBlur = 6 + pulse * 4;
-        ctx.strokeRect(px + 1, py + 1, this.tileW - 2, this.tileH - 2);
+        // Small directional arrow below feet instead of full-tile rectangle
+        const cx = px + this.tileW / 2;
+        const by = py + this.tileH + 2;
+        ctx.fillStyle = `rgba(255,220,80,${0.3 + pulse * 0.2})`;
+        ctx.beginPath();
+        ctx.moveTo(cx, by + 4);
+        ctx.lineTo(cx - 5, by);
+        ctx.lineTo(cx + 5, by);
+        ctx.closePath();
+        ctx.fill();
         ctx.restore();
     }
 

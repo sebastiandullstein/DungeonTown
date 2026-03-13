@@ -504,12 +504,25 @@ const VillageScene = {
             return;
         }
 
+        const prevCX = this.cursor.x, prevCY = this.cursor.y;
         if (Input.wasPressed('ArrowLeft') || Input.wasPressed('a') || Input.wasPressed('A')) this.cursor.x -= 2;
         if (Input.wasPressed('ArrowRight') || Input.wasPressed('d') || Input.wasPressed('D')) this.cursor.x += 2;
         if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) this.cursor.y -= 2;
         if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) this.cursor.y += 2;
         this.cursor.x = Math.max(1, Math.min(78, this.cursor.x));
         this.cursor.y = Math.max(1, Math.min(48, this.cursor.y));
+
+        // Trigger walk animation + facing when cursor moved
+        if (this.cursor.x !== prevCX || this.cursor.y !== prevCY) {
+            const p = Game.state.player;
+            p.moveTimer = 0.25; // brief walk anim
+            const dx = this.cursor.x - prevCX, dy = this.cursor.y - prevCY;
+            if (Math.abs(dx) >= Math.abs(dy)) {
+                p.facing = { x: dx > 0 ? 1 : -1, y: 0 };
+            } else {
+                p.facing = { x: 0, y: dy > 0 ? 1 : -1 };
+            }
+        }
 
         this._centerOnCursor();
 
