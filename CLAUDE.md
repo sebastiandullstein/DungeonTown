@@ -28,7 +28,8 @@ Title → Village ←→ Dungeon
 
 ### Script-Ladereihenfolge (`index.html`)
 ```
-tileRenderer → spriteRenderer → uiRenderer → renderer → input → audio
+assetLoader → manifest
+→ tileRenderer → spriteRenderer → uiRenderer → renderer → input → audio
 → items → player → abilities → enemies → combat
 → dungeon → events → village
 → ui
@@ -41,6 +42,7 @@ tileRenderer → spriteRenderer → uiRenderer → renderer → input → audio
 |---|---|
 | `Game` | Hauptcontroller, Szenenmanager, Save/Load |
 | `Input` | Keyboard & Mouse |
+| `Assets` | Sprite/Image-Loader, Atlas-Regionen, Sprite-First-Fallback |
 | `Audio` | Web Audio API, prozedurales SFX + Musik |
 | `Abilities` | Dash / Whirlwind / Execute |
 | `Combat` | Schadensberechnung, Floating Text, Partikel |
@@ -158,6 +160,7 @@ Vor Änderungen an den folgenden Bereichen immer erst lesen und verstehen, nicht
 | UI-Rendering (HUD, Panels) | `uiRenderer.js` | Fertig |
 | Input (Tastatur + Maus) | `input.js` | Fertig |
 | Prozedurales Audio | `audio.js` | Fertig |
+| Asset-Loader | `assetLoader.js` + `assets/manifest.js` | Fertig — Sprite-First mit Procedural-Fallback |
 
 ### Spielentitäten
 | System | Datei | Notizen |
@@ -181,7 +184,7 @@ Vor Änderungen an den folgenden Bereichen immer erst lesen und verstehen, nicht
 |---|---|---|
 | Titel | `scenes/titleScene.js` | settings |
 | Dorf | `scenes/villageScene.js` | explore, paused, settings, build, manage, recruit, assign_villager, smithy, tavern, temple, warehouse |
-| Dungeon | `scenes/dungeonScene.js` | play, paused, settings, floorSelect, escapeConfirm, eventPrompt, merchant, prisonerChoice |
+| Dungeon | `scenes/dungeonScene.js` | play, paused, settings, floorSelect, escapeConfirm, escapeSummary, eventPrompt, merchant, prisonerChoice |
 | Shop | `scenes/shopScene.js` | — |
 
 ### Interaktive Dorf-Gebäude (4 vorgebaut)
@@ -212,9 +215,9 @@ FOUNTAIN=11, FOUNTAIN_DRY=12, PRISONER=13
 
 ## Aktueller Fokus
 
-**Branch:** `feature/game-feel-polish`
+**Branch:** `master`
 
-Kernmechaniken und Steam-Alpha-Features sind vollständig: Pause-Menü, Settings-Panel (Lautstärke + Fullscreen), 5 Dungeon-Themes (Stone/Frost/Magma/Abyss/Infernal), Fullscreen via F11, progressive Tutorial-Hints. Code-Audit (10 Bugfixes) abgeschlossen. Aktuell: Polish, Balancing, weitere UX-Verbesserungen.
+Phase 1 (Soul & Death Loop) und Phase 2 (Interlocking Loops & Accessibility) der Roadmap sind abgeschlossen. PixelLab-generierte Pixel-Art-Sprites für Hero (4 Richtungen + Walk-Animation), 5 Gegnertypen und Wang-Tileset (Stone) integriert. Asset-Loader-System mit Sprite-First/Procedural-Fallback-Pattern. Escape-Summary-Overlay mit Run-Rating (S/A/B/C/D). 3 neue Audio-SFX (escapeJingle, floorTransition, bossFloorWarning). Nächster Fokus: Phase 3 (Steam Integration, Build & Packaging) und Phase 4 (Marketing).
 
 ---
 

@@ -38,15 +38,36 @@ can be cross-compiled from either platform, but native builds are recommended.
 ## Project Structure
 
 ```
-├── index.html              ← Game entry point (DO NOT MODIFY)
-├── css/style.css           ← Game styles (DO NOT MODIFY)
-├── js/                     ← Game logic (DO NOT MODIFY)
+├── index.html              ← Game entry point
+├── css/style.css           ← Game styles
+├── js/
+│   ├── assetLoader.js      ← Sprite/image loading system (Assets singleton)
+│   ├── tileRenderer.js     ← Dungeon & village tile drawing
+│   ├── spriteRenderer.js   ← Player & enemy sprite rendering
+│   ├── uiRenderer.js       ← HUD, panels, overlays
+│   ├── renderer.js         ← 3-layer canvas compositor
+│   ├── game.js             ← Main game loop, scene manager, save/load
+│   └── scenes/             ← Title, Village, Dungeon, Shop scenes
+├── assets/
+│   ├── manifest.js         ← Asset registration (sprites, atlases)
+│   ├── entities/           ← PixelLab-generated character sprites
+│   │   ├── hero/           ← 4 rotations + 24 walk frames
+│   │   ├── skeleton/       ← 4 rotations
+│   │   ├── orc/            ← 4 rotations
+│   │   ├── rat/            ← 4 rotations
+│   │   ├── demon/          ← 4 rotations
+│   │   └── beholder/       ← 4 rotations (mapped to game type 'bat')
+│   ├── tiles/
+│   │   └── dungeon_stone.png  ← 128x128 Wang tileset (16 tiles)
+│   └── ui/
+│       └── frame.png       ← 800x720 ornate border overlay
 ├── electron/
-│   ├── main.js             ← Electron main process
-│   └── preload.js          ← Renderer preload (minimal)
+│   ├── main.js             ← Electron main process (frameless, 1280x720)
+│   └── preload.js          ← Renderer preload (fullscreen API)
 ├── build/
 │   └── icon.png            ← App icon (512x512, replace with real icon)
 ├── package.json            ← Dependencies + build config
+├── CLAUDE.md               ← Architecture & coding conventions
 └── dist/                   ← Build output (gitignored)
 ```
 
