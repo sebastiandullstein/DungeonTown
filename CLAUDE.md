@@ -58,6 +58,14 @@ assetLoader → manifest
 
 ## Arbeitsregeln
 
+### Oberstes Prinzip: Weniger Code, mehr Spielgefühl
+- **Jede Session ein spielbares Ziel** — nicht "implementiere Feature X" sondern "nach dieser Session soll sich Y anders anfühlen". Messbar am Spielerlebnis, nicht an Lines of Code.
+- **Erst lesen, dann schreiben** — Vor jeder Änderung den betroffenen Rendering-/Logik-Flow komplett lesen. Kein Code bevor der Flow verstanden ist. (Lehre aus dem Stairs-Bug: 6 Commits statt 1, weil der Atlas-Fallback nicht gelesen wurde.)
+- **Spieler-testet-Schleife bevorzugen** — Lieber 1 Änderung → User testet → Feedback → nächste Änderung, statt 5 Features blind auf einmal zu bauen.
+- **Kill-Liste vor Feature-Liste** — Immer zuerst fragen: Was können wir *entfernen* oder *vereinfachen*? Weniger Code ist oft die bessere Antwort.
+- **Kein Feature ohne spürbaren Spieler-Impact** — Wenn ein Feature beim Spielen nicht auffällt, ist es Code-Bloat. Tracking-Systeme, Statistiken und Metriken nur wenn sie das Spielerlebnis direkt verbessern.
+- **Scope pro Session begrenzen** — Maximal 1 zusammenhängendes Ziel pro Session. "Full Phase 1 + Merge" war zu breit; lieber eine Sache richtig.
+
 ### Wann planen, wann direkt implementieren?
 - **Direkt implementieren** — Bugfixes, einzelne neue Features, Änderungen innerhalb einer Datei, Anpassungen an bestehenden Systemen
 - **Erst planen (EnterPlanMode)** — neue Systeme mit mehreren Dateien, Änderungen an der Szenen- oder Rendering-Architektur, alles das `game.js`, `renderer.js` oder die Script-Ladereihenfolge betrifft
@@ -66,6 +74,7 @@ assetLoader → manifest
 - Grundsätzlich autonom arbeiten und selbst entscheiden
 - Bei mehreren gleichwertigen Lösungswegen kurz nachfragen statt zu raten
 - Im Zweifel lieber machen als fragen — Fehler sind leichter zu korrigieren als Stillstand
+- **Bei Session-Start den User fragen: "Was stört oder fehlt beim Spielen am meisten?"** — das definiert das Session-Ziel
 
 ### Commit-Rhythmus
 - Nach jedem abgeschlossenen Feature oder Bugfix automatisch committen
