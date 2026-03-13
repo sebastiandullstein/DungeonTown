@@ -64,10 +64,8 @@ Assets.registerAtlas('tiles_stone', 'assets/tiles/dungeon_stone.png', {
     wall_1: { x: 0, y: 96, w: 32, h: 32 },
     wall_2: { x: 0, y: 96, w: 32, h: 32 },
     wall_3: { x: 0, y: 96, w: 32, h: 32 },
-    // Special tiles reuse floor
+    // Special tiles reuse floor (stairs are procedural — not in atlas)
     door:        { x: 64, y: 32, w: 32, h: 32 },
-    stairs_down: { x: 64, y: 32, w: 32, h: 32 },
-    stairs_up:   { x: 64, y: 32, w: 32, h: 32 },
     chest:       { x: 64, y: 32, w: 32, h: 32 },
     // Wang transition tiles (for future neighbor-aware rendering)
     wang_0:  { x: 64, y: 32,  w: 32, h: 32 },  // all floor
