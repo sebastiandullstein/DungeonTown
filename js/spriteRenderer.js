@@ -64,18 +64,29 @@ const SpriteRenderer = {
         ctx.ellipse(cx, groundY + h - 4, 8, 3, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Sprite-based player rendering
-        const _pFrame = isAttacking ? 'attack_' + Math.min(Math.floor(player.attackFrame), 2) :
-                        isMoving ? 'walk_' + (Math.floor(time * 8) % 4) : 'idle_0';
-        if (Assets.hasAtlas('player')) {
+        // Sprite-based player rendering (individual files)
+        const facing = player.facing || { x: 1, y: 0 };
+        let dirKey = 'south';
+        if (facing.y < 0) dirKey = 'north';
+        else if (facing.y > 0) dirKey = 'south';
+        else if (facing.x > 0) dirKey = 'east';
+        else if (facing.x < 0) dirKey = 'west';
+
+        let spriteKey = 'hero_' + dirKey;
+        if (isMoving) {
+            const walkFrame = Math.floor(time * 10) % 6;
+            spriteKey = 'hero_walk_' + dirKey + '_' + walkFrame;
+        }
+        if (Assets.has(spriteKey)) {
             ctx.save();
-            if (fx < 0) { ctx.translate(x + w, 0); ctx.scale(-1, 1); x = 0; }
             if (invuln) ctx.globalAlpha = 0.5 + Math.sin(time * 20) * 0.3;
-            if (Assets.drawSprite(ctx, 'player', _pFrame, x, y, w, h)) {
-                ctx.restore();
-                return;
-            }
+            Assets.drawImage(ctx, spriteKey, x, y, w, h);
             ctx.restore();
+            // Still draw attack swing arc if attacking
+            if (isAttacking) {
+                this._drawSwingArc(ctx, cx, cy, player, time);
+            }
+            return;
         }
 
         // Ice magic aura — shown when MP is above 50%
@@ -251,6 +262,23 @@ const SpriteRenderer = {
             ctx.beginPath();
             ctx.arc(cx, cy, 20, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        // Sprite-based enemy rendering (individual files with direction)
+        let _eDir = 'south';
+        if (enemy.dx !== undefined && enemy.dy !== undefined) {
+            if (Math.abs(enemy.dy) >= Math.abs(enemy.dx)) {
+                _eDir = enemy.dy < 0 ? 'north' : 'south';
+            } else {
+                _eDir = enemy.dx > 0 ? 'east' : 'west';
+            }
+        }
+        const _eSpriteKey = enemy.type + '_' + _eDir;
+        const _eFallback = enemy.type + '_south';
+        if (Assets.has(_eSpriteKey) || Assets.has(_eFallback)) {
+            Assets.drawImage(ctx, Assets.has(_eSpriteKey) ? _eSpriteKey : _eFallback, x, y, w, h);
+            if (enemy.hp <= 0 && enemy.deathTimer !== undefined) ctx.restore();
+            return;
         }
 
         switch (enemy.type) {
