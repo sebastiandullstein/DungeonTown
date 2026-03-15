@@ -60,18 +60,23 @@ const VillageScene = {
     enter(data) {
         this.mode = 'explore';
         this.generateVillageMap();
+        this._quickReenter = false;
 
         if (data && data.fromDeath) {
             // Death return
             this.cursor.x = 40;
             this.cursor.y = 25;
             this._buildingPulse = 2.0;
+            this._quickReenter = true;
+            this._quickReenterTimer = 4.0; // show prompt for 4 seconds
             Audio.play('villageReturn');
             this._showDeathReactions(data.runStats, data.goldLost);
         } else if (data && data.fromEscape) {
             // Successful escape — escapeJingle already played in dungeon summary
             this.cursor.x = 40;
             this.cursor.y = 25;
+            this._quickReenter = true;
+            this._quickReenterTimer = 4.0;
             Audio.play('villageReturn');
             this._showEscapeReactions(data.runStats, data.runRating);
         } else {
@@ -521,6 +526,18 @@ const VillageScene = {
     },
 
     updateExplore(dt) {
+        // Quick re-enter dungeon prompt
+        if (this._quickReenter) {
+            this._quickReenterTimer -= dt;
+            if (this._quickReenterTimer <= 0) {
+                this._quickReenter = false;
+            } else if (Input.wasPressed('r') || Input.wasPressed('R')) {
+                this._quickReenter = false;
+                this._enterDungeon();
+                return;
+            }
+        }
+
         // Pause menu
         if (Input.wasPressed('Escape') || Input.wasPressed('p') || Input.wasPressed('P')) {
             this._pauseIndex = 0;
@@ -1043,6 +1060,23 @@ const VillageScene = {
             ctx.restore();
         }
 
+        // ── Dungeon entrance glow ──
+        {
+            const pulse = 0.4 + 0.3 * Math.sin(Game.renderer.time * 3);
+            ctx.save();
+            ctx.globalAlpha = pulse;
+            for (const [ey, ex] of [[9,39],[9,40],[10,39],[10,40]]) {
+                const col = ex - this.viewX;
+                const row = ey - this.viewY;
+                if (col < 0 || col >= this.viewW || row < 0 || row >= this.viewH) continue;
+                const px = col * r.tileW;
+                const py = row * r.tileH;
+                ctx.fillStyle = 'rgba(160,80,255,0.25)';
+                ctx.fillRect(px, py, r.tileW, r.tileH);
+            }
+            ctx.restore();
+        }
+
         // ── Player hero sprite ──
         const cursorCol = this.cursor.x - this.viewX;
         const cursorRow = this.cursor.y - this.viewY;
@@ -1096,6 +1130,26 @@ const VillageScene = {
 
         // ── Village HUD ──
         r.drawVillageHUD(Game.state.village, Game.state.player);
+
+        // ── Quick re-enter prompt ──
+        if (this._quickReenter && this.mode === 'explore') {
+            ctx.save();
+            const alpha = Math.min(1, this._quickReenterTimer / 0.5); // fade out in last 0.5s
+            ctx.globalAlpha = alpha;
+            const bw = 260, bh = 28;
+            const bx = 400 - bw / 2, by = 680 - bh;
+            ctx.fillStyle = 'rgba(8,4,20,0.85)';
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeStyle = '#a060ff';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx, by, bw, bh);
+            ctx.fillStyle = '#d0a0ff';
+            ctx.font = 'bold 12px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText('Press [R] to re-enter Dungeon', 400, by + 18);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
 
         // ── Mode-specific overlay menus ──
         if (this.mode === 'build') {

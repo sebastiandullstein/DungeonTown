@@ -36,19 +36,21 @@ Konkrete Arbeitspakete:
 **Warum:** 15-20 Sekunden Leerlauf zwischen Runs. Village ist in den ersten Runs nutzlos.
 
 Konkrete Arbeitspakete:
-- [ ] **Quick-Enter-Option** — nach Tod/Flucht: direkter "Zurück in den Dungeon"-Button statt Village-Pflicht
-- [ ] **Village-Gebäude reduzieren** — in den ersten Runs nur Smithy, Tavern, Temple, Dungeon-Eingang sichtbar
-- [ ] **Dungeon-Eingang markieren** — visueller Pfeil oder Leuchteffekt der zum Eingang zeigt
-- [ ] **Erste Soul Shards früher** — kleine Shard-Drops auch von normalen Gegnern (selten), damit Temple vor Floor 5 nutzbar wird
+- [x] **Quick-Enter-Option** — nach Tod/Flucht: [R] drücken für sofortigen Dungeon-Reenter (4s Prompt, lila Leiste am unteren Rand)
+- [ ] **Village-Gebäude reduzieren** — in den ersten Runs nur Smithy, Tavern, Temple, Dungeon-Eingang sichtbar (OFFEN)
+- [x] **Dungeon-Eingang markieren** — pulsierender lila Glow auf den 4 Entrance-Tiles (sinusförmig, 0.4-0.7 alpha)
+- [x] **Erste Soul Shards früher** — 8% Chance pro Normal-Kill für 1-2 Soul Shards, damit Temple vor Floor 5 nutzbar wird
+
+**Status: Prio 3 größtenteils ABGESCHLOSSEN.** Nur "Gebäude reduzieren" noch offen — niedrige Priorität.
 
 ---
 
 ## Letzte Session
 
-**Datum:** 2026-03-15 (Session 3)
-**Was gemacht:** Prio 2 (Gegner-Dichte & Pacing) komplett implementiert. Kleinere Maps auf frühen Floors (50×30 statt 80×45), mehr Enemies mit Cluster-Spawns (2-4 pro Gruppe), schnelleres Movement (0.07s statt 0.1s), höherer Aggro-Radius (+3-5 Tiles), schnellere Chase-Speed (×0.45 statt ×0.6).
-**Was offen blieb:** Prio 3 (Village-Streamlining). Alles ungetestet — Spieler-Test nach Rückkehr.
-**Geänderte Dateien:** `dungeon.js`, `player.js`, `enemies.js`
+**Datum:** 2026-03-15 (Session 4)
+**Was gemacht:** Prio 2 + Prio 3 (Village-Streamlining) implementiert. Quick-Reenter per [R] nach Tod/Flucht, pulsierender Dungeon-Eingang-Glow, 8% Soul Shard Drop von normalen Gegnern.
+**Was offen blieb:** "Village-Gebäude reduzieren" (niedrige Prio). Alles ungetestet — Spieler-Test nach Rückkehr.
+**Geänderte Dateien:** `dungeon.js`, `player.js`, `enemies.js`, `villageScene.js`
 
 ---
 
@@ -59,3 +61,4 @@ Konkrete Arbeitspakete:
 | 2026-03-15 | Game Design Audit | AUDIT.md erstellt, MEMORY.md + CLAUDE.md aktualisiert |
 | 2026-03-15 | Prio 1: Kampfgefühl | Alle 7 Pakete implementiert (Shake, Hitstop, Flash, Arc, Sound, KB, Kill-FX) |
 | 2026-03-15 | Prio 2: Dichte & Pacing | Alle 5 Pakete implementiert (Map-Size, Enemy-Count, Cluster, Speed, Aggro) |
+| 2026-03-15 | Prio 3: Village-Streamlining | 3/4 Pakete implementiert (Quick-Reenter, Entrance-Glow, Soul-Shard-Drops) |

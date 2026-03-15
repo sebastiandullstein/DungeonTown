@@ -425,6 +425,13 @@ class Enemy {
                 Game.state.unlockedFloors.sort((a, b) => a - b);
                 Game.notify(`Floor ${floor} checkpoint unlocked!`, '#40e0e0');
             }
+        } else {
+            // Rare soul shard drops from normal enemies (8% chance, 1-2 shards)
+            if (Math.random() < 0.08) {
+                const shards = 1 + Math.floor(Math.random() * 2);
+                player.soulShards = (player.soulShards || 0) + shards;
+                Game.notify(`+${shards} Soul Shard${shards > 1 ? 's' : ''}`, '#c040ff');
+            }
         }
         // Blessing: Blood Pact — heal on kill
         if (player.blessings && player.blessings.bloodPact) {
