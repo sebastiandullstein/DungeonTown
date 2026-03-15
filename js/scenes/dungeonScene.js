@@ -94,6 +94,8 @@ const DungeonScene = {
         this._deathSaveFlash = 0;
         this._deathSaveAcknowledged = false;
         this._escapeSummaryTimer = 0;
+        this._levelUpPicks = null;
+        this._levelUpPickIndex = 0;
         // Run stats tracking
         if (!Game.state.runStats || floor === 1) {
             Game.state.runStats = {
@@ -175,6 +177,28 @@ const DungeonScene = {
         // Settings panel (from pause)
         if (this.mode === 'settings') {
             this._updateSettings();
+            return;
+        }
+
+        // Level-up pick mode
+        if (this.mode === 'levelUpPick') {
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._levelUpPickIndex = Math.max(0, this._levelUpPickIndex - 1);
+                Audio.play('menuMove');
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._levelUpPickIndex = Math.min(2, this._levelUpPickIndex + 1);
+                Audio.play('menuMove');
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                const pick = this._levelUpPicks[this._levelUpPickIndex];
+                pick.apply(Game.state.player);
+                Game.notify(`Chose: ${pick.label}!`, pick.color);
+                Audio.play('menuSelect');
+                Combat.addFloatingText(Game.state.player.x, Game.state.player.y, pick.label, pick.color);
+                this._levelUpPicks = null;
+                this.mode = 'play';
+            }
             return;
         }
 
@@ -667,6 +691,15 @@ const DungeonScene = {
         }
         if (this._killStreakFlash > 0) this._killStreakFlash -= dt;
 
+        // Check for pending level-up pick
+        if (player._pendingLevelUpPick) {
+            player._pendingLevelUpPick = false;
+            this._levelUpPicks = Player.generateLevelUpPicks(player.level);
+            this._levelUpPickIndex = 0;
+            this.mode = 'levelUpPick';
+            return;
+        }
+
         // Room-clear mini-event: check if a room was just cleared (40% chance)
         if (justDied.length > 0 && this.map.rooms) {
             const pRoom = this.map.rooms.find(r =>
@@ -683,7 +716,7 @@ const DungeonScene = {
                     );
                     if (roomEnemies.length === 0) {
                         this._clearedRooms.add(rKey);
-                        if (Math.random() < 0.65) {
+                        if (Math.random() < 0.80) {
                             this._altarOffering = DungeonEvents.generateAltarOffering();
                             this._altarIndex = 0;
                             this.mode = 'altarChoice';
@@ -1661,6 +1694,61 @@ const DungeonScene = {
                 ? this._tutorialHint.timer / 0.3
                 : this._tutorialHint.timer > 5 ? 1 - (this._tutorialHint.timer - 5) : 1;
             r.drawTutorialHint(this._tutorialHint.text, Math.max(0, alpha));
+        }
+
+        // ── Level-up pick overlay ──
+        if (this.mode === 'levelUpPick' && this._levelUpPicks) {
+            const ctx = r.getCtx();
+            const cw = ctx.canvas.width;
+            const ch = ctx.canvas.height;
+            // Dim background
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 0, cw, ch);
+            // Panel
+            const pw = 400, ph = 240;
+            const px = Math.floor((cw - pw) / 2);
+            const py = Math.floor((ch - ph) / 2);
+            ctx.fillStyle = '#0a0a1a';
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.fillRect(px, py, pw, ph);
+            ctx.strokeRect(px, py, pw, ph);
+            // Title
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 16px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('★ LEVEL UP! ★', px + pw / 2, py + 28);
+            ctx.font = '12px monospace';
+            ctx.fillStyle = '#aaa';
+            ctx.fillText('Choose an upgrade:', px + pw / 2, py + 48);
+            // Options
+            for (let i = 0; i < 3; i++) {
+                const pick = this._levelUpPicks[i];
+                const oy = py + 70 + i * 52;
+                const selected = i === this._levelUpPickIndex;
+                // Option background
+                ctx.fillStyle = selected ? '#1a1a30' : '#0d0d18';
+                ctx.strokeStyle = selected ? pick.color : '#333';
+                ctx.lineWidth = selected ? 2 : 1;
+                ctx.fillRect(px + 16, oy, pw - 32, 44);
+                ctx.strokeRect(px + 16, oy, pw - 32, 44);
+                // Label
+                ctx.fillStyle = selected ? pick.color : '#888';
+                ctx.font = selected ? 'bold 14px monospace' : '14px monospace';
+                ctx.textAlign = 'left';
+                const marker = selected ? '▸ ' : '  ';
+                ctx.fillText(marker + pick.label, px + 28, oy + 18);
+                // Description
+                ctx.fillStyle = selected ? '#ccc' : '#555';
+                ctx.font = '11px monospace';
+                ctx.fillText('  ' + pick.desc, px + 28, oy + 36);
+            }
+            // Hint
+            ctx.fillStyle = '#555';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('[W/S] Choose  [Enter] Select', px + pw / 2, py + ph - 14);
+            ctx.textAlign = 'left';
         }
 
         // ── Escape confirmation overlay ──

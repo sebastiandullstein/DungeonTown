@@ -3,13 +3,13 @@ const DungeonEvents = {
 
     EVENTS: {
         bloodShrine: {
-            id: 'bloodShrine', name: 'Blood Shrine', minFloor: 3,
+            id: 'bloodShrine', name: 'Blood Shrine', minFloor: 2,
             tile: TILE.SHRINE, weight: 3,
             desc: 'A crimson altar pulses with dark energy...',
             prompt: 'Sacrifice 20% of your HP for a random blessing?',
         },
         merchant: {
-            id: 'merchant', name: 'Wandering Merchant', minFloor: 5,
+            id: 'merchant', name: 'Wandering Merchant', minFloor: 3,
             tile: TILE.MERCHANT, weight: 2,
             desc: 'A wretched merchant grins from the shadows...',
             prompt: null, // opens panel directly
@@ -48,13 +48,11 @@ const DungeonEvents = {
         const middleRooms = map.rooms.slice(1, -1);
         if (middleRooms.length === 0) return [];
 
-        const eventCount = 1 + (Math.random() < 0.4 ? 1 : 0);
         const placed = [];
         const usedRooms = new Set();
 
-        for (let i = 0; i < eventCount && eligible.length > 0; i++) {
-            const ev = eligible[Math.floor(Math.random() * eligible.length)];
-            // Find unused room
+        // Helper to place an event in an unused room
+        const placeEvent = (ev) => {
             let room = null;
             for (let tries = 0; tries < 10; tries++) {
                 const r = middleRooms[Math.floor(Math.random() * middleRooms.length)];
@@ -65,16 +63,29 @@ const DungeonEvents = {
                     break;
                 }
             }
-            if (!room) continue;
-
+            if (!room) return;
             map.set(room.cx, room.cy, ev.tile);
-            placed.push({
-                id: ev.id,
-                x: room.cx,
-                y: room.cy,
-                used: false,
-            });
+            placed.push({ id: ev.id, x: room.cx, y: room.cy, used: false });
+        };
+
+        // Guaranteed merchant from Floor 3+
+        if (floor >= 3 && this.EVENTS.merchant) {
+            placeEvent(this.EVENTS.merchant);
         }
+
+        // 80% chance for a shrine/altar event
+        if (Math.random() < 0.8) {
+            const shrineEvents = eligible.filter(e => e.id !== 'merchant');
+            if (shrineEvents.length > 0) {
+                placeEvent(shrineEvents[Math.floor(Math.random() * shrineEvents.length)]);
+            }
+        }
+
+        // Additional random event (40% chance)
+        if (Math.random() < 0.4 && eligible.length > 0) {
+            placeEvent(eligible[Math.floor(Math.random() * eligible.length)]);
+        }
+
         return placed;
     },
 

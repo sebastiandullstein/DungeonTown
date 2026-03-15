@@ -150,6 +150,8 @@ class Player {
             if (this.blessings.ironWill) hp += 10;
             if (this.blessings.cursedStrength) hp -= TEMPLE_BLESSINGS.cursedStrength.maxHpPenalty;
         }
+        // Level-up pick bonus
+        if (this._bonusMaxHp) hp += this._bonusMaxHp;
         // Run bonuses (from shrine events)
         if (this._runBonuses && this._runBonuses.maxHp) hp += this._runBonuses.maxHp;
         // Tavern buff: Hearty Stew
@@ -185,6 +187,8 @@ class Player {
                 if (b && b.goldMult) bonus += b.goldMult;
             }
         }
+        // Level-up pick gold bonus
+        if (this._goldBonus) bonus += this._goldBonus;
         return bonus;
     }
 
@@ -208,12 +212,13 @@ class Player {
     }
 
     gainXp(amount) {
+        // Apply XP bonus from level-up picks
+        if (this._xpBonus) amount = Math.floor(amount * (1 + this._xpBonus));
         this.xp += amount;
         this._xpFlash = 0.7; // trigger XP bar flash
         while (this.xp >= this.xpToLevel) {
             this.xp -= this.xpToLevel;
             this.level++;
-            this.statPoints += 3;
             this.xpToLevel = Math.floor(this.xpToLevel * 1.5);
             this.maxHp = this.getMaxHp();
             this.maxMp = this.getMaxMp();
@@ -221,7 +226,8 @@ class Player {
             this.mp = this.maxMp;
             Game.notify(`Level Up! You are now level ${this.level}!`, '#ff0');
             Audio.play('levelUp');
-            Game.notify(`+3 stat points available (press C)`, '#0f0');
+            // Queue level-up pick (dungeonScene will intercept this)
+            this._pendingLevelUpPick = true;
             // Visual power burst on level up
             if (Game.renderer) {
                 Game.renderer.shake(6, 0.3);
@@ -230,6 +236,45 @@ class Player {
                 Combat._screenFlashColor = '#ffff80';
             }
         }
+    }
+
+    // Generate 3 random upgrade picks for level-up
+    static generateLevelUpPicks(playerLevel) {
+        const pool = [];
+
+        // Stat upgrades (always available)
+        pool.push({ id: 'str2', label: 'STR +2', desc: 'More attack damage', color: '#ff6644', apply: (p) => { p.stats.str += 2; } });
+        pool.push({ id: 'dex2', label: 'DEX +2', desc: 'Faster attacks', color: '#44ff66', apply: (p) => { p.stats.dex += 2; } });
+        pool.push({ id: 'vit3', label: 'VIT +3', desc: 'More hit points', color: '#ff4444', apply: (p) => { p.stats.vit += 3; p.maxHp = p.getMaxHp(); p.hp = p.maxHp; } });
+        pool.push({ id: 'int2', label: 'INT +2', desc: 'More mana & magic', color: '#4466ff', apply: (p) => { p.stats.int += 2; p.maxMp = p.getMaxMp(); p.mp = p.maxMp; } });
+        pool.push({ id: 'allStats', label: 'ALL +1', desc: '+1 to every stat', color: '#ffcc44', apply: (p) => { p.stats.str++; p.stats.dex++; p.stats.vit++; p.stats.int++; p.maxHp = p.getMaxHp(); p.maxMp = p.getMaxMp(); } });
+
+        // HP/MP recovery perks
+        pool.push({ id: 'healFull', label: 'Full Heal', desc: 'Restore all HP + MP', color: '#44ffaa', apply: (p) => { p.hp = p.getMaxHp(); p.mp = p.getMaxMp(); } });
+        pool.push({ id: 'maxHpUp', label: 'Max HP +15', desc: 'Permanent HP boost', color: '#ff6666', apply: (p) => { p._bonusMaxHp = (p._bonusMaxHp || 0) + 15; p.maxHp = p.getMaxHp(); p.hp = p.maxHp; } });
+
+        // Ability upgrades (level-gated)
+        if (playerLevel >= 3) {
+            pool.push({ id: 'dashCdr', label: 'Swift Dash', desc: 'Dash cooldown -1s', color: '#88ddff', apply: () => { Abilities.list.dash.maxCooldown = Math.max(1, Abilities.list.dash.maxCooldown - 1); } });
+        }
+        if (playerLevel >= 5) {
+            pool.push({ id: 'whirlCdr', label: 'Cyclone', desc: 'Whirlwind cooldown -1s', color: '#ff88dd', apply: () => { Abilities.list.whirlwind.maxCooldown = Math.max(1, Abilities.list.whirlwind.maxCooldown - 1); } });
+            pool.push({ id: 'whirlMana', label: 'Efficient Spin', desc: 'Whirlwind costs 2 less mana', color: '#88aaff', apply: () => { Abilities.list.whirlwind.manaCost = Math.max(0, Abilities.list.whirlwind.manaCost - 2); } });
+        }
+        if (playerLevel >= 8) {
+            pool.push({ id: 'execCdr', label: 'Executioner', desc: 'Execute cooldown -2s', color: '#ff4488', apply: () => { Abilities.list.execute.maxCooldown = Math.max(2, Abilities.list.execute.maxCooldown - 2); } });
+        }
+
+        // Combat perks
+        pool.push({ id: 'goldFind', label: 'Gold Sense', desc: '+25% gold from enemies', color: '#ffdd44', apply: (p) => { p._goldBonus = (p._goldBonus || 0) + 0.25; } });
+        pool.push({ id: 'xpBoost', label: 'Quick Study', desc: '+20% XP gain', color: '#aaffaa', apply: (p) => { p._xpBonus = (p._xpBonus || 0) + 0.20; } });
+
+        // Shuffle and pick 3 unique options
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        return pool.slice(0, 3);
     }
 
     takeDamage(amount) {
