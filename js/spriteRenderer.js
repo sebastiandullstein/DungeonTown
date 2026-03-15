@@ -344,6 +344,49 @@ const SpriteRenderer = {
             ctx.fillText(enemy.name, origX + w / 2, origY - 2);
             ctx.textAlign = 'left';
         }
+
+        // Skeleton block shield indicator
+        if (enemy.blocking && enemy.hp > 0) {
+            ctx.save();
+            ctx.strokeStyle = '#88aaff';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#88aaff';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(origX + w / 2, origY + h / 2, 14, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Attack telegraph (red pulse before strike)
+        if (enemy.telegraphing && enemy.hp > 0) {
+            ctx.save();
+            const tPulse = 0.5 + 0.5 * Math.sin((enemy.telegraphTimer || 0) * 20);
+            ctx.fillStyle = `rgba(255,40,40,${0.15 + tPulse * 0.2})`;
+            ctx.beginPath();
+            ctx.arc(origX + w / 2, origY + h / 2, 16, 0, Math.PI * 2);
+            ctx.fill();
+            // Exclamation mark
+            ctx.fillStyle = '#ff4444';
+            ctx.font = 'bold 12px "Courier New"';
+            ctx.textAlign = 'center';
+            ctx.fillText('!', origX + w / 2, origY - 4);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        // Orc charge stun indicator
+        if (enemy.chargeStun > 0 && enemy.hp > 0) {
+            ctx.save();
+            ctx.fillStyle = '#8888ff';
+            ctx.font = 'bold 8px "Courier New"';
+            ctx.textAlign = 'center';
+            const starPhase = (enemy.chargeStun * 8) % 1;
+            ctx.fillText('★', origX + w / 2 - 8 + starPhase * 16, origY - 2);
+            ctx.fillText('★', origX + w / 2 + 8 - starPhase * 16, origY - 2);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
     },
 
     _drawHPBar(ctx, x, y, w, pct, isBoss = false) {

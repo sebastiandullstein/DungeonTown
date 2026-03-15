@@ -43,14 +43,25 @@ Konkrete Arbeitspakete:
 
 **Status: Prio 3 größtenteils ABGESCHLOSSEN.** Nur "Gebäude reduzieren" noch offen — niedrige Priorität.
 
+### Prio 4: Gegner-Verhalten differenzieren — "Nicht nur Health-Bags"
+**Warum:** Alle 7 Gegnertypen haben identisches Verhalten (idle→chase→attack). Kein Grund zu dodgen, keine Strategie nötig.
+
+Konkrete Arbeitspakete:
+- [x] **Fledermäuse: Erratische Bewegung** — 40% Chance auf zufällige Richtung im Chase statt Beeline zum Spieler. Schnellere Einzelschritte (×0.3 statt ×0.45). Unberechenbar und nervend.
+- [x] **Skelette: Frontaler Block** — Neuer `blocking`-State: blaue Schild-Aura, halbierter Schaden, kein Knockback, "BLOCKED" Floating Text. Zwingt zu Positioning oder AoE.
+- [x] **Orks: Charge-Attacke** — Neuer `charge`-Flow: Wenn 4+ Tiles entfernt + 40% Chance → 0.8s Telegraph (rotes Pulsieren + "!" Warnung) → Rush in gerader Linie (max 4 Tiles, ×0.06s Speed). Treffer = doppelter Schaden + Knockback. Miss/Wand = 1s Stun. Gibt Dash einen echten Zweck.
+- [x] **Visuelles Telegraphing** — Rotes Puls-Overlay + "!" bei bevorstehenden Angriffen. Blaue Aura bei Skeleton-Block. Sterne bei Orc-Stun.
+
+**Status: Prio 4 ABGESCHLOSSEN.** Nächste Session: Spieler-Test, dann Korridor-Problem (Prio 5) oder In-Run-Progression.
+
 ---
 
 ## Letzte Session
 
-**Datum:** 2026-03-15 (Session 4)
-**Was gemacht:** Prio 2 + Prio 3 (Village-Streamlining) implementiert. Quick-Reenter per [R] nach Tod/Flucht, pulsierender Dungeon-Eingang-Glow, 8% Soul Shard Drop von normalen Gegnern.
-**Was offen blieb:** "Village-Gebäude reduzieren" (niedrige Prio). Alles ungetestet — Spieler-Test nach Rückkehr.
-**Geänderte Dateien:** `dungeon.js`, `player.js`, `enemies.js`, `villageScene.js`
+**Datum:** 2026-03-15 (Session 5)
+**Was gemacht:** AUDIT.md Rev. 2 geschrieben + Prio 4 (Gegner-Verhalten) komplett implementiert. Fledermäuse erratisch, Skelette blocken, Orks chargen mit Telegraph. Visuelles Feedback für alle neuen States.
+**Was offen blieb:** Korridor-Problem (BSP-Layout), In-Run-Progressionsgefühl. Alles ungetestet.
+**Geänderte Dateien:** `enemies.js`, `spriteRenderer.js`, `AUDIT.md`
 
 ---
 
@@ -62,3 +73,4 @@ Konkrete Arbeitspakete:
 | 2026-03-15 | Prio 1: Kampfgefühl | Alle 7 Pakete implementiert (Shake, Hitstop, Flash, Arc, Sound, KB, Kill-FX) |
 | 2026-03-15 | Prio 2: Dichte & Pacing | Alle 5 Pakete implementiert (Map-Size, Enemy-Count, Cluster, Speed, Aggro) |
 | 2026-03-15 | Prio 3: Village-Streamlining | 3/4 Pakete implementiert (Quick-Reenter, Entrance-Glow, Soul-Shard-Drops) |
+| 2026-03-15 | AUDIT Rev. 2 + Prio 4: Gegner-Verhalten | Audit aktualisiert, 4 Pakete implementiert (Bat erratisch, Skeleton Block, Orc Charge, Telegraphing) |

@@ -228,6 +228,15 @@ class Enemy {
             path: null,
             lastSeenX: -1,
             lastSeenY: -1,
+            // Type-specific behavior states
+            blocking: false,       // skeleton: currently blocking
+            chargeTimer: 0,        // orc: charge telegraph countdown
+            charging: false,       // orc: currently charging
+            chargeDx: 0,           // orc: charge direction
+            chargeDy: 0,
+            chargeStun: 0,         // orc: stunned after missed charge
+            telegraphing: false,   // visual telegraph active
+            telegraphTimer: 0,     // countdown for attack telegraph
         };
     }
 
@@ -240,6 +249,63 @@ class Enemy {
         enemy.moveTimer -= dt;
         enemy.attackTimer -= dt;
         enemy.stunTimer -= dt;
+        if (enemy.telegraphTimer > 0) enemy.telegraphTimer -= dt;
+
+        // Orc charge stun (after missed charge)
+        if (enemy.chargeStun > 0) {
+            enemy.chargeStun -= dt;
+            enemy.telegraphing = false;
+            return;
+        }
+
+        // Orc active charge — rush in a line
+        if (enemy.charging) {
+            enemy.moveTimer -= dt; // double-tick for speed
+            if (enemy.moveTimer <= 0) {
+                const nx = enemy.x + enemy.chargeDx;
+                const ny = enemy.y + enemy.chargeDy;
+                if (nx === player.x && ny === player.y) {
+                    // Hit player: double damage + knockback
+                    const damage = player.takeDamage(enemy.atk * 2);
+                    if (damage > 0) {
+                        if (Game.state.runStats) {
+                            Game.state.runStats.damageTaken += damage;
+                            Game.state.runStats.deathCause = enemy.name;
+                        }
+                        Audio.play('playerHurt');
+                        Combat.addFloatingText(player.x, player.y, `-${damage} CHARGE!`, '#f44');
+                        Combat.addHitParticles(player.x, player.y, '#ff2200');
+                        Game.renderer.shake(10, 0.3);
+                        const kbDx = enemy.chargeDx, kbDy = enemy.chargeDy;
+                        player.knockX = kbDx * 1.5;
+                        player.knockY = kbDy * 1.5;
+                    }
+                    enemy.charging = false;
+                    enemy.state = 'chase';
+                    enemy.moveTimer = enemy.speed;
+                } else if (dungeonMap.isWalkable(nx, ny)) {
+                    enemy.x = nx;
+                    enemy.y = ny;
+                    enemy.moveTimer = 0.06; // very fast
+                    enemy._chargeSteps = (enemy._chargeSteps || 0) + 1;
+                    if (enemy._chargeSteps >= 4) {
+                        // Missed — stun
+                        enemy.charging = false;
+                        enemy.chargeStun = 1.0;
+                        enemy.stunTimer = 1.0;
+                        Combat.addFloatingText(enemy.x, enemy.y, 'STUNNED', '#88f');
+                    }
+                } else {
+                    // Hit a wall — stun
+                    enemy.charging = false;
+                    enemy.chargeStun = 1.0;
+                    enemy.stunTimer = 1.0;
+                    Game.renderer.shake(4, 0.15);
+                    Combat.addFloatingText(enemy.x, enemy.y, 'STUNNED', '#88f');
+                }
+            }
+            return;
+        }
 
         if (enemy.stunTimer > 0) return;
 
@@ -247,15 +313,45 @@ class Enemy {
         const dy = player.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
+        // ── Orc: Charge telegraph ──
+        if (enemy.type === 'orc' && !enemy.isBoss && enemy.chargeTimer > 0) {
+            enemy.chargeTimer -= dt;
+            enemy.telegraphing = true;
+            if (enemy.chargeTimer <= 0) {
+                // Launch charge
+                enemy.telegraphing = false;
+                enemy.charging = true;
+                enemy._chargeSteps = 0;
+                enemy.moveTimer = 0;
+                // Charge toward player's position at telegraph start
+                const cdx = player.x - enemy.x;
+                const cdy = player.y - enemy.y;
+                if (Math.abs(cdx) >= Math.abs(cdy)) {
+                    enemy.chargeDx = cdx > 0 ? 1 : -1;
+                    enemy.chargeDy = 0;
+                } else {
+                    enemy.chargeDx = 0;
+                    enemy.chargeDy = cdy > 0 ? 1 : -1;
+                }
+                Audio.play('playerAttack');
+            }
+            return;
+        }
+
         // State transitions
         if (dist <= 1.5 && enemy.state !== 'attack') {
             enemy.state = 'attack';
         } else if (dist <= enemy.detection && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)) {
+            // Orc: initiate charge if far enough
+            if (enemy.type === 'orc' && !enemy.isBoss && dist >= 4 && enemy.chargeTimer <= 0 && Math.random() < 0.4) {
+                enemy.chargeTimer = 0.8; // telegraph for 0.8s
+                enemy.telegraphing = true;
+                return;
+            }
             enemy.state = 'chase';
             enemy.lastSeenX = player.x;
             enemy.lastSeenY = player.y;
         } else if (enemy.state === 'chase' && enemy.lastSeenX >= 0) {
-            // Move to last seen position
             if (enemy.x === enemy.lastSeenX && enemy.y === enemy.lastSeenY) {
                 enemy.state = 'idle';
                 enemy.lastSeenX = -1;
@@ -293,7 +389,23 @@ class Enemy {
                     const mx = tx > enemy.x ? 1 : tx < enemy.x ? -1 : 0;
                     const my = ty > enemy.y ? 1 : ty < enemy.y ? -1 : 0;
 
-                    // Try direct move, then cardinal
+                    // Bat: erratic movement — 40% chance to move randomly instead of toward player
+                    if (enemy.type === 'bat' && Math.random() < 0.4) {
+                        const randomDirs = [
+                            { x: -1, y: 0 }, { x: 1, y: 0 },
+                            { x: 0, y: -1 }, { x: 0, y: 1 },
+                        ];
+                        const rDir = randomDirs[Math.floor(Math.random() * randomDirs.length)];
+                        const rnx = enemy.x + rDir.x;
+                        const rny = enemy.y + rDir.y;
+                        if (dungeonMap.isWalkable(rnx, rny) && !(rnx === player.x && rny === player.y)) {
+                            enemy.x = rnx;
+                            enemy.y = rny;
+                        }
+                        enemy.moveTimer = enemy.speed * 0.3; // bats move faster but erratically
+                        break;
+                    }
+
                     const moves = [
                         { x: mx, y: my },
                         { x: mx, y: 0 },
@@ -316,9 +428,28 @@ class Enemy {
             case 'attack':
                 if (dist > 1.5) {
                     enemy.state = 'chase';
+                    enemy.blocking = false;
                     break;
                 }
+
+                // Skeleton: block stance — telegraph before attacking
+                if (enemy.type === 'skeleton' && !enemy.isBoss) {
+                    if (!enemy.telegraphing && enemy.attackTimer <= 0.3 && enemy.attackTimer > 0) {
+                        enemy.telegraphing = true;
+                        enemy.telegraphTimer = 0.3;
+                    }
+                    // Raise block between attacks (50% chance)
+                    if (enemy.attackTimer > 0.4 && !enemy.blocking && Math.random() < 0.003) {
+                        enemy.blocking = true;
+                    }
+                    // Drop block right before attacking
+                    if (enemy.attackTimer <= 0.2) {
+                        enemy.blocking = false;
+                    }
+                }
+
                 if (enemy.attackTimer <= 0) {
+                    enemy.telegraphing = false;
                     // Deal damage to player
                     const damage = player.takeDamage(enemy.atk);
                     if (damage > 0) {
@@ -329,7 +460,6 @@ class Enemy {
                         Audio.play('playerHurt');
                         Combat.addFloatingText(player.x, player.y, `-${damage}`, '#f44');
                         Combat.addHitParticles(player.x, player.y, '#cc2222');
-                        // Player knockback 0.3 tiles away from enemy
                         const kbDx = player.x - enemy.x;
                         const kbDy = player.y - enemy.y;
                         const kbDist = Math.sqrt(kbDx * kbDx + kbDy * kbDy) || 1;
@@ -343,12 +473,25 @@ class Enemy {
     }
 
     static takeDamage(enemy, damage, player) {
+        // Skeleton block: halve damage, no knockback, show BLOCKED text
+        if (enemy.blocking) {
+            const blockedDmg = Math.max(1, Math.floor(damage * 0.5) - enemy.def);
+            enemy.hp -= blockedDmg;
+            if (Game.state.runStats) Game.state.runStats.damageDealt += blockedDmg;
+            enemy.stunTimer = 0.05; // minimal stun when blocking
+            Combat.addFloatingText(enemy.x, enemy.y, `BLOCKED -${blockedDmg}`, '#8888ff');
+            Audio.play('playerHurt'); // clank sound
+            // No knockback when blocking
+            return blockedDmg;
+        }
+
         const def = enemy.def;
         const actualDmg = Math.max(1, damage - def + Math.floor(Math.random() * 3) - 1);
         enemy.hp -= actualDmg;
         if (Game.state.runStats) Game.state.runStats.damageDealt += actualDmg;
         enemy.stunTimer = 0.15;
         enemy.state = 'chase';
+        enemy.blocking = false; // break block on hit
 
         if (enemy.hp <= 0) {
             Audio.play('enemyDeath');
