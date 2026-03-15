@@ -52,16 +52,36 @@ Konkrete Arbeitspakete:
 - [x] **Orks: Charge-Attacke** — Neuer `charge`-Flow: Wenn 4+ Tiles entfernt + 40% Chance → 0.8s Telegraph (rotes Pulsieren + "!" Warnung) → Rush in gerader Linie (max 4 Tiles, ×0.06s Speed). Treffer = doppelter Schaden + Knockback. Miss/Wand = 1s Stun. Gibt Dash einen echten Zweck.
 - [x] **Visuelles Telegraphing** — Rotes Puls-Overlay + "!" bei bevorstehenden Angriffen. Blaue Aura bei Skeleton-Block. Sterne bei Orc-Stun.
 
-**Status: Prio 4 ABGESCHLOSSEN.** Nächste Session: Spieler-Test, dann Korridor-Problem (Prio 5) oder In-Run-Progression.
+**Status: Prio 4 ABGESCHLOSSEN.**
+
+### Prio 5: Korridore & Leerlauf — "Keine toten Sekunden"
+**Warum:** BSP-Korridore zwischen Räumen = 15-25% reine Laufzeit ohne Gegner oder Loot.
+
+Konkrete Arbeitspakete:
+- [x] **Kürzere Korridore** — Verbindung von Room-Edges statt Room-Centers → 30-50% kürzere Wege
+- [x] **Corridor-Enemies** — 25% des Enemy-Counts spawnt auf Korridor-Tiles statt nur in Räumen
+
+**Status: Prio 5 ABGESCHLOSSEN.**
+
+### Prio 6: Sichtbare In-Run-Progression — "Ich werde stärker!"
+**Warum:** Level-Up ist nur eine Zahl im HUD. Kein visueller Unterschied zwischen Level 1 und Level 15.
+
+Konkrete Arbeitspakete:
+- [x] **Slash-Arc skaliert mit Level** — Radius 26→38px, Swing 1.1→1.8 rad, Glow 12→20px. Level 1 = kleiner Stich, Level 20 = massive Welle.
+- [x] **Level-Up Power-Burst** — Screenshake (6px, 0.3s) + Kill-Burst-Partikel (gelb) + Screen-Flash. Visuell: "Ich bin gerade stärker geworden!"
+- [x] **Power-Aura ab Level 5** — Dezenter blauer Glow um den Spieler, wächst mit Level (Radius 16→26px, Alpha 0.08→0.2). Visuell: "Ich bin mächtig."
+
+**Status: Prio 6 ABGESCHLOSSEN.** Nächste Session: Spieler-Test aller 6 Prios.
 
 ---
 
 ## Letzte Session
 
 **Datum:** 2026-03-15 (Session 5)
-**Was gemacht:** AUDIT.md Rev. 2 geschrieben + Prio 4 (Gegner-Verhalten) komplett implementiert. Fledermäuse erratisch, Skelette blocken, Orks chargen mit Telegraph. Visuelles Feedback für alle neuen States.
-**Was offen blieb:** Korridor-Problem (BSP-Layout), In-Run-Progressionsgefühl. Alles ungetestet.
-**Geänderte Dateien:** `enemies.js`, `spriteRenderer.js`, `AUDIT.md`
+**Datum:** 2026-03-15 (Session 6)
+**Was gemacht:** Prio 5 (Korridore) + Prio 6 (In-Run-Progression) implementiert. Kürzere Korridore (Room-Edge statt Center), Corridor-Enemies (25% der Gesamtspawns), Slash-Arc skaliert mit Level (Radius 26→38, Span 1.1→1.8 rad), Level-Up Power-Burst (Screenshake + Partikel + Flash), Power-Aura ab Level 5 (blauer Glow, wächst mit Level).
+**Was offen blieb:** Alles ungetestet. Spieler-Test nach Rückkehr.
+**Geänderte Dateien:** `dungeon.js`, `dungeonScene.js`, `player.js`
 
 ---
 
@@ -74,3 +94,4 @@ Konkrete Arbeitspakete:
 | 2026-03-15 | Prio 2: Dichte & Pacing | Alle 5 Pakete implementiert (Map-Size, Enemy-Count, Cluster, Speed, Aggro) |
 | 2026-03-15 | Prio 3: Village-Streamlining | 3/4 Pakete implementiert (Quick-Reenter, Entrance-Glow, Soul-Shard-Drops) |
 | 2026-03-15 | AUDIT Rev. 2 + Prio 4: Gegner-Verhalten | Audit aktualisiert, 4 Pakete implementiert (Bat erratisch, Skeleton Block, Orc Charge, Telegraphing) |
+| 2026-03-15 | Prio 5+6: Korridore + In-Run-Progression | Kürzere Korridore, Corridor-Enemies, Level-skalierender Slash-Arc, Level-Up-Burst, Power-Aura |

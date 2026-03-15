@@ -258,10 +258,27 @@ class DungeonGenerator {
 
     static createCorridor(map, room1, room2) {
         if (!room1 || !room2) return;
+        // Connect room edges instead of centers for shorter corridors
         let x = room1.cx;
         let y = room1.cy;
-        const tx = room2.cx;
-        const ty = room2.cy;
+        let tx = room2.cx;
+        let ty = room2.cy;
+
+        // Clamp start/end to room borders for shorter paths
+        if (tx > x) {
+            x = Math.min(room1.x + room1.w - 2, x);
+            tx = Math.max(room2.x + 1, tx);
+        } else {
+            x = Math.max(room1.x + 1, x);
+            tx = Math.min(room2.x + room2.w - 2, tx);
+        }
+        if (ty > y) {
+            y = Math.min(room1.y + room1.h - 2, y);
+            ty = Math.max(room2.y + 1, ty);
+        } else {
+            y = Math.max(room1.y + 1, y);
+            ty = Math.min(room2.y + room2.h - 2, ty);
+        }
 
         while (x !== tx) {
             map.set(x, y, TILE.FLOOR);
@@ -309,6 +326,22 @@ class DungeonGenerator {
                     spawned++;
                 }
             }
+        }
+
+        // Corridor enemies — scatter a few in non-room floor tiles
+        const corridorCount = Math.floor(enemyCount * 0.25);
+        let corridorSpawned = 0;
+        for (let attempt = 0; attempt < corridorCount * 10 && corridorSpawned < corridorCount; attempt++) {
+            const rx = 1 + Math.floor(Math.random() * (map.width - 2));
+            const ry = 1 + Math.floor(Math.random() * (map.height - 2));
+            if (map.get(rx, ry) !== TILE.FLOOR) continue;
+            // Make sure it's NOT inside a room (corridor tile only)
+            const inRoom = map.rooms.some(r => rx > r.x && rx < r.x + r.w - 1 && ry > r.y && ry < r.y + r.h - 1);
+            if (inRoom) continue;
+            // Don't spawn on player start
+            if (rx === map.playerStart.x && ry === map.playerStart.y) continue;
+            map.enemies.push(Enemy.create(rx, ry, EnemyTypes.getForFloor(floor)));
+            corridorSpawned++;
         }
 
         // Boss spawn — always in the last room, near centre

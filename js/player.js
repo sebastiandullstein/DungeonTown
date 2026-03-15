@@ -222,6 +222,13 @@ class Player {
             Game.notify(`Level Up! You are now level ${this.level}!`, '#ff0');
             Audio.play('levelUp');
             Game.notify(`+3 stat points available (press C)`, '#0f0');
+            // Visual power burst on level up
+            if (Game.renderer) {
+                Game.renderer.shake(6, 0.3);
+                Combat.addKillBurst(this.x, this.y, '#ffff40');
+                Combat._screenFlash = 0.15;
+                Combat._screenFlashColor = '#ffff80';
+            }
         }
     }
 

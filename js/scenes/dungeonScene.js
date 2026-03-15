@@ -896,7 +896,7 @@ const DungeonScene = {
             }
         }
 
-        // ── Attack slash arc ──
+        // ── Attack slash arc (scales with player level) ──
         if (player.attacking && player.attackFrame < 2.5) {
             const ctx = r._entityLayer.ctx;
             const pcx = (player.x - this.viewX) * 32 + 16;
@@ -904,7 +904,14 @@ const DungeonScene = {
             const dir = player.attackDir || player.facing || { x: 1, y: 0 };
             const baseAngle = Math.atan2(dir.y, dir.x) - Math.PI * 0.5;
             const progress = Math.min(1, player.attackFrame / 2.5);
-            const swingSpan = Math.PI * 1.1;
+
+            // Arc grows with level: base 1.1 rad → up to 1.8 rad at level 20+
+            const levelScale = Math.min(1, (player.level || 1) / 20);
+            const swingSpan = Math.PI * (1.1 + levelScale * 0.7);
+            const arcRadius = 26 + levelScale * 12;     // 26 → 38
+            const outerWidth = 14 + levelScale * 8;      // 14 → 22
+            const innerWidth = 4 + levelScale * 3;       // 4 → 7
+
             const endAngle = baseAngle + swingSpan * progress;
             const alpha = 0.85 * (1 - progress * 0.6);
 
@@ -912,26 +919,47 @@ const DungeonScene = {
             ctx.globalAlpha = alpha;
             // Outer glow arc
             ctx.strokeStyle = 'rgba(255,220,80,0.6)';
-            ctx.lineWidth = 14;
+            ctx.lineWidth = outerWidth;
             ctx.lineCap = 'round';
             ctx.shadowColor = '#ffa020';
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = 12 + levelScale * 8;
             ctx.beginPath();
-            ctx.arc(pcx, pcy, 26, baseAngle, endAngle);
+            ctx.arc(pcx, pcy, arcRadius, baseAngle, endAngle);
             ctx.stroke();
             // Inner bright arc
             ctx.strokeStyle = '#fff8e0';
-            ctx.lineWidth = 4;
+            ctx.lineWidth = innerWidth;
             ctx.shadowColor = '#fff';
             ctx.shadowBlur = 6;
             ctx.beginPath();
-            ctx.arc(pcx, pcy, 26, baseAngle, endAngle);
+            ctx.arc(pcx, pcy, arcRadius, baseAngle, endAngle);
             ctx.stroke();
             ctx.shadowBlur = 0;
             ctx.restore();
         }
 
         // ── Player ──
+        // Power aura — visible from level 5+, grows with level
+        if (player.hp > 0 && player.level >= 5 && !(player.hp <= player.getMaxHp() * 0.2)) {
+            const ctx = r.getCtx();
+            const px = (player.x - this.viewX) * 32 + 16;
+            const py = (player.y - this.viewY) * 32 + 16;
+            const lvlScale = Math.min(1, (player.level - 5) / 15); // 0→1 over levels 5-20
+            const auraAlpha = 0.08 + lvlScale * 0.12;
+            const auraRadius = 16 + lvlScale * 10;
+            const pulse = auraAlpha + Math.sin(Game.renderer.time * 3) * 0.03;
+            ctx.save();
+            ctx.globalAlpha = pulse;
+            const grad = ctx.createRadialGradient(px, py, 2, px, py, auraRadius);
+            grad.addColorStop(0, 'rgba(100,180,255,0.5)');
+            grad.addColorStop(1, 'rgba(100,180,255,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(px, py, auraRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         // Desperate Fury aura (below 20% HP)
         if (player.hp > 0 && player.hp <= player.getMaxHp() * 0.2) {
             const ctx = r.getCtx();
