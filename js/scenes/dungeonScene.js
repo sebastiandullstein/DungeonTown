@@ -42,6 +42,11 @@ const DungeonScene = {
     _killStreak: 0,
     _killStreakTimer: 0, // resets if no kill within 5s
     _killStreakFlash: 0, // visual flash on milestone
+    // Arena sealing
+    _arenaSealed: false,
+    _arenaRoom: null,
+    _arenaDoorTiles: [], // saved door positions for unsealing
+    _bossVictoryTimer: 0, // victory fanfare countdown
 
     init() {},
 
@@ -79,6 +84,10 @@ const DungeonScene = {
         this._killStreak = 0;
         this._killStreakTimer = 0;
         this._killStreakFlash = 0;
+        this._arenaSealed = false;
+        this._arenaRoom = null;
+        this._arenaDoorTiles = [];
+        this._bossVictoryTimer = 0;
         this._prevPlayerHp = p.hp;
         this._lootFanfare = [];
         this._furyTriggered = false;
@@ -542,6 +551,48 @@ const DungeonScene = {
             }
         }
 
+        // Arena sealing: detect player entering boss room
+        if (!this._arenaSealed && this.map.rooms.length > 1) {
+            const lastRoom = this.map.rooms[this.map.rooms.length - 1];
+            if (lastRoom.isArena && player.x > lastRoom.x && player.x < lastRoom.x + lastRoom.w - 1
+                && player.y > lastRoom.y && player.y < lastRoom.y + lastRoom.h - 1) {
+                this._arenaSealed = true;
+                this._arenaRoom = lastRoom;
+                this._arenaDoorTiles = [];
+                // Seal all doors on the arena perimeter
+                if (lastRoom.doorPositions) {
+                    for (const dp of lastRoom.doorPositions) {
+                        if (this.map.get(dp.x, dp.y) === TILE.DOOR) {
+                            this._arenaDoorTiles.push({ x: dp.x, y: dp.y });
+                            this.map.set(dp.x, dp.y, TILE.ARENA_WALL);
+                        }
+                    }
+                }
+                Game.renderer.shake(6, 0.3);
+                Audio.play('bossFloorWarning');
+                Game.notify('The arena seals shut!', '#ff4444');
+            }
+        }
+
+        // Boss victory fanfare timer
+        if (this._bossVictoryTimer > 0) {
+            this._bossVictoryTimer -= dt;
+            if (this._bossVictoryTimer <= 0) {
+                // Unseal arena
+                if (this._arenaRoom) {
+                    for (const dp of this._arenaDoorTiles) {
+                        this.map.set(dp.x, dp.y, TILE.DOOR);
+                    }
+                    // Place stairs down at arena center
+                    this.map.set(this._arenaRoom.cx, this._arenaRoom.cy, TILE.STAIRS_DOWN);
+                    this.map.stairsDown = { x: this._arenaRoom.cx, y: this._arenaRoom.cy };
+                    this._arenaSealed = false;
+                    Game.notify('The arena opens. Stairs appear.', '#40e0e0');
+                }
+            }
+            return; // block input during victory fanfare
+        }
+
         // Update enemies
         for (const enemy of this.map.enemies) {
             if (enemy.hp > 0) Enemy.update(enemy, dt, this.map, player);
@@ -574,6 +625,28 @@ const DungeonScene = {
                 });
             }
         }
+        // Boss victory fanfare trigger
+        for (const dead of justDied) {
+            if (dead.isBoss && !dead.isFinalBoss && this._bossVictoryTimer <= 0) {
+                this._bossVictoryTimer = 3.0;
+                Game.hitStop(0.5);
+                Audio.play('bossDefeatJingle');
+                // Big particle explosion
+                for (let i = 0; i < 24; i++) {
+                    const angle = (i / 24) * Math.PI * 2;
+                    const speed = 80 + Math.random() * 80;
+                    Combat.particles.push({
+                        x: dead.x * 32 + 16, y: dead.y * 32 + 16,
+                        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40,
+                        color: i % 3 === 0 ? '#ffd700' : i % 3 === 1 ? '#ff8800' : '#fff',
+                        timer: 0, duration: 0.6 + Math.random() * 0.4, size: 3 + Math.random() * 3
+                    });
+                }
+                Combat._screenFlash = 0.15;
+                Combat._screenFlashColor = '#ffd700';
+            }
+        }
+
         this.map.enemies = this.map.enemies.filter(e => e.hp > 0 || (e.deathTimer !== undefined && e.deathTimer > 0));
 
         // Kill streak tracking
@@ -1098,6 +1171,46 @@ const DungeonScene = {
             ctx.restore();
         }
         r.putPlayer(player.x - this.viewX, player.y - this.viewY, player);
+
+        // ── Ground slam warning tiles ──
+        if (this.map && this.map.enemies) {
+            const ctx = r.getCtx();
+            for (const enemy of this.map.enemies) {
+                if (enemy._groundSlamWarning && enemy.hp > 0) {
+                    const warn = enemy._groundSlamWarning;
+                    const pulse = 0.3 + 0.4 * Math.sin(warn.timer * 20);
+                    ctx.save();
+                    ctx.fillStyle = `rgba(255,60,0,${pulse})`;
+                    for (const st of warn.tiles) {
+                        const sx = (st.x - this.viewX) * 32;
+                        const sy = (st.y - this.viewY) * 32;
+                        if (sx >= 0 && sx < 800 && sy >= 0 && sy < 576) {
+                            ctx.fillRect(sx, sy, 32, 32);
+                        }
+                    }
+                    ctx.restore();
+                }
+            }
+        }
+
+        // ── Boss victory banner ──
+        if (this._bossVictoryTimer > 0) {
+            const ctx = r.getCtx();
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#000';
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(0, 280, 800, 80);
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 32px "Courier New"';
+            ctx.fillText('★ BOSS DEFEATED ★', 400, 330);
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
 
         // ── Combat floating text / particles ──
         Combat.render(r, this.viewX, this.viewY);

@@ -76,6 +76,7 @@ const Audio = {
             case 'demonBlink':    this._playDemonBlink(t); break;
             case 'dragonBreath':  this._playDragonBreath(t); break;
             case 'batDive':       this._playBatDive(t); break;
+            case 'bossDefeatJingle': this._playBossDefeatJingle(t); break;
         }
     },
 
@@ -583,6 +584,55 @@ const Audio = {
         gain.gain.linearRampToValueAtTime(0, t + 0.35);
         osc.connect(gain); gain.connect(this.ctx.destination);
         osc.start(t); osc.stop(t + 0.36);
+    },
+
+    _playBossDefeatJingle(t) {
+        // Extended triumphant fanfare — boss arena victory
+        const v = this._vol() * 0.3;
+        // Impact crash
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(v * 0.7, t);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.4);
+            const nFilter = this.ctx.createBiquadFilter();
+            nFilter.type = 'lowpass'; nFilter.frequency.value = 800;
+            noise.connect(nFilter); nFilter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.41);
+        }
+        // Triumphant ascending melody: C4 → E4 → G4 → C5 → E5
+        const notes = [
+            { freq: 262, delay: 0.1, dur: 0.4 },
+            { freq: 330, delay: 0.25, dur: 0.4 },
+            { freq: 392, delay: 0.4, dur: 0.5 },
+            { freq: 523, delay: 0.6, dur: 0.7 },
+            { freq: 659, delay: 0.85, dur: 1.0 },
+        ];
+        for (const n of notes) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = n.freq;
+            const start = t + n.delay;
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(v * 0.5, start + 0.06);
+            gain.gain.setValueAtTime(v * 0.4, start + n.dur * 0.5);
+            gain.gain.linearRampToValueAtTime(0, start + n.dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(start); osc.stop(start + n.dur + 0.01);
+        }
+        // Sustained power chord underneath
+        const chord = this.ctx.createOscillator();
+        const cGain = this.ctx.createGain();
+        chord.type = 'sine';
+        chord.frequency.value = 131; // C3
+        cGain.gain.setValueAtTime(0, t + 0.3);
+        cGain.gain.linearRampToValueAtTime(v * 0.3, t + 0.5);
+        cGain.gain.setValueAtTime(v * 0.25, t + 1.2);
+        cGain.gain.linearRampToValueAtTime(0, t + 2.0);
+        chord.connect(cGain); cGain.connect(this.ctx.destination);
+        chord.start(t + 0.3); chord.stop(t + 2.01);
     },
 
     _playBatDive(t) {

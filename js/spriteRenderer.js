@@ -239,6 +239,18 @@ const SpriteRenderer = {
             if (dt > 0.7) ctx.filter = `brightness(${1 + (dt - 0.7) * 10})`;
         }
 
+        // Phase transition: pulsing white glow
+        if (enemy.phaseTransitionTimer > 0 && enemy.hp > 0) {
+            const pt = enemy.phaseTransitionTimer;
+            const pulse = 0.5 + 0.5 * Math.sin(pt * 15);
+            ctx.save();
+            ctx.fillStyle = `rgba(255,180,255,${pulse * 0.4})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         // Hit flash: white overlay when recently struck
         const isHitFlash = enemy.hp > 0 && enemy.stunTimer > 0.05;
 
@@ -440,6 +452,10 @@ const SpriteRenderer = {
             ctx.strokeStyle = '#ff8800';
             ctx.lineWidth = 1;
             ctx.strokeRect(bx, by, bw, bh);
+            // Phase divider marks at 66% and 33%
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fillRect(bx + Math.floor(bw * 0.66), by, 1, bh);
+            ctx.fillRect(bx + Math.floor(bw * 0.33), by, 1, bh);
         }
     },
 

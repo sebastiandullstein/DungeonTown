@@ -945,6 +945,58 @@ const TileRenderer = {
         ctx.fillRect(x + w / 2 + 1, y + 3, 2, 2);
     },
 
+    // ─── ARENA WALL ─────────────────────────────────────────────────────────
+
+    drawArenaWall(ctx, x, y, w, h) {
+        // Reinforced dark wall with metallic bands
+        this.drawWall(ctx, x, y, w, h);
+        // Iron band overlay
+        ctx.fillStyle = 'rgba(100,90,70,0.3)';
+        ctx.fillRect(x, y + 4, w, 3);
+        ctx.fillRect(x, y + h - 7, w, 3);
+        // Rivets
+        ctx.fillStyle = 'rgba(180,160,120,0.5)';
+        ctx.beginPath();
+        ctx.arc(x + 6, y + 5.5, 1.5, 0, Math.PI * 2);
+        ctx.arc(x + w - 6, y + 5.5, 1.5, 0, Math.PI * 2);
+        ctx.arc(x + 6, y + h - 5.5, 1.5, 0, Math.PI * 2);
+        ctx.arc(x + w - 6, y + h - 5.5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Darker tint
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(x, y, w, h);
+    },
+
+    // ─── PILLAR ───────────────────────────────────────────────────────────────
+
+    drawPillar(ctx, x, y, w, h) {
+        // Floor beneath
+        this.drawFloor(ctx, x, y, w, h);
+        const cx = x + w / 2;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(cx, y + h - 3, 10, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Pillar body
+        const grad = ctx.createLinearGradient(x + 8, y, x + w - 8, y);
+        grad.addColorStop(0, '#3a3228');
+        grad.addColorStop(0.3, '#5a4e40');
+        grad.addColorStop(0.7, '#5a4e40');
+        grad.addColorStop(1, '#2a241c');
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - 6, y + 4, 12, h - 6);
+        // Cap
+        ctx.fillStyle = '#6a5e50';
+        ctx.fillRect(cx - 8, y + 2, 16, 4);
+        // Base
+        ctx.fillStyle = '#6a5e50';
+        ctx.fillRect(cx - 8, y + h - 5, 16, 4);
+        // Highlight edge
+        ctx.fillStyle = 'rgba(255,220,160,0.12)';
+        ctx.fillRect(cx - 5, y + 6, 2, h - 10);
+    },
+
     // ─── Internal helper ────────────────────────────────────────────────────
 
     _darken(hex, factor) {
@@ -987,6 +1039,8 @@ const TileRenderer = {
             case 11: this.drawFountain(ctx, x, y, w, h, time); break;   // FOUNTAIN
             case 12: this.drawFountainDry(ctx, x, y, w, h); break;      // FOUNTAIN_DRY
             case 13: this.drawPrisoner(ctx, x, y, w, h, time); break;   // PRISONER
+            case 14: this.drawArenaWall(ctx, x, y, w, h); break;          // ARENA_WALL
+            case 15: this.drawPillar(ctx, x, y, w, h); break;             // PILLAR
             default: this.drawVoid(ctx, x, y, w, h);
         }
 

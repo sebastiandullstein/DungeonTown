@@ -14,6 +14,8 @@ const TILE = {
     FOUNTAIN: 11,
     FOUNTAIN_DRY: 12,
     PRISONER: 13,
+    ARENA_WALL: 14,
+    PILLAR: 15,
 };
 
 const TILE_DISPLAY = {
@@ -31,6 +33,8 @@ const TILE_DISPLAY = {
     [TILE.FOUNTAIN]: { char: '~', fg: '#40ffff', bg: '#001828' },
     [TILE.FOUNTAIN_DRY]: { char: '~', fg: '#555', bg: '#111' },
     [TILE.PRISONER]: { char: '@', fg: '#ffffff', bg: '#1a001a' },
+    [TILE.ARENA_WALL]: { char: '#', fg: '#886', bg: '#332' },
+    [TILE.PILLAR]: { char: 'O', fg: '#998', bg: '#221' },
 };
 
 class DungeonMap {
@@ -116,7 +120,8 @@ class DungeonMap {
         let cx = x0, cy = y0;
 
         while (cx !== x1 || cy !== y1) {
-            if (this.get(cx, cy) === TILE.WALL && (cx !== x0 || cy !== y0)) return false;
+            const t = this.get(cx, cy);
+            if ((t === TILE.WALL || t === TILE.ARENA_WALL || t === TILE.PILLAR) && (cx !== x0 || cy !== y0)) return false;
             const e2 = 2 * err;
             if (e2 > -dy) { err -= dy; cx += sx; }
             if (e2 < dx) { err += dx; cy += sy; }
@@ -233,6 +238,59 @@ class DungeonGenerator {
 
         root.createRooms(map);
 
+        // Boss floors: replace last room with arena
+        const isFinalFloor = (floor === 50);
+        const isMajorBoss  = (floor % 10 === 0);
+        const isMiniBoss   = (floor % 5  === 0 && !isMajorBoss);
+        const hasBoss      = isFinalFloor || isMajorBoss || isMiniBoss;
+
+        if (hasBoss && map.rooms.length > 1) {
+            const arenaW = 14, arenaH = 12;
+            const oldRoom = map.rooms[map.rooms.length - 1];
+            // Center arena within the old room's leaf area
+            const ax = Math.max(2, Math.min(mapW - arenaW - 2, oldRoom.cx - Math.floor(arenaW / 2)));
+            const ay = Math.max(2, Math.min(mapH - arenaH - 2, oldRoom.cy - Math.floor(arenaH / 2)));
+            const arena = { x: ax, y: ay, w: arenaW, h: arenaH, cx: ax + Math.floor(arenaW / 2), cy: ay + Math.floor(arenaH / 2), isArena: true };
+
+            // Clear the arena area: walls on border, floor inside
+            for (let ry = ay; ry < ay + arenaH; ry++) {
+                for (let rx = ax; rx < ax + arenaW; rx++) {
+                    if (rx === ax || rx === ax + arenaW - 1 || ry === ay || ry === ay + arenaH - 1) {
+                        map.set(rx, ry, TILE.ARENA_WALL);
+                    } else {
+                        map.set(rx, ry, TILE.FLOOR);
+                    }
+                }
+            }
+
+            // Place 4 symmetric pillars for cover (2 tiles in from corners)
+            const pillarPositions = [
+                { x: ax + 3, y: ay + 3 },
+                { x: ax + arenaW - 4, y: ay + 3 },
+                { x: ax + 3, y: ay + arenaH - 4 },
+                { x: ax + arenaW - 4, y: ay + arenaH - 4 },
+            ];
+            for (const pp of pillarPositions) {
+                map.set(pp.x, pp.y, TILE.PILLAR);
+            }
+
+            // Place doors on the arena walls (one on each side where corridor can connect)
+            const doorPositions = [
+                { x: arena.cx, y: ay },              // top
+                { x: arena.cx, y: ay + arenaH - 1 }, // bottom
+                { x: ax, y: arena.cy },               // left
+                { x: ax + arenaW - 1, y: arena.cy },  // right
+            ];
+            for (const dp of doorPositions) {
+                map.set(dp.x, dp.y, TILE.DOOR);
+            }
+            // Store door positions for sealing later
+            arena.doorPositions = doorPositions;
+
+            // Replace the last room
+            map.rooms[map.rooms.length - 1] = arena;
+        }
+
         // Place player start in first room
         if (map.rooms.length > 0) {
             const startRoom = map.rooms[0];
@@ -240,11 +298,16 @@ class DungeonGenerator {
             map.set(startRoom.cx, startRoom.cy, TILE.STAIRS_UP);
         }
 
-        // Place stairs down in last room
+        // Place stairs down in last room (skip for arena — stairs appear after boss dies)
         if (map.rooms.length > 1) {
             const endRoom = map.rooms[map.rooms.length - 1];
-            map.stairsDown = { x: endRoom.cx, y: endRoom.cy };
-            map.set(endRoom.cx, endRoom.cy, TILE.STAIRS_DOWN);
+            if (!endRoom.isArena) {
+                map.stairsDown = { x: endRoom.cx, y: endRoom.cy };
+                map.set(endRoom.cx, endRoom.cy, TILE.STAIRS_DOWN);
+            } else {
+                // No stairs until boss is defeated
+                map.stairsDown = { x: endRoom.cx, y: endRoom.cy };
+            }
         }
 
         // Place enemies (includes boss placement on boss floors)

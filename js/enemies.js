@@ -242,6 +242,13 @@ class Enemy {
             diveDx: 0,             // bat: dive direction
             diveDy: 0,
             _diveSteps: 0,         // bat: steps taken during dive
+            // Boss phase system
+            bossPhase: isBoss ? 1 : 0,
+            phaseTransitionTimer: 0,  // invuln + visual during transition
+            _lastPhase: 1,            // track phase changes
+            _groundSlamTimer: 0,      // cooldown for ground slam attack
+            _groundSlamWarning: null, // { tiles: [...], timer } telegraph before slam
+            _summonedThisPhase: false, // prevent repeated summons
         };
     }
 
@@ -357,6 +364,102 @@ class Enemy {
 
         if (enemy.stunTimer > 0) return;
 
+        // Boss phase system: check HP thresholds for phase transitions
+        if (enemy.isBoss && enemy.bossPhase > 0) {
+            const hpRatio = enemy.hp / enemy.maxHp;
+            const newPhase = hpRatio > 0.66 ? 1 : hpRatio > 0.33 ? 2 : 3;
+            if (newPhase > enemy.bossPhase) {
+                enemy.bossPhase = newPhase;
+                enemy.phaseTransitionTimer = 1.0;
+                enemy.stunTimer = 1.0; // brief invulnerability
+                enemy._summonedThisPhase = false;
+                Combat.addFloatingText(enemy.x, enemy.y, `PHASE ${newPhase}`, '#ff4488');
+                Game.renderer.shake(8, 0.4);
+                Game.hitStop(0.2);
+                Audio.play('bossEncounter');
+                // Shockwave particles
+                for (let i = 0; i < 16; i++) {
+                    const angle = (i / 16) * Math.PI * 2;
+                    Combat.particles.push({
+                        x: enemy.x * 32 + 16, y: enemy.y * 32 + 16,
+                        vx: Math.cos(angle) * 120, vy: Math.sin(angle) * 120,
+                        color: '#ff88cc', timer: 0, duration: 0.5, size: 3
+                    });
+                }
+                return;
+            }
+            // Invulnerable during phase transition
+            if (enemy.phaseTransitionTimer > 0) {
+                enemy.phaseTransitionTimer -= dt;
+                return;
+            }
+
+            // Boss ground slam (Phase 3, type orc/warlord — cooldown-based)
+            if (enemy.bossPhase >= 3 && enemy._groundSlamTimer !== undefined) {
+                enemy._groundSlamTimer -= dt;
+                // Execute ground slam warning
+                if (enemy._groundSlamWarning) {
+                    enemy._groundSlamWarning.timer -= dt;
+                    if (enemy._groundSlamWarning.timer <= 0) {
+                        // Deal damage to all tiles adjacent to boss
+                        const slamTiles = enemy._groundSlamWarning.tiles;
+                        for (const st of slamTiles) {
+                            if (player.x === st.x && player.y === st.y) {
+                                const damage = player.takeDamage(Math.floor(enemy.atk * 1.2));
+                                if (damage > 0) {
+                                    if (Game.state.runStats) {
+                                        Game.state.runStats.damageTaken += damage;
+                                        Game.state.runStats.deathCause = enemy.name;
+                                    }
+                                    Audio.play('playerHurt');
+                                    Combat.addFloatingText(player.x, player.y, `-${damage} SLAM!`, '#ff4400');
+                                    Game.renderer.shake(10, 0.3);
+                                }
+                            }
+                            Combat.addHitParticles(st.x, st.y, '#ff6600');
+                        }
+                        Audio.play('dragonBreath');
+                        enemy._groundSlamWarning = null;
+                        enemy._groundSlamTimer = 4.0; // cooldown
+                    }
+                    return;
+                }
+                // Initiate ground slam
+                if (enemy._groundSlamTimer <= 0) {
+                    const slamTiles = [];
+                    for (let sy = -1; sy <= 1; sy++) {
+                        for (let sx = -1; sx <= 1; sx++) {
+                            if (sx === 0 && sy === 0) continue;
+                            slamTiles.push({ x: enemy.x + sx, y: enemy.y + sy });
+                        }
+                    }
+                    enemy._groundSlamWarning = { tiles: slamTiles, timer: 0.6 };
+                    enemy.telegraphing = true;
+                    enemy.telegraphTimer = 0.6;
+                    Combat.addFloatingText(enemy.x, enemy.y, '!SLAM!', '#ff6600');
+                    return;
+                }
+            }
+
+            // Boss Phase 2 summoning (once per phase)
+            if (enemy.bossPhase >= 2 && !enemy._summonedThisPhase) {
+                enemy._summonedThisPhase = true;
+                // Summon 2 minions nearby
+                const summonType = EnemyTypes.types.rat;
+                for (let i = 0; i < 2; i++) {
+                    const sx = enemy.x + (i === 0 ? -2 : 2);
+                    const sy = enemy.y;
+                    if (dungeonMap.isWalkable(sx, sy)) {
+                        const minion = Enemy.create(sx, sy, summonType);
+                        dungeonMap.enemies.push(minion);
+                        Combat.addHitParticles(sx, sy, '#ffaa00');
+                    }
+                }
+                Combat.addFloatingText(enemy.x, enemy.y, 'SUMMON!', '#ffaa00');
+                Audio.play('bossEncounter');
+            }
+        }
+
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -393,8 +496,8 @@ class Enemy {
             return;
         }
 
-        // ── Orc: Charge telegraph ──
-        if (enemy.type === 'orc' && !enemy.isBoss && enemy.chargeTimer > 0) {
+        // ── Orc: Charge telegraph (bosses too!) ──
+        if (enemy.type === 'orc' && enemy.chargeTimer > 0) {
             enemy.chargeTimer -= dt;
             enemy.telegraphing = true;
             if (enemy.chargeTimer <= 0) {
@@ -500,8 +603,10 @@ class Enemy {
             enemy.state = 'attack';
         } else if (dist <= enemy.detection && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)) {
             // Orc: initiate charge if far enough
-            if (enemy.type === 'orc' && !enemy.isBoss && dist >= 4 && enemy.chargeTimer <= 0 && Math.random() < 0.4) {
-                enemy.chargeTimer = 1.2; // telegraph for 1.2s — gives player time to react
+            if (enemy.type === 'orc' && dist >= 4 && enemy.chargeTimer <= 0 && Math.random() < 0.4) {
+                // Phase 3 bosses telegraph faster
+                const telegraphTime = (enemy.isBoss && enemy.bossPhase >= 3) ? 0.7 : 1.2;
+                enemy.chargeTimer = telegraphTime;
                 enemy.telegraphing = true;
                 return;
             }
@@ -620,16 +725,26 @@ class Enemy {
                         const kbDx = player.x - enemy.x;
                         const kbDy = player.y - enemy.y;
                         const kbDist = Math.sqrt(kbDx * kbDx + kbDy * kbDy) || 1;
-                        player.knockX = (kbDx / kbDist) * 0.3;
-                        player.knockY = (kbDy / kbDist) * 0.3;
+                        // Boss Phase 3: stronger knockback
+                        const kbMult = (enemy.isBoss && enemy.bossPhase >= 3) ? 0.6 : 0.3;
+                        player.knockX = (kbDx / kbDist) * kbMult;
+                        player.knockY = (kbDy / kbDist) * kbMult;
                     }
-                    enemy.attackTimer = enemy.attackDelay;
+                    // Boss Phase 3: faster attacks
+                    const delay = (enemy.isBoss && enemy.bossPhase >= 3) ? enemy.attackDelay * 0.7 : enemy.attackDelay;
+                    enemy.attackTimer = delay;
                 }
                 break;
         }
     }
 
     static takeDamage(enemy, damage, player) {
+        // Boss phase transition: invulnerable
+        if (enemy.phaseTransitionTimer > 0) {
+            Combat.addFloatingText(enemy.x, enemy.y, 'IMMUNE', '#888');
+            return 0;
+        }
+
         // Skeleton block: halve damage, no knockback, show BLOCKED text
         if (enemy.blocking) {
             const blockedDmg = Math.max(1, Math.floor(damage * 0.5) - enemy.def);
