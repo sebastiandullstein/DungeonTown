@@ -4,7 +4,7 @@ const EnemyTypes = {
         rat: {
             name: 'Rat', char: 'r', fg: '#a86', bg: null,
             hp: 8, atk: 2, def: 0, speed: 0.6,
-            xp: 5, detection: 5, minFloor: 1,
+            xp: 5, detection: 8, minFloor: 1,
             loot: [
                 { type: 'gold', chance: 0.6, min: 2, max: 6 },
             ],
@@ -12,7 +12,7 @@ const EnemyTypes = {
         bat: {
             name: 'Bat', char: 'b', fg: '#868', bg: null,
             hp: 6, atk: 3, def: 0, speed: 0.4,
-            xp: 7, detection: 7, minFloor: 1,
+            xp: 7, detection: 10, minFloor: 1,
             loot: [
                 { type: 'gold', chance: 0.5, min: 1, max: 5 },
             ],
@@ -20,7 +20,7 @@ const EnemyTypes = {
         skeleton: {
             name: 'Skeleton', char: 's', fg: '#ddd', bg: null,
             hp: 20, atk: 5, def: 2, speed: 0.8,
-            xp: 15, detection: 6, minFloor: 2,
+            xp: 15, detection: 9, minFloor: 2,
             loot: [
                 { type: 'gold', chance: 0.7, min: 6, max: 18 },
                 { type: 'resource', chance: 0.2, resource: 'herbs', min: 1, max: 2 },
@@ -29,7 +29,7 @@ const EnemyTypes = {
         orc: {
             name: 'Orc', char: 'O', fg: '#0a0', bg: null,
             hp: 35, atk: 8, def: 3, speed: 1.0,
-            xp: 25, detection: 5, minFloor: 3,
+            xp: 25, detection: 8, minFloor: 3,
             loot: [
                 { type: 'gold', chance: 0.8, min: 12, max: 30 },
                 { type: 'resource', chance: 0.35, resource: 'iron', min: 1, max: 3 },
@@ -38,7 +38,7 @@ const EnemyTypes = {
         demon: {
             name: 'Demon', char: 'D', fg: '#f44', bg: null,
             hp: 60, atk: 12, def: 5, speed: 0.7,
-            xp: 50, detection: 8, minFloor: 5,
+            xp: 50, detection: 10, minFloor: 5,
             loot: [
                 { type: 'gold', chance: 0.9, min: 25, max: 55 },
                 { type: 'resource', chance: 0.4, resource: 'herbs', min: 2, max: 5 },
@@ -47,7 +47,7 @@ const EnemyTypes = {
         dragon: {
             name: 'Dragon', char: 'W', fg: '#f80', bg: null,
             hp: 150, atk: 20, def: 10, speed: 1.2,
-            xp: 200, detection: 10, minFloor: 8,
+            xp: 200, detection: 12, minFloor: 8,
             loot: [
                 { type: 'gold', chance: 1.0, min: 70, max: 180 },
                 { type: 'resource', chance: 0.6, resource: 'iron', min: 4, max: 8 },
@@ -309,7 +309,7 @@ class Enemy {
                             break;
                         }
                     }
-                    enemy.moveTimer = enemy.speed * 0.6;
+                    enemy.moveTimer = enemy.speed * 0.45;
                 }
                 break;
 

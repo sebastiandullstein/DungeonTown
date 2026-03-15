@@ -74,7 +74,7 @@ class Player {
 
         // Movement
         this.moveTimer = 0;
-        this.moveDelay = 0.1; // seconds between moves
+        this.moveDelay = 0.07; // seconds between moves (snappy)
 
         // Combat
         this.attackTimer = 0;
@@ -167,7 +167,7 @@ class Player {
     }
 
     getSpeed() {
-        return Math.max(0.05, 0.12 - this.stats.dex * 0.003);
+        return Math.max(0.04, 0.08 - this.stats.dex * 0.002);
     }
 
     getAttackSpeed() {

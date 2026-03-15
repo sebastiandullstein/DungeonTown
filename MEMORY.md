@@ -24,11 +24,13 @@ Konkrete Arbeitspakete:
 **Warum:** Floor 1 hat ~7 Gegner auf 80×45 Tiles. 70% der Zeit läuft der Spieler durch leere Räume.
 
 Konkrete Arbeitspakete:
-- [ ] **Enemy-Count erhöhen** — `dungeon.js:286`: Formel `5 + floor * 2` aggressiver machen, besonders auf niedrigen Floors
-- [ ] **Kleinere Maps auf frühen Floors** — Map-Größe an Floor koppeln (Floor 1-5: 50×30 statt 80×45)
-- [ ] **Gegner-Cluster statt Einzelspawn** — Enemies in Gruppen von 2-4 in Räumen platzieren
-- [ ] **Schnelleres Tile-Movement** — `player.js:77` `moveDelay` von 0.1 auf 0.07-0.08s oder Sub-Tile-Interpolation
-- [ ] **Aggro-Radius vergrößern** — `enemies.js` detection-Werte erhöhen, damit Gegner schneller reagieren
+- [x] **Enemy-Count erhöhen** — Floor 1-3: base 10, Floor 4-8: base 8, Floor 9+: base 6 (+ floor*2 + random). Vorher: immer 5
+- [x] **Kleinere Maps auf frühen Floors** — Floor 1-3: 50×30, Floor 4-8: 60×36, Floor 9+: 80×45. Weniger Fläche = höhere Dichte
+- [x] **Gegner-Cluster statt Einzelspawn** — Enemies spawnen in Gruppen von 2-4 pro Cluster, gleicher Typ, nahe beieinander
+- [x] **Schnelleres Tile-Movement** — `moveDelay` 0.1→0.07, `getSpeed()` Basis 0.12→0.08 (min 0.04 statt 0.05)
+- [x] **Aggro-Radius vergrößern** — Rat 5→8, Bat 7→10, Skeleton 6→9, Orc 5→8, Demon 8→10, Dragon 10→12. Chase-Speed ×0.6→×0.45
+
+**Status: Prio 2 ABGESCHLOSSEN.** Nächste Session: Prio 3 (Village-Streamlining) oder Spieler-Test.
 
 ### Prio 3: Village-Streamlining — "Schneller zurück in den Dungeon"
 **Warum:** 15-20 Sekunden Leerlauf zwischen Runs. Village ist in den ersten Runs nutzlos.
@@ -43,10 +45,10 @@ Konkrete Arbeitspakete:
 
 ## Letzte Session
 
-**Datum:** 2026-03-15 (Session 2)
-**Was gemacht:** Alle 7 Arbeitspakete von Prio 1 (Kampfgefühl) implementiert. Screenshake/Hitstop verdoppelt-verdreifacht, Enemy-Flash mit brightness-Filter, neuer glühender Slash-Arc ersetzt schwachen Radial-Gradient, Attack-Sound mit Noise-Burst, Knockback verdoppelt mit Crit/Kill-Skalierung, Kill-Burst-Partikel + Screen-Flash.
-**Was offen blieb:** Spieler-Test nötig um Werte zu validieren. Dann Prio 2 (Gegner-Dichte & Pacing).
-**Geänderte Dateien:** `combat.js`, `spriteRenderer.js`, `audio.js`, `dungeonScene.js`
+**Datum:** 2026-03-15 (Session 3)
+**Was gemacht:** Prio 2 (Gegner-Dichte & Pacing) komplett implementiert. Kleinere Maps auf frühen Floors (50×30 statt 80×45), mehr Enemies mit Cluster-Spawns (2-4 pro Gruppe), schnelleres Movement (0.07s statt 0.1s), höherer Aggro-Radius (+3-5 Tiles), schnellere Chase-Speed (×0.45 statt ×0.6).
+**Was offen blieb:** Prio 3 (Village-Streamlining). Alles ungetestet — Spieler-Test nach Rückkehr.
+**Geänderte Dateien:** `dungeon.js`, `player.js`, `enemies.js`
 
 ---
 
@@ -56,3 +58,4 @@ Konkrete Arbeitspakete:
 |---|---|---|
 | 2026-03-15 | Game Design Audit | AUDIT.md erstellt, MEMORY.md + CLAUDE.md aktualisiert |
 | 2026-03-15 | Prio 1: Kampfgefühl | Alle 7 Pakete implementiert (Shake, Hitstop, Flash, Arc, Sound, KB, Kill-FX) |
+| 2026-03-15 | Prio 2: Dichte & Pacing | Alle 5 Pakete implementiert (Map-Size, Enemy-Count, Cluster, Speed, Aggro) |

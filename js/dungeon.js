@@ -133,9 +133,12 @@ class DungeonMap {
 
 class DungeonGenerator {
     static generate(floor = 1) {
-        const map = new DungeonMap(80, 45);
+        // Scale map size with floor — early floors are tighter for higher density
+        const mapW = floor <= 3 ? 50 : floor <= 8 ? 60 : 80;
+        const mapH = floor <= 3 ? 30 : floor <= 8 ? 36 : 45;
+        const map = new DungeonMap(mapW, mapH);
         const minRoomSize = 5;
-        const maxRoomSize = 12;
+        const maxRoomSize = floor <= 5 ? 9 : 12;
         const leaves = [];
 
         // BSP split
@@ -208,7 +211,7 @@ class DungeonGenerator {
             }
         }
 
-        const root = new Leaf(1, 1, map.width - 2, map.height - 2);
+        const root = new Leaf(1, 1, mapW - 2, mapH - 2);
         leaves.push(root);
 
         let didSplit = true;
@@ -283,15 +286,28 @@ class DungeonGenerator {
             ? map.rooms.slice(1, -1)   // reserve last room for boss
             : map.rooms.slice(1);
 
-        const enemyCount = 5 + floor * 2 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < enemyCount; i++) {
-            if (normalRooms.length === 0) break;
+        // More enemies on early floors for density; scales up with floor
+        const baseCount = floor <= 3 ? 10 : floor <= 8 ? 8 : 6;
+        const enemyCount = baseCount + floor * 2 + Math.floor(Math.random() * 4);
+
+        // Spawn enemies in clusters of 2-4 per room for group encounters
+        let spawned = 0;
+        while (spawned < enemyCount && normalRooms.length > 0) {
             const room = normalRooms[Math.floor(Math.random() * normalRooms.length)];
-            const x = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
-            const y = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
-            if (map.isWalkable(x, y)) {
-                const type = EnemyTypes.getForFloor(floor);
-                map.enemies.push(Enemy.create(x, y, type));
+            const clusterSize = 2 + Math.floor(Math.random() * 3); // 2-4
+            const type = EnemyTypes.getForFloor(floor);
+            const cx = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
+            const cy = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
+            for (let j = 0; j < clusterSize && spawned < enemyCount; j++) {
+                // Scatter within 1-2 tiles of cluster center
+                const ox = j === 0 ? 0 : Math.floor(Math.random() * 3) - 1;
+                const oy = j === 0 ? 0 : Math.floor(Math.random() * 3) - 1;
+                const ex = cx + ox;
+                const ey = cy + oy;
+                if (map.isWalkable(ex, ey)) {
+                    map.enemies.push(Enemy.create(ex, ey, type));
+                    spawned++;
+                }
             }
         }
 
