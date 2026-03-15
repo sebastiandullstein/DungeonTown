@@ -345,8 +345,45 @@ const SpriteRenderer = {
             ctx.textAlign = 'left';
         }
 
-        // Skeleton block shield indicator
-        if (enemy.blocking && enemy.hp > 0) {
+        // Skeleton block shield indicator with rhythmic pulse
+        if (enemy.type === 'skeleton' && enemy.hp > 0 && enemy.blockCycle !== undefined) {
+            const cycle = enemy.blockCycle || 0;
+            if (enemy.blocking) {
+                ctx.save();
+                // Pulse faster as block is about to drop (last 0.4s of 1.5s block phase)
+                const timeLeft = 1.5 - cycle;
+                const pulseSpeed = timeLeft < 0.4 ? 25 : 8;
+                const pulse = 0.6 + 0.4 * Math.sin(cycle * pulseSpeed);
+                ctx.strokeStyle = `rgba(136,170,255,${pulse})`;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = '#88aaff';
+                ctx.shadowBlur = 6 + pulse * 6;
+                ctx.beginPath();
+                ctx.arc(origX + w / 2, origY + h / 2, 14, 0, Math.PI * 2);
+                ctx.stroke();
+                // Shield icon
+                ctx.fillStyle = `rgba(136,170,255,${pulse * 0.7})`;
+                ctx.font = 'bold 8px "Courier New"';
+                ctx.textAlign = 'center';
+                ctx.fillText('◆', origX + w / 2, origY - 3);
+                ctx.textAlign = 'left';
+                ctx.restore();
+            } else if (cycle < 2.0) {
+                // Open window indicator — subtle green glow (first 0.5s of open phase)
+                const openTime = cycle - 1.5;
+                if (openTime < 0.5) {
+                    ctx.save();
+                    const fade = 1.0 - openTime / 0.5;
+                    ctx.strokeStyle = `rgba(80,255,80,${fade * 0.4})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(origX + w / 2, origY + h / 2, 14, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        } else if (enemy.blocking && enemy.hp > 0) {
+            // Fallback for non-skeleton blocking (bosses etc)
             ctx.save();
             ctx.strokeStyle = '#88aaff';
             ctx.lineWidth = 2;

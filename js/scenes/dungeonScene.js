@@ -36,6 +36,12 @@ const DungeonScene = {
     _tutorialTimer: 0,    // time spent on this floor (for movement hint delay)
     // Combat log entries: { text, color, age }
     combatLog: [],
+    // Item drop bounce animations: { x, y, timer }
+    _itemDropAnims: [],
+    // Kill streak
+    _killStreak: 0,
+    _killStreakTimer: 0, // resets if no kill within 5s
+    _killStreakFlash: 0, // visual flash on milestone
 
     init() {},
 
@@ -69,6 +75,10 @@ const DungeonScene = {
         this._clearedRooms = new Set();
         this._altarOffering = null;
         this._altarIndex = 0;
+        this._itemDropAnims = [];
+        this._killStreak = 0;
+        this._killStreakTimer = 0;
+        this._killStreakFlash = 0;
         this._prevPlayerHp = p.hp;
         this._lootFanfare = [];
         this._furyTriggered = false;
@@ -550,8 +560,39 @@ const DungeonScene = {
         const justDied = this.map.enemies.filter(e => e.hp <= 0 && (e.deathTimer === undefined || e.deathTimer <= 0));
         for (const dead of justDied) {
             if (dead.name) this._log(`${dead.name} slain`, '#ff9040');
+            // Loot burst particles — gold coins flying from corpse
+            const numParticles = dead.isBoss ? 12 : 4 + Math.floor(Math.random() * 3);
+            for (let p = 0; p < numParticles; p++) {
+                const angle = (p / numParticles) * Math.PI * 2 + Math.random() * 0.5;
+                const speed = 30 + Math.random() * 50;
+                this._lootFanfare.push({
+                    x: dead.x * 32 + 16, y: dead.y * 32 + 16,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 40, // upward bias
+                    color: '#ffd040', timer: 0, duration: 0.5 + Math.random() * 0.3,
+                    size: 1.5 + Math.random() * 2
+                });
+            }
         }
         this.map.enemies = this.map.enemies.filter(e => e.hp > 0 || (e.deathTimer !== undefined && e.deathTimer > 0));
+
+        // Kill streak tracking
+        if (justDied.length > 0) {
+            this._killStreak += justDied.length;
+            this._killStreakTimer = 5.0;
+            // Milestone every 5 kills
+            if (this._killStreak >= 5 && this._killStreak % 5 < justDied.length) {
+                const milestone = Math.floor(this._killStreak / 5) * 5;
+                this._killStreakFlash = 0.8;
+                Game.renderer.shake(3, 0.15);
+                Combat.addFloatingText(player.x, player.y, `${milestone} KILLS!`, '#ffa020');
+            }
+        }
+        if (this._killStreakTimer > 0) {
+            this._killStreakTimer -= dt;
+            if (this._killStreakTimer <= 0) this._killStreak = 0;
+        }
+        if (this._killStreakFlash > 0) this._killStreakFlash -= dt;
 
         // Room-clear mini-event: check if a room was just cleared (40% chance)
         if (justDied.length > 0 && this.map.rooms) {
@@ -1134,6 +1175,35 @@ const DungeonScene = {
             ctx.restore();
         }
 
+        // ── Enemy proximity tension vignette ──
+        if (this.mode === 'play' && this.map && this.map.enemies) {
+            const player = Game.state.player;
+            let closestDist = 999;
+            for (const e of this.map.enemies) {
+                if (e.hp <= 0) continue;
+                const edx = e.x - player.x, edy = e.y - player.y;
+                const eDist = Math.sqrt(edx * edx + edy * edy);
+                // Only count enemies outside FOV but within proximity range
+                if (eDist < closestDist && eDist > 6 && eDist < 12) {
+                    closestDist = eDist;
+                }
+            }
+            if (closestDist < 12) {
+                const ctx = r.getCtx();
+                const intensity = (1 - (closestDist - 6) / 6); // 1.0 at dist=6, 0.0 at dist=12
+                const pulse = 0.5 + 0.5 * Math.sin(Game.renderer.time * 4);
+                const alpha = intensity * pulse * 0.08;
+                ctx.save();
+                // Red vignette at screen edges
+                const grd = ctx.createRadialGradient(400, 360, 200, 400, 360, 420);
+                grd.addColorStop(0, 'rgba(255,0,0,0)');
+                grd.addColorStop(1, `rgba(255,20,0,${alpha})`);
+                ctx.fillStyle = grd;
+                ctx.fillRect(0, 0, 800, 720);
+                ctx.restore();
+            }
+        }
+
         // ── Loot fanfare particles ──
         if (this._lootFanfare.length > 0) {
             const ctx = r.getCtx();
@@ -1164,6 +1234,24 @@ const DungeonScene = {
             player.gold || 0);
         r.drawMinimap(this.map, player.x, player.y);
         r.drawCombatLog(this.combatLog);
+
+        // ── Kill streak HUD ──
+        if (this._killStreak >= 3) {
+            const ctx = r.getCtx();
+            ctx.save();
+            const flash = this._killStreakFlash > 0 ? 1.0 : 0.7;
+            const scale = this._killStreakFlash > 0 ? 1.0 + this._killStreakFlash * 0.3 : 1.0;
+            ctx.globalAlpha = flash;
+            ctx.fillStyle = this._killStreak >= 10 ? '#ff4020' : '#ffa020';
+            ctx.font = `bold ${Math.floor(12 * scale)}px "Courier New"`;
+            ctx.textAlign = 'right';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 3;
+            ctx.fillText(`× ${this._killStreak} KILLS`, 790, 28);
+            ctx.textAlign = 'left';
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
 
         // ── Victory overlay ──
         if (Game.state.victory) {

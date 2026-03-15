@@ -434,7 +434,19 @@ class Enemy {
                 Combat.addHitParticles(tx, ty, '#ff4488');
                 Combat.addFloatingText(tx, ty, 'BLINK', '#ff44aa');
                 Audio.play('demonBlink');
-                enemy.moveTimer = 0.5;
+                // Immediate backstab after blink — knockback toward player's facing direction
+                const blinkDmg = player.takeDamage(Math.floor(enemy.atk * 0.5));
+                if (blinkDmg > 0) {
+                    if (Game.state.runStats) {
+                        Game.state.runStats.damageTaken += blinkDmg;
+                        Game.state.runStats.deathCause = enemy.name;
+                    }
+                    Combat.addFloatingText(player.x, player.y, `-${blinkDmg}`, '#ff44aa');
+                    player.knockX = pf.x * 0.8;
+                    player.knockY = pf.y * 0.8;
+                    Game.renderer.shake(5, 0.15);
+                }
+                enemy.moveTimer = 0.8;
                 enemy.state = 'attack';
                 return;
             }
@@ -489,7 +501,7 @@ class Enemy {
         } else if (dist <= enemy.detection && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)) {
             // Orc: initiate charge if far enough
             if (enemy.type === 'orc' && !enemy.isBoss && dist >= 4 && enemy.chargeTimer <= 0 && Math.random() < 0.4) {
-                enemy.chargeTimer = 0.8; // telegraph for 0.8s
+                enemy.chargeTimer = 1.2; // telegraph for 1.2s — gives player time to react
                 enemy.telegraphing = true;
                 return;
             }
