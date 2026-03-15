@@ -239,6 +239,9 @@ const SpriteRenderer = {
             if (dt > 0.7) ctx.filter = `brightness(${1 + (dt - 0.7) * 10})`;
         }
 
+        // Hit flash: white overlay when recently struck
+        const isHitFlash = enemy.hp > 0 && enemy.stunTimer > 0.05;
+
         // Walk bob for chasing enemies
         if (enemy.state === 'chase' && enemy.hp > 0) {
             y += AnimManager.phase(time, 6) * 1;
@@ -285,9 +288,20 @@ const SpriteRenderer = {
             const eScale = 1.7;
             const ew = w * eScale, eh = h * eScale;
             const ex = x + (w - ew) / 2, ey = y + h - eh + 6;
+            if (isHitFlash) {
+                ctx.save();
+                ctx.filter = 'brightness(3) saturate(0.3)';
+            }
             Assets.drawImage(ctx, Assets.has(_eSpriteKey) ? _eSpriteKey : _eFallback, ex, ey, ew, eh);
+            if (isHitFlash) ctx.restore();
             if (enemy.hp <= 0 && enemy.deathTimer !== undefined) ctx.restore();
             return;
+        }
+
+        // Hit flash for procedural enemies
+        if (isHitFlash) {
+            ctx.save();
+            ctx.filter = 'brightness(3) saturate(0.3)';
         }
 
         switch (enemy.type) {
@@ -308,6 +322,9 @@ const SpriteRenderer = {
             case 'dragon':   this._drawDragon(ctx, x, y, w, h, cx, cy, time); break;
             default:         this._drawGeneric(ctx, cx, cy, enemy.fg || '#888'); break;
         }
+
+        // End hit flash context
+        if (isHitFlash) ctx.restore();
 
         // End death animation context
         if (enemy.hp <= 0 && enemy.deathTimer !== undefined) {

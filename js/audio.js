@@ -76,16 +76,31 @@ const Audio = {
     },
 
     _playAttack(t) {
-        const v = this._vol() * 0.3;
+        const v = this._vol() * 0.5;
+        // Slash sweep — longer, punchier
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(400, t);
-        osc.frequency.linearRampToValueAtTime(200, t + 0.08);
+        osc.frequency.setValueAtTime(500, t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.15);
         gain.gain.setValueAtTime(v, t);
-        gain.gain.linearRampToValueAtTime(0, t + 0.08);
+        gain.gain.setValueAtTime(v * 0.6, t + 0.05);
+        gain.gain.linearRampToValueAtTime(0, t + 0.15);
         osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(t); osc.stop(t + 0.09);
+        osc.start(t); osc.stop(t + 0.16);
+        // Impact noise burst — adds weight
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(v * 0.4, t);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.08);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 1200;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.09);
+        }
     },
 
     _playHurt(t) {

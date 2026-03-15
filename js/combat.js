@@ -23,6 +23,9 @@ const Combat = {
                 this.particles.splice(i, 1);
             }
         }
+
+        // Tick screen flash
+        if (this._screenFlash > 0) this._screenFlash = Math.max(0, this._screenFlash - dt);
     },
 
     addFloatingText(x, y, text, color = '#fff') {
@@ -55,6 +58,28 @@ const Combat = {
         }
     },
 
+    addKillBurst(x, y, color = '#ff4') {
+        // Bigger, more dramatic particle explosion on kill
+        const count = 10 + Math.floor(Math.random() * 6);
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 60 + Math.random() * 100;
+            this.particles.push({
+                x: x * 32 + 16, y: y * 32 + 16,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 30,
+                color: i < count / 2 ? color : '#fff',
+                timer: 0,
+                duration: 0.3 + Math.random() * 0.35,
+                size: 2.5 + Math.random() * 3,
+            });
+        }
+    },
+
+    // Screen flash overlay state (drawn in render)
+    _screenFlash: 0,
+    _screenFlashColor: '#fff',
+
     resolvePlayerAttack(player, enemies) {
         if (!player.attacking || player.attackFrame < 0.5 || player.attackFrame > 1.5) return;
         // Only resolve once per swing
@@ -78,24 +103,32 @@ const Combat = {
                         this.addFloatingText(enemy.x, enemy.y, `-${dmg}`, '#ff4');
                     }
                     Audio.play('playerAttack');
-                    this.addHitParticles(enemy.x, enemy.y, isCrit ? '#ff8800' : '#fa0');
+                    if (enemy.hp <= 0) {
+                        // Kill burst: big particle explosion + screen flash
+                        this.addKillBurst(enemy.x, enemy.y, isCrit ? '#ff8800' : '#ffa040');
+                        this._screenFlash = 0.1;
+                        this._screenFlashColor = '#fff';
+                    } else {
+                        this.addHitParticles(enemy.x, enemy.y, isCrit ? '#ff8800' : '#fa0');
+                    }
 
-                    // Knockback enemy 0.5 tiles away from player
+                    // Knockback enemy away from player (visual offset)
                     const kbDx = enemy.x - player.x;
                     const kbDy = enemy.y - player.y;
                     const kbDist = Math.sqrt(kbDx * kbDx + kbDy * kbDy) || 1;
-                    enemy.knockX = (kbDx / kbDist) * 0.5;
-                    enemy.knockY = (kbDy / kbDist) * 0.5;
-                    enemy.knockTimer = 0.15;
+                    const kbForce = isCrit ? 1.8 : (enemy.hp <= 0 ? 1.5 : 1.0);
+                    enemy.knockX = (kbDx / kbDist) * kbForce;
+                    enemy.knockY = (kbDy / kbDist) * kbForce;
+                    enemy.knockTimer = 0.18;
 
-                    // Screen shake + hit stop
+                    // Screen shake + hit stop (tuned for impact)
                     const r = Game.renderer;
                     if (enemy.hp <= 0) {
-                        r.shake(enemy.isBoss ? 10 : 3, enemy.isBoss ? 0.4 : 0.15);
-                        Game.hitStop(enemy.isBoss ? 0.12 : 0.08);
+                        r.shake(enemy.isBoss ? 14 : 8, enemy.isBoss ? 0.5 : 0.25);
+                        Game.hitStop(enemy.isBoss ? 0.18 : 0.12);
                     } else {
-                        r.shake(enemy.isBoss ? 10 : 3, enemy.isBoss ? 0.4 : 0.15);
-                        Game.hitStop(enemy.isBoss ? 0.12 : 0.05);
+                        r.shake(enemy.isBoss ? 12 : isCrit ? 7 : 5, enemy.isBoss ? 0.4 : 0.2);
+                        Game.hitStop(enemy.isBoss ? 0.15 : isCrit ? 0.12 : 0.08);
                     }
                     break;
                 }
@@ -152,5 +185,15 @@ const Combat = {
             ctx.fill();
         }
         ctx.restore();
+
+        // Kill screen flash overlay
+        if (this._screenFlash > 0) {
+            const flashAlpha = (this._screenFlash / 0.1) * 0.25;
+            ctx.save();
+            ctx.globalAlpha = flashAlpha;
+            ctx.fillStyle = this._screenFlashColor;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.restore();
+        }
     }
 };

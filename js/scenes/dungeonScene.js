@@ -896,13 +896,39 @@ const DungeonScene = {
             }
         }
 
-        // ── Attack tiles ──
-        if (player.attacking) {
-            const tiles = player.getAttackTiles();
-            const progress = player.attackFrame / 3.0;
-            for (const t of tiles) {
-                r.putAttack(t.x - this.viewX, t.y - this.viewY, progress);
-            }
+        // ── Attack slash arc ──
+        if (player.attacking && player.attackFrame < 2.5) {
+            const ctx = r._entityLayer.ctx;
+            const pcx = (player.x - this.viewX) * 32 + 16;
+            const pcy = (player.y - this.viewY) * 32 + 16;
+            const dir = player.attackDir || player.facing || { x: 1, y: 0 };
+            const baseAngle = Math.atan2(dir.y, dir.x) - Math.PI * 0.5;
+            const progress = Math.min(1, player.attackFrame / 2.5);
+            const swingSpan = Math.PI * 1.1;
+            const endAngle = baseAngle + swingSpan * progress;
+            const alpha = 0.85 * (1 - progress * 0.6);
+
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            // Outer glow arc
+            ctx.strokeStyle = 'rgba(255,220,80,0.6)';
+            ctx.lineWidth = 14;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = '#ffa020';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(pcx, pcy, 26, baseAngle, endAngle);
+            ctx.stroke();
+            // Inner bright arc
+            ctx.strokeStyle = '#fff8e0';
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(pcx, pcy, 26, baseAngle, endAngle);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
         }
 
         // ── Player ──
