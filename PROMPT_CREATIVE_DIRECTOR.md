@@ -37,6 +37,14 @@ Do NOT re-document what CLAUDE.md already covers. Reference it. Focus MASTERPLAN
 - Kill streak counter, loot burst particles, enemy proximity vignette ✓
 - Save/Load, Electron packaging ✓
 
+### Known Pain Points (from AUDIT.md — these are your priorities)
+- Floors 1-3 are strategically flat: rats and bats require zero tactics
+- Too few decision moments per run: events are rare, no in-run upgrade choices
+- Bosses are stat-check fights, not pattern-based encounters
+- 13 of 17 village buildings are decorative — town feels disconnected from dungeon
+- No terrain variation: every room is a flat rectangle
+- Floor themes only change colors, not gameplay
+
 ---
 
 ## Design Principles (Apply These to Every Decision)
@@ -47,8 +55,8 @@ No tutorial text. The first 3 floors are the tutorial. Each enemy type introduce
 ### 2. Every Run Must Leave a Mark
 Gold, soul shards, unlocked floors, new recipes at the smithy — something permanent survives every death. The death screen should make the player think "next time I'll..." not "that was pointless."
 
-### 3. Boss Fights Are Events, Not Stat Checks
-Boss floors (5, 10, 15...) should be arena encounters — the room is cleared, it's 1v1 (or 1v-boss+adds). Like Hades: learn the pattern, dodge, punish. The boss should have 2-3 phases with visual telegraphs. Beating a boss should feel like an achievement, not a gear check.
+### 3. Boss Fights Are Events, Not Stat Checks — THIS IS THE #1 PRIORITY
+Boss floors (5, 10, 15...) must be Hades-style arena encounters. The room is sealed. It's 1v1. The boss has 2-3 phases with distinct attack patterns and clear visual telegraphs. The player wins by learning the pattern, not by having higher stats. Beating a boss should feel like an achievement. This is the feature that will define DungeonTown.
 
 ### 4. The Town Must Feel Alive
 Buildings should visually change when upgraded. NPCs should react to your achievements. The town is the emotional anchor — the place you WANT to return to. Not a menu screen with buttons.
@@ -63,20 +71,22 @@ A polished 15-minute experience beats a rough 2-hour one. If something doesn't f
 
 ## MASTERPLAN.md Structure
 
+**Length constraint: max 300 lines total. Be dense, not verbose.**
+
 Write the masterplan with these sections:
 
-### 1. Current State Assessment
+### 1. Current State Assessment (~30 lines)
 For each major system, rate it: SOLID / NEEDS WORK / MISSING.
 Focus on what's WRONG or MISSING, not re-listing what works.
 
-### 2. Vision Statement
+### 2. Vision Statement (~5 lines)
 One paragraph. What does the finished game feel like to play?
 
-### 3. The First Five Minutes (Storyboard)
+### 3. The First Five Minutes (Storyboard, ~30 lines)
 Walk through the ideal new-player experience minute by minute.
 What do they see, do, learn, and feel? Be specific.
 
-### 4. Milestones (Prioritized Change List)
+### 4. Milestones (Prioritized Change List, ~200 lines)
 
 Structure each milestone as:
 
@@ -87,33 +97,37 @@ Test: [How to verify it worked — player-experience-focused]
 
 ### Change X.1: [Name]
 - Files: [exact files to modify]
-- What: [what changes for the PLAYER]
-- How: [technical approach, reference existing code patterns]
-- Why: [which design principle this serves]
+- What: [what changes for the PLAYER — max 2 sentences]
+- How: [technical approach — max 3 sentences, reference existing code patterns]
+- Why: [which design principle this serves — one line]
 ```
 
-#### Suggested Milestone Focus Areas (adjust based on your analysis):
+Each change description max 5 lines. No essays. If it needs more explanation, the change is too big — split it.
 
-**Strategic Depth** — The first 3 floors are flat. Rats and bats require no strategy. Fix this without adding complexity: make terrain matter (pillars to hide behind, narrow corridors that funnel enemies), make enemy placement intentional (ambushes, mixed groups that require different tactics).
+#### Milestone Priority Order (non-negotiable):
 
-**Boss Arenas** — Floor 5/10/15... bosses should be standalone arena encounters. Clear the room. Lock the doors. 1v1. Multi-phase with clear telegraphs. Victory fanfare. This is the Hades moment.
+**MILESTONE 1: Boss Arenas** — This is the signature feature. Floor 5 boss becomes a sealed arena with a multi-phase pattern-based fight. One boss done RIGHT is worth more than ten features done okay. Implement the arena system, one boss with 2-3 phases, victory fanfare, unique loot drop.
 
-**In-Run Progression** — The player needs meaningful choices DURING a run, not just between runs. Level-up upgrade picks, floor merchants with meaningful items, shrine choices with real tradeoffs.
+**MILESTONE 2: Early-Game Strategic Depth** — Fix the "first 3 floors are boring" problem. Terrain features in rooms (pillars, water, narrow chokepoints). Mixed enemy groups that force tactical decisions. The player should need to THINK on Floor 2, not just hold Space.
 
-**Town Integration** — Town upgrades should unlock dungeon content: Smithy Lv2 unlocks weapon evolution, Barracks unlocks new enemy intel (weaknesses shown), Library unlocks floor maps. The two halves of the game must feed each other.
+**MILESTONE 3: In-Run Progression** — Meaningful choices during a run. Level-up picks (choose 1 of 3 upgrades), floor merchants with interesting items, shrine tradeoffs. The player should make a decision every 60-90 seconds.
 
-**Content Expansion** — More enemy variants (elite versions of existing types with new attacks), floor themes with gameplay implications (not just color swaps), unique boss loot.
+**MILESTONE 4: Town ↔ Dungeon Integration** — Town upgrades unlock dungeon content. Smithy Lv2 → weapon evolution possible. Barracks → enemy weaknesses shown. Library → floor maps revealed. The two halves must feed each other.
 
-### 5. Implementation Order
-Which milestone first, second, third. Why that order.
-Rule: each milestone must produce a PLAYABLE improvement. No "infrastructure only" milestones.
+**MILESTONE 5: Content & Polish** — More enemy variants, floor themes with mechanics, unique boss loot, second boss arena. Only after 1-4 are solid.
+
+### 5. Implementation Order (~20 lines)
+Confirm the milestone order. For each milestone, list:
+- Prerequisites (what must work before starting)
+- Playtest checklist (what the player should test after completion)
+- Success metric (one sentence: "this milestone succeeds if...")
 
 ---
 
 ## Rules for You
 
 1. **Read before writing.** Understand the existing code. Use real file names, real function names, real line numbers.
-2. **Be specific.** Not "improve combat" but "in enemies.js, skeleton blockCycle: change from random 0.003% per frame to deterministic 1.5s/1.5s rhythm with visual countdown in spriteRenderer.js."
+2. **Be specific.** Not "improve combat" but "in enemies.js, add `bossPhase` property to boss enemies, check in `updateEnemy()` to switch attack patterns at 66% and 33% HP."
 3. **Respect CLAUDE.md conventions.** No import/export, no new files unless necessary, no splitting monoliths, always use stat getters.
 4. **One change = one commit.** Each change must be independently testable and revertable.
 5. **After each milestone: playtest instructions.** Write exactly what to test and what to look for.
@@ -122,3 +136,29 @@ Rule: each milestone must produce a PLAYABLE improvement. No "infrastructure onl
 8. **Write MASTERPLAN.md in English.** Conversation can be German or English depending on user preference.
 9. **After MASTERPLAN.md is complete:** Ask "Should I start implementing Milestone 1?" and wait for confirmation.
 10. **Update MEMORY.md** at the end of each session with what was done and what's next.
+
+---
+
+## After the Masterplan: Session Workflow
+
+Once MASTERPLAN.md exists and is approved, every subsequent session follows this loop:
+
+### Session Start
+1. Read `MEMORY.md` → know where you left off
+2. Read the current milestone in `MASTERPLAN.md` → know what's next
+3. Ask the user: "Last session we finished [X]. Next up is [Y]. Any playtest feedback or priority changes?"
+
+### During Session
+4. Implement changes one at a time. Commit after each.
+5. If user reports playtest feedback that conflicts with the plan → adapt. The plan serves the game, not the other way around.
+6. If a change turns out harder than expected → simplify scope, don't abandon. Ship something playable.
+
+### Session End
+7. Update `MEMORY.md`: what was done, what's next, any blockers or open questions.
+8. Tell the user what to playtest and what to look for.
+
+### Handling Feedback
+- If the user says "X doesn't feel right" → that's a bug. Fix it before continuing.
+- If the user says "I want Y instead of Z" → update MASTERPLAN.md, adjust milestone, continue.
+- If the user says "skip to Milestone N" → warn if prerequisites aren't met, but respect the decision.
+- Never argue with playtest feedback. The player is always right about how it FEELS.
