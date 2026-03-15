@@ -224,9 +224,30 @@ FOUNTAIN=11, FOUNTAIN_DRY=12, PRISONER=13
 
 ## Aktueller Fokus
 
-**Branch:** `master`
+**Status:** PROTOTYPE (siehe `AUDIT.md` für vollständigen Report)
+**Session-Gedächtnis:** `MEMORY.md` — enthält priorisierte Arbeitspakete mit konkreten Code-Stellen, Session-Protokoll und offene Tasks. Bei Session-Start lesen, nach Session-Ende aktualisieren.
 
-Phase 1 (Soul & Death Loop) und Phase 2 (Interlocking Loops & Accessibility) der Roadmap sind abgeschlossen. PixelLab-generierte Pixel-Art-Sprites für Hero (4 Richtungen + Walk-Animation), 5 Gegnertypen und Wang-Tileset (Stone) integriert. Asset-Loader-System mit Sprite-First/Procedural-Fallback-Pattern. Escape-Summary-Overlay mit Run-Rating (S/A/B/C/D). 3 neue Audio-SFX (escapeJingle, floorTransition, bossFloorWarning). Nächster Fokus: Phase 3 (Steam Integration, Build & Packaging) und Phase 4 (Marketing).
+### Roadmap (Audit-basiert, priorisiert nach Game-Feel-Impact)
+
+**Phase A: Kampfgefühl (JETZT)**
+Der Angriff muss sich gut anfühlen bevor irgendetwas anderes Sinn ergibt. Screenshake, Hitstop, Enemy-Flash, Slash-Arc, Sound-Impact. Keine neuen Features — nur bestehende Mechaniken zum Klingen bringen.
+
+**Phase B: Gegner-Dichte & Pacing**
+Mehr Gegner, kleinere Maps auf frühen Floors, schnelleres Movement. Ziel: 70% Kämpfen, 30% Laufen (aktuell umgekehrt).
+
+**Phase C: Village-Streamlining**
+Schneller zurück in den Dungeon. Quick-Enter nach Tod. Weniger Gebäude sichtbar am Anfang. Erste Soul Shards vor Floor 5.
+
+**Phase D: Steam Integration & Packaging**
+Erst wenn Phase A-C ein spielbares 10-Minuten-Erlebnis ergeben.
+
+### Abgeschlossen (Referenz)
+- Phase 1: Soul & Death Loop
+- Phase 2: Interlocking Loops & Accessibility
+- PixelLab-Sprites (Hero 4 Dir + Walk, 5 Enemy-Typen, Wang-Tileset)
+- Asset-Loader mit Sprite-First/Procedural-Fallback
+- Escape-Summary mit Run-Rating (S/A/B/C/D)
+- Audio-SFX (escapeJingle, floorTransition, bossFloorWarning)
 
 ---
 
