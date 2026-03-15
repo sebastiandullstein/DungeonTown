@@ -569,7 +569,7 @@ const DungeonScene = {
                     );
                     if (roomEnemies.length === 0) {
                         this._clearedRooms.add(rKey);
-                        if (Math.random() < 0.4) {
+                        if (Math.random() < 0.65) {
                             this._altarOffering = DungeonEvents.generateAltarOffering();
                             this._altarIndex = 0;
                             this.mode = 'altarChoice';

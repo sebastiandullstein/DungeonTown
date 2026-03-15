@@ -7,11 +7,11 @@ const Abilities = {
         },
         whirlwind: {
             name: 'Whirlwind', key: 'Q', unlockLevel: 5,
-            maxCooldown: 8, cooldown: 0, manaCost: 8,
+            maxCooldown: 4, cooldown: 0, manaCost: 5,
         },
         execute: {
             name: 'Execute', key: 'E', unlockLevel: 10,
-            maxCooldown: 10, cooldown: 0, manaCost: 15,
+            maxCooldown: 6, cooldown: 0, manaCost: 10,
         },
     },
 
@@ -70,14 +70,14 @@ const Abilities = {
         }
 
         switch (name) {
-            case 'dash':      return this._doDash(player, dungeonMap);
+            case 'dash':      return this._doDash(player, dungeonMap, enemies);
             case 'whirlwind': return this._doWhirlwind(player, enemies, ab);
             case 'execute':   return this._doExecute(player, enemies, ab);
         }
         return false;
     },
 
-    _doDash(player, dungeonMap) {
+    _doDash(player, dungeonMap, enemies) {
         const dx = player.facing.x;
         const dy = player.facing.y;
         if (dx === 0 && dy === 0) return false;
@@ -103,10 +103,25 @@ const Abilities = {
 
         player.x = lastX;
         player.y = lastY;
-        player.invulnTimer = 0.2;
+        player.invulnTimer = 0.4;
         player.moveTimer = 0.15;
         this.list.dash.cooldown = this.list.dash.maxCooldown;
         Audio.play('playerAttack');
+
+        // Dash impact: hit all enemies within 1.5 tiles of endpoint for 1× ATK
+        if (enemies) {
+            const dashAtk = player.getAtk();
+            for (const enemy of enemies) {
+                if (enemy.hp <= 0) continue;
+                const dist = Math.sqrt((enemy.x - lastX) ** 2 + (enemy.y - lastY) ** 2);
+                if (dist <= 1.5) {
+                    const dmg = Enemy.takeDamage(enemy, dashAtk, player);
+                    Combat.addFloatingText(enemy.x, enemy.y, `-${dmg}`, '#60c8ff');
+                    Combat.addHitParticles(enemy.x, enemy.y, '#60c8ff');
+                }
+            }
+        }
+
         return true;
     },
 
@@ -167,7 +182,7 @@ const Abilities = {
         player.mp -= ab.manaCost;
         ab.cooldown = ab.maxCooldown;
 
-        const isLowHP = nearest.hp < nearest.maxHp * 0.25;
+        const isLowHP = nearest.hp < nearest.maxHp * 0.4;
         let dmg;
 
         if (isLowHP) {

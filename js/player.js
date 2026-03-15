@@ -323,6 +323,12 @@ class Player {
             }
         }
 
+        // Mana regeneration (0.5 per second, scales slightly with INT)
+        if (this.mp < (this.maxMp || 20)) {
+            const regenRate = 0.5 + (this.stats.int || 0) * 0.05;
+            this.mp = Math.min(this.maxMp || 20, this.mp + regenRate * dt);
+        }
+
         if (this.attacking) {
             this.attackFrame += dt * 10;
             if (this.attackFrame > 3) {
