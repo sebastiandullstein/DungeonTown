@@ -88,7 +88,7 @@ assetLoader → manifest
 
 ### Session-Start
 - Bei Sessionbeginn kurz `git log --oneline -5` prüfen um den letzten Stand zu kennen
-- CLAUDE.md und MEMORY.md werden automatisch geladen — nicht nochmal lesen
+- CLAUDE.md wird automatisch geladen — nicht nochmal lesen
 
 ### Änderungen an fragilen Bereichen
 Vor Änderungen an den folgenden Bereichen immer erst lesen und verstehen, nicht blind editieren:
@@ -224,30 +224,47 @@ FOUNTAIN=11, FOUNTAIN_DRY=12, PRISONER=13
 
 ## Aktueller Fokus
 
-**Status:** PROTOTYPE (siehe `AUDIT.md` für vollständigen Report)
-**Session-Gedächtnis:** `MEMORY.md` — enthält priorisierte Arbeitspakete mit konkreten Code-Stellen, Session-Protokoll und offene Tasks. Bei Session-Start lesen, nach Session-Ende aktualisieren.
+**Status:** PROTOTYPE — Kampfgefühl, Pacing und Polish sind abgeschlossen. Nächster Schritt: Boss-Arenen und strategische Tiefe.
 
-### Roadmap (Audit-basiert, priorisiert nach Game-Feel-Impact)
+### Vision
 
-**Phase A: Kampfgefühl (JETZT)**
-Der Angriff muss sich gut anfühlen bevor irgendetwas anderes Sinn ergibt. Screenshake, Hitstop, Enemy-Flash, Slash-Arc, Sound-Impact. Keine neuen Features — nur bestehende Mechaniken zum Klingen bringen.
+DungeonTown ist ein 15-Minuten-Run Dungeon Crawler bei dem jeder Tod stärker macht. Hades meets Moonlighter — tight Combat, meaningful Deaths, eine Stadt die wächst weil man stirbt.
 
-**Phase B: Gegner-Dichte & Pacing**
-Mehr Gegner, kleinere Maps auf frühen Floors, schnelleres Movement. Ziel: 70% Kämpfen, 30% Laufen (aktuell umgekehrt).
+### Roadmap (5 Milestones, priorisiert nach Game-Feel-Impact)
 
-**Phase C: Village-Streamlining**
-Schneller zurück in den Dungeon. Quick-Enter nach Tod. Weniger Gebäude sichtbar am Anfang. Erste Soul Shards vor Floor 5.
+**Milestone 1: "The Arena" (NÄCHSTER SCHRITT)**
+Floor-5-Boss wird Multi-Phasen Arena-Fight. Arena-Raum (12×10), Türen versiegeln sich, Boss hat 3 Phasen (66%/33% HP), Victory-Fanfare.
+- Changes: Arena-Raumgeneration (`dungeon.js`), Arena-Sealing (`dungeonScene.js`), Boss-Phasensystem (`enemies.js`), Orc-Chief-Phasen, Phase-Visuals (`spriteRenderer.js`, `combat.js`), Victory-Fanfare (`audio.js`)
+- Erfolgskriterium: "Der Floor-5-Boss hat mich getötet, aber ich weiß was ich falsch gemacht habe und will es nochmal versuchen."
 
-**Phase D: Steam Integration & Packaging**
-Erst wenn Phase A-C ein spielbares 10-Minuten-Erlebnis ergeben.
+**Milestone 2: "Dangerous Rooms"**
+Jeder Raum in Floors 1-5 erfordert Positionierung. Pillar-Cover, Wasser-Slowdown, gemischte Gegnergruppen, 1-Tile-Korridore.
+- Changes: Terrain-Features in Räumen (`dungeon.js`, `tileRenderer.js`), intentionales Enemy-Placement, Mixed Groups ab Floor 3, schmale Korridore
+- Erfolgskriterium: "Ich musste überlegen WO ich kämpfe, nicht nur WANN ich angreife."
 
-### Abgeschlossen (Referenz)
-- Phase 1: Soul & Death Loop
-- Phase 2: Interlocking Loops & Accessibility
-- PixelLab-Sprites (Hero 4 Dir + Walk, 5 Enemy-Typen, Wang-Tileset)
-- Asset-Loader mit Sprite-First/Procedural-Fallback
-- Escape-Summary mit Run-Rating (S/A/B/C/D)
-- Audio-SFX (escapeJingle, floorTransition, bossFloorWarning)
+**Milestone 3: "Choices Every Minute"**
+Spieler trifft alle 60-90 Sekunden eine Entscheidung. Level-Up = Pick 1 of 3 statt Stat-Punkte. Mehr Altäre (80%), garantierter Merchant ab Floor 3.
+- Changes: Level-Up-Picks (`player.js`, `dungeonScene.js`, `uiRenderer.js`), Altar-Frequenz, garantierter Merchant + Ability-Runes
+- Erfolgskriterium: "Ich will nochmal spielen um andere Upgrade-Picks zu probieren."
+
+**Milestone 4: "The Town Remembers"**
+Jedes Town-Upgrade verändert sichtbar den Dungeon. Smithy Lv2 → Waffen-Evolution, Barracks → Enemy-Intel, Town Hall → Floor-Themes, Specialist-Shops live.
+- Changes: Weapon Evolution (`village.js`, `items.js`), Enemy Intel (`spriteRenderer.js`), Floor-Themes (`dungeon.js`, `tileRenderer.js`), Specialist-Shops (`villageScene.js`)
+- Erfolgskriterium: "Ich upgrade Gebäude weil sie meine Dungeon-Runs besser machen."
+
+**Milestone 5: "More to Fight"**
+Floors 10-25 fühlen sich anders an als 1-9. Elite-Gegner ab Floor 8, Floor-10-Boss (Cursed Knight), Floor-15-Boss (Stone Golem), Unique Boss Loot.
+- Changes: Elite-Varianten (`enemies.js`), 2 neue Boss-Phasen-Designs, Projektil-System, Boss-Loot-Tabelle (`items.js`)
+- Erfolgskriterium: "Ich will tiefer pushen um zu sehen was der nächste Boss kann."
+
+### Abgeschlossen
+- Kampfgefühl: Screenshake, Hitstop, Enemy-Flash, Slash-Arc, Attack-Sound, Knockback, Kill-FX
+- Gegner-Dichte: Kleinere Maps, mehr Enemies, Cluster-Spawns, schnelleres Movement, größerer Aggro-Radius
+- Village-Streamlining: Quick-Reenter, Dungeon-Entrance-Glow, Soul-Shard-Drops vor Floor 5
+- Gegner-Verhalten: Bat erratisch, Skeleton Block, Orc Charge, Demon Blink, Dragon Breath, Telegraphing
+- Korridore & Progression: Kürzere Korridore, Corridor-Enemies, Level-skalierender Slash-Arc, Power-Aura
+- Polish: Kill-Sound, Loot-Glow, Smithy-Preise, Floor-abhängige Musik
+- Fundament: Soul & Death Loop, Interlocking Loops, Sprites, Asset-Loader, Escape-Summary, Audio-SFX
 
 ---
 
