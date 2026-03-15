@@ -117,28 +117,31 @@ const Audio = {
     },
 
     _playEnemyDeath(t) {
-        const v = this._vol() * 0.25;
-        // Noise burst
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this._noiseBuffer;
-        const nGain = this.ctx.createGain();
-        nGain.gain.setValueAtTime(v, t);
-        nGain.gain.linearRampToValueAtTime(0, t + 0.1);
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 800;
-        noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
-        noise.start(t); noise.stop(t + 0.11);
-        // Low crunch
+        const v = this._vol() * 0.45;
+        // Satisfying crunch noise burst
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(v, t);
+            nGain.gain.setValueAtTime(v * 0.7, t + 0.04);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.18);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 1200;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.19);
+        }
+        // Deeper thud — distinct from hit
         const osc = this.ctx.createOscillator();
         const g2 = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(100, t);
-        osc.frequency.linearRampToValueAtTime(40, t + 0.1);
-        g2.gain.setValueAtTime(v * 0.6, t);
-        g2.gain.linearRampToValueAtTime(0, t + 0.1);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, t);
+        osc.frequency.exponentialRampToValueAtTime(35, t + 0.2);
+        g2.gain.setValueAtTime(v * 0.8, t);
+        g2.gain.linearRampToValueAtTime(0, t + 0.2);
         osc.connect(g2); g2.connect(this.ctx.destination);
-        osc.start(t); osc.stop(t + 0.11);
+        osc.start(t); osc.stop(t + 0.21);
     },
 
     _playChestOpen(t) {
@@ -495,7 +498,7 @@ const Audio = {
 
     // ── Ambient Music ────────────────────────────────────────────────────────
 
-    startMusic(track) {
+    startMusic(track, floor) {
         if (!this._ensureContext()) return;
         this.stopMusic();
         const vol = this.muted ? 0 : this.musicVolume * this.masterVolume;
@@ -503,42 +506,45 @@ const Audio = {
         this._musicGain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + 0.5);
 
         if (track === 'dungeon') {
-            this._startDungeonMusic();
+            this._startDungeonMusic(floor || 1);
         } else if (track === 'village') {
             this._startVillageMusic();
         }
     },
 
-    _startDungeonMusic() {
+    _startDungeonMusic(floor) {
         const nodes = [];
-        // Low drone
+        // Base drone pitch shifts down with floor depth
+        const basePitch = Math.max(40, 55 - floor * 0.3);
         const osc1 = this.ctx.createOscillator();
         osc1.type = 'sine';
-        osc1.frequency.value = 55;
+        osc1.frequency.value = basePitch;
         osc1.connect(this._musicGain);
         osc1.start();
         nodes.push(osc1);
         // Subtle overtone
         const osc2 = this.ctx.createOscillator();
         osc2.type = 'sine';
-        osc2.frequency.value = 82.5;
+        osc2.frequency.value = basePitch * 1.5;
         const g2 = this.ctx.createGain();
         g2.gain.value = 0.3;
         osc2.connect(g2); g2.connect(this._musicGain);
         osc2.start();
         nodes.push(osc2);
         // Filtered noise for texture
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this._noiseBuffer;
-        noise.loop = true;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 200;
-        const nGain = this.ctx.createGain();
-        nGain.gain.value = 0.08;
-        noise.connect(filter); filter.connect(nGain); nGain.connect(this._musicGain);
-        noise.start();
-        nodes.push(noise);
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            noise.loop = true;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200 + floor * 5;
+            const nGain = this.ctx.createGain();
+            nGain.gain.value = 0.08;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this._musicGain);
+            noise.start();
+            nodes.push(noise);
+        }
         // LFO for amplitude modulation
         const lfo = this.ctx.createOscillator();
         lfo.frequency.value = 0.15;
@@ -547,6 +553,45 @@ const Audio = {
         lfo.connect(lfoGain); lfoGain.connect(this._musicGain.gain);
         lfo.start();
         nodes.push(lfo);
+
+        // Percussive heartbeat pulse — starts from floor 3, gets faster with depth
+        if (floor >= 3) {
+            const pulseRate = Math.min(3.0, 0.8 + floor * 0.05); // 0.8 → 3.0 Hz
+            const pulseVol = Math.min(0.25, 0.08 + floor * 0.004);
+            const pulseOsc = this.ctx.createOscillator();
+            pulseOsc.type = 'sine';
+            pulseOsc.frequency.value = 30 + floor * 0.5; // deep sub-bass pulse
+            const pulseGain = this.ctx.createGain();
+            pulseGain.gain.value = 0;
+            pulseOsc.connect(pulseGain); pulseGain.connect(this._musicGain);
+            pulseOsc.start();
+            nodes.push(pulseOsc);
+            // LFO to modulate the pulse gain (creates heartbeat rhythm)
+            const pulseLfo = this.ctx.createOscillator();
+            pulseLfo.type = 'square';
+            pulseLfo.frequency.value = pulseRate;
+            const pulseLfoGain = this.ctx.createGain();
+            pulseLfoGain.gain.value = pulseVol;
+            pulseLfo.connect(pulseLfoGain); pulseLfoGain.connect(pulseGain.gain);
+            pulseLfo.start();
+            nodes.push(pulseLfo);
+        }
+
+        // Dissonant tension layer — floor 15+
+        if (floor >= 15) {
+            const tensionOsc = this.ctx.createOscillator();
+            tensionOsc.type = 'sawtooth';
+            tensionOsc.frequency.value = basePitch * 1.06; // slightly detuned = unease
+            const tGain = this.ctx.createGain();
+            tGain.gain.value = Math.min(0.08, 0.02 + (floor - 15) * 0.002);
+            const tFilter = this.ctx.createBiquadFilter();
+            tFilter.type = 'lowpass';
+            tFilter.frequency.value = 300;
+            tensionOsc.connect(tFilter); tFilter.connect(tGain); tGain.connect(this._musicGain);
+            tensionOsc.start();
+            nodes.push(tensionOsc);
+        }
+
         this._currentMusic = nodes;
     },
 

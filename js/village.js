@@ -120,7 +120,7 @@ const BUILDING_DEFS = {
         description: 'Buy weapons and armor. Upgrade your gear.',
         maxLevel: 3, isInteractive: true, interactPanel: 'smithy',
         costs: [null, { wood: 60, stone: 60, iron: 15 }, { wood: 120, stone: 120, iron: 40 }],
-        shopTier: [3, 5, 8],
+        shopTier: [2, 4, 7],
     },
     tavern: {
         name: 'Tavern', char: 'T', fg: '#ffa020', bg: '#302000',

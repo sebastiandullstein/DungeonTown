@@ -86,7 +86,7 @@ const DungeonScene = {
             p._deathSaveUsed = false;
         }
 
-        Audio.startMusic('dungeon');
+        Audio.startMusic('dungeon', floor);
 
         if (floor === 50) {
             Audio.play('bossFloorWarning');
@@ -875,10 +875,28 @@ const DungeonScene = {
             }
         }
 
-        // ── Items (only in FOV) ──
+        // ── Items (only in FOV) — pulsing glow + sprite ──
         for (const item of this.map.items) {
             if (this.map.isInFOV(player.x, player.y, item.x, item.y)) {
-                r.putItem(item.x - this.viewX, item.y - this.viewY, item);
+                const icol = item.x - this.viewX;
+                const irow = item.y - this.viewY;
+                // Loot glow pulse
+                const ctx = r.getCtx();
+                const ipx = icol * 32 + 16;
+                const ipy = irow * 32 + 16;
+                const glowColor = item.type === 'gold' ? 'rgba(255,210,40,' : 'rgba(80,200,255,';
+                const pulse = 0.15 + 0.1 * Math.sin(Game.renderer.time * 4 + item.x * 3 + item.y * 7);
+                ctx.save();
+                ctx.globalAlpha = pulse;
+                const grad = ctx.createRadialGradient(ipx, ipy, 2, ipx, ipy, 14);
+                grad.addColorStop(0, glowColor + '0.6)');
+                grad.addColorStop(1, glowColor + '0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(ipx, ipy, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                r.putItem(icol, irow, item);
             }
         }
 

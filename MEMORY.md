@@ -71,17 +71,29 @@ Konkrete Arbeitspakete:
 - [x] **Level-Up Power-Burst** — Screenshake (6px, 0.3s) + Kill-Burst-Partikel (gelb) + Screen-Flash. Visuell: "Ich bin gerade stärker geworden!"
 - [x] **Power-Aura ab Level 5** — Dezenter blauer Glow um den Spieler, wächst mit Level (Radius 16→26px, Alpha 0.08→0.2). Visuell: "Ich bin mächtig."
 
-**Status: Prio 6 ABGESCHLOSSEN.** Nächste Session: Spieler-Test aller 6 Prios.
+**Status: Prio 6 ABGESCHLOSSEN.**
+
+### Prio 7: Polish Pass — "Die letzten 20%"
+**Warum:** Kleine Details die in Summe den Unterschied zwischen "Test-Build" und "spielbar" machen.
+
+Konkrete Arbeitspakete:
+- [x] **Kill-Sound differenzieren** — Enemy-Death: lauter (0.45 statt 0.25), längerer Triangle-Thud (0.2s), deutlich anders als Hit-Sound
+- [x] **Loot-Glow auf Boden-Items** — Gold: gelber Puls, Potions: blauer Puls (RadialGradient, sinusförmig). Spieler sieht Items jetzt sofort.
+- [x] **Smithy-Preise gesenkt** — Tier-Grenzen 3/5/8→2/4/7, Item-Preise Tier 0-2 um 40-50% reduziert. Dagger 10→5, Longsword 60→40, Chain Mail 80→50.
+- [x] **Demon: Blink-Teleport** — Teleportiert hinter den Spieler (15% Chance, 3+ Tiles Entfernung). Pink-Partikel + "BLINK" Text. Erzwingt 360°-Aufmerksamkeit.
+- [x] **Dragon: Flammenhauch** — AoE-Angriff in Linie (20% Chance, 2-4 Tiles). 0.6s Telegraph → 1.5x ATK Schaden + Fire-Partikel. Erzwingt Ausweichen.
+- [x] **Dungeon-Musik variiert mit Floor** — Drone-Pitch senkt sich mit Tiefe. Heartbeat-Puls ab Floor 3 (wird schneller). Dissonante Tension-Layer ab Floor 15.
+
+**Status: Prio 7 ABGESCHLOSSEN.**
 
 ---
 
 ## Letzte Session
 
-**Datum:** 2026-03-15 (Session 5)
-**Datum:** 2026-03-15 (Session 6)
-**Was gemacht:** Prio 5 (Korridore) + Prio 6 (In-Run-Progression) implementiert. Kürzere Korridore (Room-Edge statt Center), Corridor-Enemies (25% der Gesamtspawns), Slash-Arc skaliert mit Level (Radius 26→38, Span 1.1→1.8 rad), Level-Up Power-Burst (Screenshake + Partikel + Flash), Power-Aura ab Level 5 (blauer Glow, wächst mit Level).
+**Datum:** 2026-03-15 (Session 7)
+**Was gemacht:** Polish Pass — Kill-Sound, Loot-Glow, Smithy-Preise, Demon-Blink, Dragon-Breath, Floor-abhängige Musik.
 **Was offen blieb:** Alles ungetestet. Spieler-Test nach Rückkehr.
-**Geänderte Dateien:** `dungeon.js`, `dungeonScene.js`, `player.js`
+**Geänderte Dateien:** `audio.js`, `enemies.js`, `dungeonScene.js`, `items.js`, `village.js`
 
 ---
 
@@ -95,3 +107,4 @@ Konkrete Arbeitspakete:
 | 2026-03-15 | Prio 3: Village-Streamlining | 3/4 Pakete implementiert (Quick-Reenter, Entrance-Glow, Soul-Shard-Drops) |
 | 2026-03-15 | AUDIT Rev. 2 + Prio 4: Gegner-Verhalten | Audit aktualisiert, 4 Pakete implementiert (Bat erratisch, Skeleton Block, Orc Charge, Telegraphing) |
 | 2026-03-15 | Prio 5+6: Korridore + In-Run-Progression | Kürzere Korridore, Corridor-Enemies, Level-skalierender Slash-Arc, Level-Up-Burst, Power-Aura |
+| 2026-03-15 | Prio 7: Polish Pass | Kill-Sound, Loot-Glow, Smithy-Preise, Demon-Blink, Dragon-Breath, Floor-Musik |

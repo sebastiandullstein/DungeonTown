@@ -338,6 +338,69 @@ class Enemy {
             return;
         }
 
+        // Demon: blink teleport — teleport behind player when far
+        if (enemy.type === 'demon' && !enemy.isBoss && dist >= 3 && dist <= enemy.detection
+            && enemy.moveTimer <= 0 && Math.random() < 0.15
+            && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)) {
+            // Teleport to tile behind player (opposite of player's facing)
+            const pf = player.facing || { x: 0, y: 1 };
+            const tx = player.x - pf.x;
+            const ty = player.y - pf.y;
+            if (dungeonMap.isWalkable(tx, ty) && !(tx === player.x && ty === player.y)) {
+                // VFX: particles at old + new position
+                Combat.addHitParticles(enemy.x, enemy.y, '#ff4488');
+                enemy.x = tx;
+                enemy.y = ty;
+                Combat.addHitParticles(tx, ty, '#ff4488');
+                Combat.addFloatingText(tx, ty, 'BLINK', '#ff44aa');
+                enemy.moveTimer = 0.5;
+                enemy.state = 'attack';
+                return;
+            }
+        }
+
+        // Dragon: flame breath — AoE damage in a line when in range
+        if (enemy.type === 'dragon' && !enemy.isBoss && dist >= 2 && dist <= 4
+            && enemy.moveTimer <= 0 && Math.random() < 0.2
+            && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)) {
+            // Telegraph
+            enemy.telegraphing = true;
+            enemy.telegraphTimer = 0.6;
+            enemy._breathTarget = { x: player.x, y: player.y };
+            enemy.moveTimer = 0.7;
+            return;
+        }
+        // Dragon: execute breath after telegraph
+        if (enemy.type === 'dragon' && enemy.telegraphing && enemy.telegraphTimer <= 0 && enemy._breathTarget) {
+            enemy.telegraphing = false;
+            const bt = enemy._breathTarget;
+            enemy._breathTarget = null;
+            // Damage player if still near target
+            const bDist = Math.abs(player.x - bt.x) + Math.abs(player.y - bt.y);
+            if (bDist <= 1) {
+                const damage = player.takeDamage(Math.floor(enemy.atk * 1.5));
+                if (damage > 0) {
+                    if (Game.state.runStats) {
+                        Game.state.runStats.damageTaken += damage;
+                        Game.state.runStats.deathCause = enemy.name;
+                    }
+                    Audio.play('playerHurt');
+                    Combat.addFloatingText(player.x, player.y, `-${damage} FIRE!`, '#ff6600');
+                    Game.renderer.shake(8, 0.3);
+                }
+            }
+            // Fire particles along the line
+            const fdx = bt.x - enemy.x;
+            const fdy = bt.y - enemy.y;
+            const fDist = Math.sqrt(fdx * fdx + fdy * fdy) || 1;
+            for (let s = 0; s < 3; s++) {
+                const fx = enemy.x + (fdx / fDist) * (s + 1);
+                const fy = enemy.y + (fdy / fDist) * (s + 1);
+                Combat.addHitParticles(Math.round(fx), Math.round(fy), '#ff6600');
+            }
+            return;
+        }
+
         // State transitions
         if (dist <= 1.5 && enemy.state !== 'attack') {
             enemy.state = 'attack';

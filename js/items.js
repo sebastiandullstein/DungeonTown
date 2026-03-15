@@ -1,9 +1,9 @@
 // Item System - definitions and generation
 const ItemDB = {
     weapons: [
-        { name: 'Dagger', stats: { atk: 2 }, tier: 0, char: '-', fg: '#aaa', value: 10 },
-        { name: 'Short Sword', stats: { atk: 4 }, tier: 1, char: '/', fg: '#bbb', value: 25 },
-        { name: 'Longsword', stats: { atk: 7 }, tier: 2, char: '/', fg: '#ddd', value: 60 },
+        { name: 'Dagger', stats: { atk: 2 }, tier: 0, char: '-', fg: '#aaa', value: 5 },
+        { name: 'Short Sword', stats: { atk: 4 }, tier: 1, char: '/', fg: '#bbb', value: 15 },
+        { name: 'Longsword', stats: { atk: 7 }, tier: 2, char: '/', fg: '#ddd', value: 40 },
         { name: 'Battle Axe', stats: { atk: 10 }, tier: 3, char: 'P', fg: '#c88', value: 120 },
         { name: 'War Hammer', stats: { atk: 13 }, tier: 4, char: 'T', fg: '#88c', value: 200 },
         { name: 'Flame Blade', stats: { atk: 17 }, tier: 5, char: '/', fg: '#f80', value: 350 },
@@ -11,16 +11,16 @@ const ItemDB = {
         { name: 'Doom Sword', stats: { atk: 25 }, tier: 7, char: '/', fg: '#f0f', value: 800 },
     ],
     armors: [
-        { name: 'Cloth Shirt', stats: { def: 1 }, tier: 0, char: '[', fg: '#886', value: 10 },
-        { name: 'Leather Armor', stats: { def: 3 }, tier: 1, char: '[', fg: '#a84', value: 30 },
-        { name: 'Chain Mail', stats: { def: 5 }, tier: 2, char: '[', fg: '#aaa', value: 80 },
+        { name: 'Cloth Shirt', stats: { def: 1 }, tier: 0, char: '[', fg: '#886', value: 5 },
+        { name: 'Leather Armor', stats: { def: 3 }, tier: 1, char: '[', fg: '#a84', value: 18 },
+        { name: 'Chain Mail', stats: { def: 5 }, tier: 2, char: '[', fg: '#aaa', value: 50 },
         { name: 'Plate Armor', stats: { def: 8 }, tier: 3, char: '[', fg: '#ccc', value: 150 },
         { name: 'Dragon Scale', stats: { def: 12 }, tier: 4, char: '[', fg: '#4a4', value: 300 },
         { name: 'Mythril Mail', stats: { def: 16 }, tier: 5, char: '[', fg: '#4cf', value: 500 },
     ],
     helmets: [
-        { name: 'Cap', stats: { def: 1 }, tier: 0, char: '^', fg: '#886', value: 8 },
-        { name: 'Iron Helm', stats: { def: 2 }, tier: 1, char: '^', fg: '#aaa', value: 25 },
+        { name: 'Cap', stats: { def: 1 }, tier: 0, char: '^', fg: '#886', value: 4 },
+        { name: 'Iron Helm', stats: { def: 2 }, tier: 1, char: '^', fg: '#aaa', value: 15 },
         { name: 'Steel Helm', stats: { def: 4 }, tier: 2, char: '^', fg: '#ccc', value: 60 },
         { name: 'Knight Helm', stats: { def: 6 }, tier: 3, char: '^', fg: '#ddd', value: 120 },
     ],
