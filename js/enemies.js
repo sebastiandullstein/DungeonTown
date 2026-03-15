@@ -683,7 +683,9 @@ class Enemy {
                             break;
                         }
                     }
-                    enemy.moveTimer = enemy.speed * 0.45;
+                    // Water tiles slow enemies by 2x
+                    const waterSlow = dungeonMap.isWater(enemy.x, enemy.y) ? 2 : 1;
+                    enemy.moveTimer = enemy.speed * 0.45 * waterSlow;
                 }
                 break;
 

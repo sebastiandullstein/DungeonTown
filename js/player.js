@@ -352,7 +352,8 @@ class Player {
                 if (dungeonMap.isWalkable(nx, ny)) {
                     this.x = nx;
                     this.y = ny;
-                    this.moveTimer = this.getSpeed();
+                    // Water tiles slow movement by 2x
+                    this.moveTimer = dungeonMap.isWater(nx, ny) ? this.getSpeed() * 2 : this.getSpeed();
                 }
             }
         }

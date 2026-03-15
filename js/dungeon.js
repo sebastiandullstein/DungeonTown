@@ -71,7 +71,11 @@ class DungeonMap {
 
     isWalkable(x, y) {
         const t = this.get(x, y);
-        return t === TILE.FLOOR || t === TILE.DOOR || t === TILE.STAIRS_DOWN || t === TILE.STAIRS_UP || t === TILE.CHEST;
+        return t === TILE.FLOOR || t === TILE.DOOR || t === TILE.STAIRS_DOWN || t === TILE.STAIRS_UP || t === TILE.CHEST || t === TILE.WATER;
+    }
+
+    isWater(x, y) {
+        return this.get(x, y) === TILE.WATER;
     }
 
     // Open a chest at (x,y): convert tile to floor, drop gold + possible potion
@@ -291,6 +295,51 @@ class DungeonGenerator {
             map.rooms[map.rooms.length - 1] = arena;
         }
 
+        // Add terrain features to non-arena, non-start rooms
+        for (let ri = 1; ri < map.rooms.length; ri++) {
+            const room = map.rooms[ri];
+            if (room.isArena) continue;
+            const innerW = room.w - 2;
+            const innerH = room.h - 2;
+            if (innerW < 3 || innerH < 3) continue;
+
+            // 40% chance: 1-3 pillars
+            if (Math.random() < 0.4) {
+                const pillarCount = 1 + Math.floor(Math.random() * 3);
+                for (let p = 0; p < pillarCount; p++) {
+                    const px = room.x + 2 + Math.floor(Math.random() * (innerW - 2));
+                    const py = room.y + 2 + Math.floor(Math.random() * (innerH - 2));
+                    // Don't place on center (might be stairs/events)
+                    if (px === room.cx && py === room.cy) continue;
+                    if (map.get(px, py) === TILE.FLOOR) {
+                        map.set(px, py, TILE.PILLAR);
+                    }
+                }
+            }
+
+            // 25% chance: water patch (2-4 connected tiles)
+            if (Math.random() < 0.25) {
+                const wx = room.x + 2 + Math.floor(Math.random() * (innerW - 2));
+                const wy = room.y + 2 + Math.floor(Math.random() * (innerH - 2));
+                if (map.get(wx, wy) === TILE.FLOOR) {
+                    map.set(wx, wy, TILE.WATER);
+                    // Grow patch in random adjacent directions
+                    const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                    const patchSize = 2 + Math.floor(Math.random() * 3);
+                    let cx = wx, cy = wy;
+                    for (let s = 1; s < patchSize; s++) {
+                        const d = dirs[Math.floor(Math.random() * dirs.length)];
+                        const nx = cx + d.x, ny = cy + d.y;
+                        if (nx > room.x && nx < room.x + room.w - 1 && ny > room.y && ny < room.y + room.h - 1
+                            && map.get(nx, ny) === TILE.FLOOR) {
+                            map.set(nx, ny, TILE.WATER);
+                            cx = nx; cy = ny;
+                        }
+                    }
+                }
+            }
+        }
+
         // Place player start in first room
         if (map.rooms.length > 0) {
             const startRoom = map.rooms[0];
@@ -343,14 +392,17 @@ class DungeonGenerator {
             ty = Math.min(room2.y + room2.h - 2, ty);
         }
 
+        // 50% chance for narrow (1-tile) corridor, otherwise 2-tile wide
+        const narrow = Math.random() < 0.5;
+
         while (x !== tx) {
             map.set(x, y, TILE.FLOOR);
-            map.set(x, y - 1, TILE.FLOOR);
+            if (!narrow) map.set(x, y - 1, TILE.FLOOR);
             x += x < tx ? 1 : -1;
         }
         while (y !== ty) {
             map.set(x, y, TILE.FLOOR);
-            map.set(x - 1, y, TILE.FLOOR);
+            if (!narrow) map.set(x - 1, y, TILE.FLOOR);
             y += y < ty ? 1 : -1;
         }
     }
@@ -370,22 +422,81 @@ class DungeonGenerator {
         const baseCount = floor <= 3 ? 10 : floor <= 8 ? 8 : 6;
         const enemyCount = baseCount + floor * 2 + Math.floor(Math.random() * 4);
 
-        // Spawn enemies in clusters of 2-4 per room for group encounters
+        // --- Phase 1: Place ambush enemies near pillars ---
         let spawned = 0;
-        while (spawned < enemyCount && normalRooms.length > 0) {
+        for (const room of normalRooms) {
+            if (room.isArena) continue;
+            // Find pillars in this room
+            for (let px = room.x + 1; px < room.x + room.w - 1 && spawned < enemyCount; px++) {
+                for (let py = room.y + 1; py < room.y + room.h - 1 && spawned < enemyCount; py++) {
+                    if (map.get(px, py) !== TILE.PILLAR) continue;
+                    // 60% chance to place an ambush enemy adjacent to this pillar
+                    if (Math.random() > 0.6) continue;
+                    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                    const shuffled = dirs.sort(() => Math.random() - 0.5);
+                    for (const [dx, dy] of shuffled) {
+                        const ex = px + dx, ey = py + dy;
+                        if (map.isWalkable(ex, ey) && map.get(ex, ey) === TILE.FLOOR) {
+                            map.enemies.push(Enemy.create(ex, ey, EnemyTypes.getForFloor(floor)));
+                            spawned++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Phase 2: Place guards near chests and event tiles ---
+        const guardTiles = [TILE.CHEST, TILE.SHRINE, TILE.CURSED_CHEST, TILE.MERCHANT];
+        for (const room of normalRooms) {
+            if (room.isArena) continue;
+            for (let gx = room.x + 1; gx < room.x + room.w - 1 && spawned < enemyCount; gx++) {
+                for (let gy = room.y + 1; gy < room.y + room.h - 1 && spawned < enemyCount; gy++) {
+                    if (!guardTiles.includes(map.get(gx, gy))) continue;
+                    // Place 1-2 guards within 2 tiles of the event
+                    const guardCount = 1 + Math.floor(Math.random() * 2);
+                    for (let g = 0; g < guardCount && spawned < enemyCount; g++) {
+                        for (let att = 0; att < 8; att++) {
+                            const ox = Math.floor(Math.random() * 5) - 2;
+                            const oy = Math.floor(Math.random() * 5) - 2;
+                            const ex = gx + ox, ey = gy + oy;
+                            if (ex > room.x && ex < room.x + room.w - 1
+                                && ey > room.y && ey < room.y + room.h - 1
+                                && map.isWalkable(ex, ey) && map.get(ex, ey) === TILE.FLOOR) {
+                                map.enemies.push(Enemy.create(ex, ey, EnemyTypes.getForFloor(floor)));
+                                spawned++;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Phase 3: Fill remaining count with cluster spawns ---
+        let clusterAttempts = 0;
+        while (spawned < enemyCount && normalRooms.length > 0 && clusterAttempts < enemyCount * 3) {
+            clusterAttempts++;
             const room = normalRooms[Math.floor(Math.random() * normalRooms.length)];
             const clusterSize = 2 + Math.floor(Math.random() * 3); // 2-4
             const type = EnemyTypes.getForFloor(floor);
             const cx = room.x + 1 + Math.floor(Math.random() * (room.w - 2));
             const cy = room.y + 1 + Math.floor(Math.random() * (room.h - 2));
+
+            // From Floor 3+, mixed groups: replace 1 in cluster with next-tier type
+            const mixType = (floor >= 3 && clusterSize >= 3 && Math.random() < 0.5)
+                ? EnemyTypes.getForFloor(Math.min(floor + 3, 50))
+                : null;
+
             for (let j = 0; j < clusterSize && spawned < enemyCount; j++) {
-                // Scatter within 1-2 tiles of cluster center
                 const ox = j === 0 ? 0 : Math.floor(Math.random() * 3) - 1;
                 const oy = j === 0 ? 0 : Math.floor(Math.random() * 3) - 1;
                 const ex = cx + ox;
                 const ey = cy + oy;
-                if (map.isWalkable(ex, ey)) {
-                    map.enemies.push(Enemy.create(ex, ey, type));
+                if (map.isWalkable(ex, ey) && map.get(ex, ey) === TILE.FLOOR) {
+                    // Use the mixed type for the last enemy in the cluster
+                    const eType = (mixType && j === clusterSize - 1) ? mixType : type;
+                    map.enemies.push(Enemy.create(ex, ey, eType));
                     spawned++;
                 }
             }
