@@ -72,6 +72,10 @@ const Audio = {
             case 'escapeJingle':  this._playEscapeJingle(t); break;
             case 'floorTransition': this._playFloorTransition(t); break;
             case 'bossFloorWarning': this._playBossFloorWarning(t); break;
+            case 'shieldBlock':   this._playShieldBlock(t); break;
+            case 'demonBlink':    this._playDemonBlink(t); break;
+            case 'dragonBreath':  this._playDragonBreath(t); break;
+            case 'batDive':       this._playBatDive(t); break;
         }
     },
 
@@ -494,6 +498,105 @@ const Audio = {
             osc.connect(gain); gain.connect(this.ctx.destination);
             osc.start(t + 0.3); osc.stop(t + 1.01);
         }
+    },
+
+    _playShieldBlock(t) {
+        // Metallic clang — bright impact, distinct from playerHurt
+        const v = this._vol() * 0.4;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.12);
+        gain.gain.setValueAtTime(v, t);
+        gain.gain.linearRampToValueAtTime(v * 0.3, t + 0.04);
+        gain.gain.linearRampToValueAtTime(0, t + 0.15);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t); osc.stop(t + 0.16);
+        // Metallic ring overtone
+        const ring = this.ctx.createOscillator();
+        const rGain = this.ctx.createGain();
+        ring.type = 'sine';
+        ring.frequency.value = 1200;
+        rGain.gain.setValueAtTime(v * 0.2, t);
+        rGain.gain.linearRampToValueAtTime(0, t + 0.2);
+        ring.connect(rGain); rGain.connect(this.ctx.destination);
+        ring.start(t); ring.stop(t + 0.21);
+    },
+
+    _playDemonBlink(t) {
+        // Eerie whoosh + reverse shimmer — teleportation sound
+        const v = this._vol() * 0.35;
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(0, t);
+            nGain.gain.linearRampToValueAtTime(v * 0.5, t + 0.05);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.2);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(3000, t);
+            filter.frequency.exponentialRampToValueAtTime(400, t + 0.15);
+            filter.Q.value = 3;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.21);
+        }
+        // Descending tone
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, t);
+        osc.frequency.exponentialRampToValueAtTime(150, t + 0.18);
+        gain.gain.setValueAtTime(v * 0.3, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.2);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t); osc.stop(t + 0.21);
+    },
+
+    _playDragonBreath(t) {
+        // Roaring fire burst — noise + low rumble
+        const v = this._vol() * 0.4;
+        if (this._noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this._noiseBuffer;
+            const nGain = this.ctx.createGain();
+            nGain.gain.setValueAtTime(v * 0.6, t);
+            nGain.gain.setValueAtTime(v * 0.8, t + 0.1);
+            nGain.gain.linearRampToValueAtTime(0, t + 0.4);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(600, t);
+            filter.frequency.linearRampToValueAtTime(1500, t + 0.15);
+            filter.frequency.linearRampToValueAtTime(300, t + 0.4);
+            filter.Q.value = 1.5;
+            noise.connect(filter); filter.connect(nGain); nGain.connect(this.ctx.destination);
+            noise.start(t); noise.stop(t + 0.41);
+        }
+        // Low rumble underneath
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, t);
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.35);
+        gain.gain.setValueAtTime(v * 0.4, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.35);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t); osc.stop(t + 0.36);
+    },
+
+    _playBatDive(t) {
+        // Quick descending screech — high-pitched dive sound
+        const v = this._vol() * 0.3;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1200, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+        gain.gain.setValueAtTime(v, t);
+        gain.gain.linearRampToValueAtTime(0, t + 0.18);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(t); osc.stop(t + 0.19);
     },
 
     // ── Ambient Music ────────────────────────────────────────────────────────

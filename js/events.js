@@ -174,6 +174,60 @@ const DungeonEvents = {
         return null;
     },
 
+    // ── Room-Clear Mini-Events (Altar with 2 choices) ──────────────────────
+
+    // Pool of altar offerings — each has two mutually exclusive options
+    ALTAR_OFFERINGS: [
+        {
+            desc: 'A dark altar glimmers...',
+            options: [
+                { label: 'Sacrifice 10 HP for +2 ATK', apply(p) { p.hp = Math.max(1, p.hp - 10); if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.atk = (p._runBonuses.atk || 0) + 2; }, color: '#ff6040' },
+                { label: 'Sacrifice 5 Mana for heal 25 HP', apply(p) { p.mp = Math.max(0, p.mp - 5); p.hp = Math.min(p.hp + 25, p.getMaxHp()); }, color: '#40ff80' },
+            ]
+        },
+        {
+            desc: 'Ancient runes pulse on the floor...',
+            options: [
+                { label: '+1 DEF this run', apply(p) { if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.def = (p._runBonuses.def || 0) + 1; }, color: '#4488ff' },
+                { label: '+5% move speed this run', apply(p) { if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.speed = (p._runBonuses.speed || 0) + 0.05; }, color: '#88ff44' },
+            ]
+        },
+        {
+            desc: 'A spirit offers a trade...',
+            options: [
+                { label: 'Trade 15 HP for +10 max HP', apply(p) { p.hp = Math.max(1, p.hp - 15); if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.maxHp = (p._runBonuses.maxHp || 0) + 10; p.maxHp = p.getMaxHp(); }, color: '#ffaa40' },
+                { label: 'Restore 5 Mana', apply(p) { p.mp = Math.min((p.mp || 0) + 5, p.maxMp || 20); }, color: '#40aaff' },
+            ]
+        },
+        {
+            desc: 'Shadowy flames dance...',
+            options: [
+                { label: '+3 ATK, lose 20% current HP', apply(p) { const cost = Math.floor(p.hp * 0.2); p.hp = Math.max(1, p.hp - cost); if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.atk = (p._runBonuses.atk || 0) + 3; }, color: '#ff4040' },
+                { label: 'Heal 40% max HP', apply(p) { const heal = Math.floor(p.getMaxHp() * 0.4); p.hp = Math.min(p.hp + heal, p.getMaxHp()); }, color: '#40ffcc' },
+            ]
+        },
+        {
+            desc: 'A crystal hums with power...',
+            options: [
+                { label: '+2 STR this run', apply(p) { if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.str = (p._runBonuses.str || 0) + 2; }, color: '#ff8844' },
+                { label: '+2 VIT this run', apply(p) { if (!p._runBonuses) p._runBonuses = {}; p._runBonuses.vit = (p._runBonuses.vit || 0) + 2; p.maxHp = p.getMaxHp(); }, color: '#44ff88' },
+            ]
+        },
+    ],
+
+    // Generate a random altar offering for a cleared room
+    generateAltarOffering() {
+        return this.ALTAR_OFFERINGS[Math.floor(Math.random() * this.ALTAR_OFFERINGS.length)];
+    },
+
+    // Resolve an altar choice (0 or 1)
+    resolveAltar(offering, choiceIndex, player) {
+        const option = offering.options[choiceIndex];
+        if (!option) return null;
+        option.apply(player);
+        return { text: option.label, color: option.color };
+    },
+
     // Merchant — generate 3 items for mini-shop
     getMerchantItems(floor) {
         const categories = ['weapons', 'armors', 'helmets', 'boots', 'potions'];

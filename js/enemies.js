@@ -230,6 +230,7 @@ class Enemy {
             lastSeenY: -1,
             // Type-specific behavior states
             blocking: false,       // skeleton: currently blocking
+            blockCycle: 0,         // skeleton: rhythmic block timer (0-3s: 0-1.5 = block, 1.5-3 = open)
             chargeTimer: 0,        // orc: charge telegraph countdown
             charging: false,       // orc: currently charging
             chargeDx: 0,           // orc: charge direction
@@ -237,6 +238,10 @@ class Enemy {
             chargeStun: 0,         // orc: stunned after missed charge
             telegraphing: false,   // visual telegraph active
             telegraphTimer: 0,     // countdown for attack telegraph
+            diving: false,         // bat: currently diving
+            diveDx: 0,             // bat: dive direction
+            diveDy: 0,
+            _diveSteps: 0,         // bat: steps taken during dive
         };
     }
 
@@ -307,11 +312,86 @@ class Enemy {
             return;
         }
 
+        // Bat active dive — rush in a line toward player
+        if (enemy.diving) {
+            enemy.moveTimer -= dt;
+            if (enemy.moveTimer <= 0) {
+                const nx = enemy.x + enemy.diveDx;
+                const ny = enemy.y + enemy.diveDy;
+                if (nx === player.x && ny === player.y) {
+                    // Hit player: double damage
+                    const damage = player.takeDamage(enemy.atk * 2);
+                    if (damage > 0) {
+                        if (Game.state.runStats) {
+                            Game.state.runStats.damageTaken += damage;
+                            Game.state.runStats.deathCause = enemy.name;
+                        }
+                        Audio.play('playerHurt');
+                        Combat.addFloatingText(player.x, player.y, `-${damage} DIVE!`, '#cc44cc');
+                        Combat.addHitParticles(player.x, player.y, '#cc44cc');
+                        Game.renderer.shake(6, 0.2);
+                    }
+                    enemy.diving = false;
+                    enemy.state = 'chase';
+                    enemy.moveTimer = enemy.speed;
+                } else if (dungeonMap.isWalkable(nx, ny)) {
+                    enemy.x = nx;
+                    enemy.y = ny;
+                    enemy.moveTimer = 0.05;
+                    enemy._diveSteps = (enemy._diveSteps || 0) + 1;
+                    if (enemy._diveSteps >= 5) {
+                        // Missed — brief pause
+                        enemy.diving = false;
+                        enemy.stunTimer = 0.5;
+                        enemy.moveTimer = enemy.speed;
+                    }
+                } else {
+                    // Hit a wall
+                    enemy.diving = false;
+                    enemy.stunTimer = 0.5;
+                    enemy.moveTimer = enemy.speed;
+                }
+            }
+            return;
+        }
+
         if (enemy.stunTimer > 0) return;
 
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Bat: dive-bomb telegraph → rush when in line and 3+ tiles away
+        if (enemy.type === 'bat' && !enemy.isBoss && enemy.telegraphing && enemy.telegraphTimer <= 0 && enemy._diveTarget) {
+            enemy.telegraphing = false;
+            enemy.diving = true;
+            Audio.play('batDive');
+            enemy._diveSteps = 0;
+            enemy.moveTimer = 0;
+            const dt2 = enemy._diveTarget;
+            enemy._diveTarget = null;
+            if (Math.abs(dt2.x) >= Math.abs(dt2.y)) {
+                enemy.diveDx = dt2.x > 0 ? 1 : -1;
+                enemy.diveDy = 0;
+            } else {
+                enemy.diveDx = 0;
+                enemy.diveDy = dt2.y > 0 ? 1 : -1;
+            }
+            return;
+        }
+
+        // Bat: initiate dive-bomb if aligned and 3+ tiles away
+        if (enemy.type === 'bat' && !enemy.isBoss && dist >= 3 && dist <= enemy.detection
+            && enemy.moveTimer <= 0 && !enemy.telegraphing
+            && (dx === 0 || dy === 0) // must be in a straight line
+            && dungeonMap.hasLineOfSight(enemy.x, enemy.y, player.x, player.y)
+            && Math.random() < 0.25) {
+            enemy.telegraphing = true;
+            enemy.telegraphTimer = 0.5;
+            enemy._diveTarget = { x: dx, y: dy };
+            enemy.moveTimer = 0.6;
+            return;
+        }
 
         // ── Orc: Charge telegraph ──
         if (enemy.type === 'orc' && !enemy.isBoss && enemy.chargeTimer > 0) {
@@ -353,6 +433,7 @@ class Enemy {
                 enemy.y = ty;
                 Combat.addHitParticles(tx, ty, '#ff4488');
                 Combat.addFloatingText(tx, ty, 'BLINK', '#ff44aa');
+                Audio.play('demonBlink');
                 enemy.moveTimer = 0.5;
                 enemy.state = 'attack';
                 return;
@@ -375,6 +456,7 @@ class Enemy {
             enemy.telegraphing = false;
             const bt = enemy._breathTarget;
             enemy._breathTarget = null;
+            Audio.play('dragonBreath');
             // Damage player if still near target
             const bDist = Math.abs(player.x - bt.x) + Math.abs(player.y - bt.y);
             if (bDist <= 1) {
@@ -495,17 +577,17 @@ class Enemy {
                     break;
                 }
 
-                // Skeleton: block stance — telegraph before attacking
+                // Skeleton: rhythmic block cycle — 1.5s block → 1.5s open (predictable, learnable)
                 if (enemy.type === 'skeleton' && !enemy.isBoss) {
+                    enemy.blockCycle += dt;
+                    if (enemy.blockCycle >= 3.0) enemy.blockCycle -= 3.0;
+                    enemy.blocking = enemy.blockCycle < 1.5;
+                    // Telegraph before attacking
                     if (!enemy.telegraphing && enemy.attackTimer <= 0.3 && enemy.attackTimer > 0) {
                         enemy.telegraphing = true;
                         enemy.telegraphTimer = 0.3;
                     }
-                    // Raise block between attacks (50% chance)
-                    if (enemy.attackTimer > 0.4 && !enemy.blocking && Math.random() < 0.003) {
-                        enemy.blocking = true;
-                    }
-                    // Drop block right before attacking
+                    // Drop block right before attacking so hits land
                     if (enemy.attackTimer <= 0.2) {
                         enemy.blocking = false;
                     }
@@ -543,7 +625,7 @@ class Enemy {
             if (Game.state.runStats) Game.state.runStats.damageDealt += blockedDmg;
             enemy.stunTimer = 0.05; // minimal stun when blocking
             Combat.addFloatingText(enemy.x, enemy.y, `BLOCKED -${blockedDmg}`, '#8888ff');
-            Audio.play('playerHurt'); // clank sound
+            Audio.play('shieldBlock');
             // No knockback when blocking
             return blockedDmg;
         }
@@ -555,6 +637,7 @@ class Enemy {
         enemy.stunTimer = 0.15;
         enemy.state = 'chase';
         enemy.blocking = false; // break block on hit
+        enemy.blockCycle = 1.5; // reset to open phase so player gets a window
 
         if (enemy.hp <= 0) {
             Audio.play('enemyDeath');

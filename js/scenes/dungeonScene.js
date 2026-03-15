@@ -17,8 +17,12 @@ const DungeonScene = {
     // Death save flash
     _deathSaveFlash: 0,
     // Phase 1: Escape + Events
-    mode: 'play', // 'play','paused','settings','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice'
+    mode: 'play', // 'play','paused','settings','floorSelect','escapeConfirm','eventPrompt','merchant','prisonerChoice','altarChoice'
     floorEvents: [],
+    // Room-clear altar system
+    _clearedRooms: new Set(),     // room keys that have been cleared
+    _altarOffering: null,         // current altar offering data
+    _altarIndex: 0,               // selected altar option (0 or 1)
     _floorOptions: [],
     _floorSelectIndex: 0,
     _eventTarget: null,
@@ -62,6 +66,9 @@ const DungeonScene = {
         this._tutorialTimer = 0;
         this._bossIntro = null;
         this.combatLog = [];
+        this._clearedRooms = new Set();
+        this._altarOffering = null;
+        this._altarIndex = 0;
         this._prevPlayerHp = p.hp;
         this._lootFanfare = [];
         this._furyTriggered = false;
@@ -283,6 +290,32 @@ const DungeonScene = {
                 return;
             }
             if (Input.wasPressed('Escape')) {
+                this.mode = 'play';
+            }
+            return;
+        }
+
+        // Altar choice mode (room-clear mini-event)
+        if (this.mode === 'altarChoice') {
+            if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
+                this._altarIndex = 0;
+            }
+            if (Input.wasPressed('ArrowDown') || Input.wasPressed('s') || Input.wasPressed('S')) {
+                this._altarIndex = 1;
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
+                const result = DungeonEvents.resolveAltar(this._altarOffering, this._altarIndex, Game.state.player);
+                if (result) {
+                    Game.notify(result.text, result.color);
+                    Combat.addFloatingText(Game.state.player.x, Game.state.player.y, result.text, result.color);
+                    Audio.play('chestOpen');
+                }
+                this._altarOffering = null;
+                this.mode = 'play';
+                return;
+            }
+            if (Input.wasPressed('Escape')) {
+                this._altarOffering = null;
                 this.mode = 'play';
             }
             return;
@@ -519,6 +552,34 @@ const DungeonScene = {
             if (dead.name) this._log(`${dead.name} slain`, '#ff9040');
         }
         this.map.enemies = this.map.enemies.filter(e => e.hp > 0 || (e.deathTimer !== undefined && e.deathTimer > 0));
+
+        // Room-clear mini-event: check if a room was just cleared (40% chance)
+        if (justDied.length > 0 && this.map.rooms) {
+            const pRoom = this.map.rooms.find(r =>
+                player.x >= r.x && player.x < r.x + r.w &&
+                player.y >= r.y && player.y < r.y + r.h
+            );
+            if (pRoom) {
+                const rKey = pRoom.x + ',' + pRoom.y;
+                if (!this._clearedRooms.has(rKey)) {
+                    // Check if all enemies in this room are dead
+                    const roomEnemies = this.map.enemies.filter(e =>
+                        e.hp > 0 && e.x >= pRoom.x && e.x < pRoom.x + pRoom.w &&
+                        e.y >= pRoom.y && e.y < pRoom.y + pRoom.h
+                    );
+                    if (roomEnemies.length === 0) {
+                        this._clearedRooms.add(rKey);
+                        if (Math.random() < 0.4) {
+                            this._altarOffering = DungeonEvents.generateAltarOffering();
+                            this._altarIndex = 0;
+                            this.mode = 'altarChoice';
+                            Audio.play('chestOpen');
+                            return;
+                        }
+                    }
+                }
+            }
+        }
 
         // Detect player damage taken
         if (player.hp < this._prevPlayerHp && player.hp > 0) {
@@ -1425,6 +1486,47 @@ const DungeonScene = {
         // ── Prisoner choice panel ──
         if (this.mode === 'prisonerChoice') {
             r.drawPrisonerPanel(this._prisonerIndex);
+        }
+
+        // ── Altar choice overlay (room-clear mini-event) ──
+        if (this.mode === 'altarChoice' && this._altarOffering) {
+            const ctx = r.ctx;
+            const cw = ctx.canvas.width;
+            const ch = ctx.canvas.height;
+            // Dim background
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0, 0, cw, ch);
+            // Panel
+            const pw = 360, ph = 140;
+            const px = Math.floor((cw - pw) / 2);
+            const py = Math.floor((ch - ph) / 2);
+            ctx.fillStyle = '#1a1020';
+            ctx.strokeStyle = '#c080ff';
+            ctx.lineWidth = 2;
+            ctx.fillRect(px, py, pw, ph);
+            ctx.strokeRect(px, py, pw, ph);
+            // Title
+            ctx.fillStyle = '#c080ff';
+            ctx.font = '14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(this._altarOffering.desc, px + pw / 2, py + 24);
+            // Options
+            for (let i = 0; i < this._altarOffering.options.length; i++) {
+                const opt = this._altarOffering.options[i];
+                const oy = py + 52 + i * 32;
+                const selected = i === this._altarIndex;
+                ctx.fillStyle = selected ? '#ffffff' : '#888888';
+                ctx.font = selected ? 'bold 13px monospace' : '13px monospace';
+                ctx.textAlign = 'left';
+                const marker = selected ? '> ' : '  ';
+                ctx.fillText(marker + opt.label, px + 20, oy);
+            }
+            // Hint
+            ctx.fillStyle = '#666';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('[W/S] Choose  [Enter] Accept  [Esc] Skip', px + pw / 2, py + ph - 12);
+            ctx.textAlign = 'left';
         }
 
         // ── Pause menu overlay ──
