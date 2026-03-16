@@ -102,6 +102,9 @@ const Game = {
             this.toggleFullscreen();
         }
 
+        // Update d-pad repeat for touch devices
+        Input.updateDpadRepeat(dt);
+
         // Hit stop: freeze game updates but keep rendering
         if (this.hitStopTimer > 0) {
             this.hitStopTimer = Math.max(0, this.hitStopTimer - dt);

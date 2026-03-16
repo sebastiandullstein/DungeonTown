@@ -52,7 +52,7 @@ body {
     #gameCanvas {
         border: none;
         width: 100vw;
-        height: 60dvh;
+        height: 100dvh;
         object-fit: contain;
     }
 

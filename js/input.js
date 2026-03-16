@@ -6,6 +6,9 @@ const Input = {
     _isTouchDevice: false,
     _dpadAngle: -1,      // -1 = no touch, 0-7 = 8 directions
     _dpadTouchId: null,
+    _dpadRepeatTimer: 0,
+    _dpadRepeatDelay: 0.18, // seconds between repeated presses while holding d-pad
+    _dpadHeld: { w: false, a: false, s: false, d: false },
 
     init(canvas) {
         window.addEventListener('keydown', (e) => {
@@ -127,7 +130,8 @@ const Input = {
 
     _handleDpad(e, dpad) {
         e.preventDefault();
-        const touch = e.touches[0];
+        // Use targetTouches to only get touches on the d-pad element
+        const touch = e.targetTouches ? e.targetTouches[0] : e.touches[0];
         if (!touch) return;
         const rect = dpad.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
@@ -137,28 +141,41 @@ const Input = {
         const dist = Math.sqrt(dx * dx + dy * dy);
         const deadzone = rect.width * 0.15;
 
+        const prev = { w: this.keys['w'], a: this.keys['a'], s: this.keys['s'], d: this.keys['d'] };
+
         // Clear previous directions
         this.keys['w'] = false;
         this.keys['a'] = false;
         this.keys['s'] = false;
         this.keys['d'] = false;
 
-        if (dist < deadzone) return;
+        if (dist < deadzone) {
+            this._dpadHeld = { w: false, a: false, s: false, d: false };
+            return;
+        }
 
         // 8-directional from angle
         const angle = Math.atan2(dy, dx);
-        // Right=0, Down=PI/2, Left=PI, Up=-PI/2
         if (angle > -Math.PI * 0.375 && angle <= Math.PI * 0.375) {
-            this.keys['d'] = true; // right
+            this.keys['d'] = true;
         }
         if (angle > Math.PI * 0.125 && angle <= Math.PI * 0.875) {
-            this.keys['s'] = true; // down
+            this.keys['s'] = true;
         }
         if (angle > Math.PI * 0.625 || angle <= -Math.PI * 0.625) {
-            this.keys['a'] = true; // left
+            this.keys['a'] = true;
         }
         if (angle > -Math.PI * 0.875 && angle <= -Math.PI * 0.125) {
-            this.keys['w'] = true; // up
+            this.keys['w'] = true;
+        }
+
+        // Trigger keyPressed for newly activated directions
+        for (const k of ['w', 'a', 's', 'd']) {
+            if (this.keys[k] && !prev[k]) {
+                this.keyPressed[k] = true;
+                this._dpadRepeatTimer = 0;
+            }
+            this._dpadHeld[k] = this.keys[k];
         }
     },
 
@@ -168,6 +185,21 @@ const Input = {
         this.keys['a'] = false;
         this.keys['s'] = false;
         this.keys['d'] = false;
+        this._dpadHeld = { w: false, a: false, s: false, d: false };
+    },
+
+    // Call from game loop to repeat d-pad presses while held
+    updateDpadRepeat(dt) {
+        if (!this._isTouchDevice) return;
+        const held = this._dpadHeld;
+        if (!held.w && !held.a && !held.s && !held.d) return;
+        this._dpadRepeatTimer += dt;
+        if (this._dpadRepeatTimer >= this._dpadRepeatDelay) {
+            this._dpadRepeatTimer = 0;
+            for (const k of ['w', 'a', 's', 'd']) {
+                if (held[k]) this.keyPressed[k] = true;
+            }
+        }
     },
 
     isDown(key) {
