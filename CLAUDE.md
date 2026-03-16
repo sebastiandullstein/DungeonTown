@@ -174,97 +174,102 @@ Vor Änderungen an den folgenden Bereichen immer erst lesen und verstehen, nicht
 ### Spielentitäten
 | System | Datei | Notizen |
 |---|---|---|
-| Spieler | `player.js` | Stats, Equipment (6 Slots), Inventar (20), Buffs, Blessings |
-| Gegner | `enemies.js` | 7 Typen (rat, bat, skeleton, orc, demon, dragon, demonLord), 3-State-KI |
-| Kampf | `combat.js` | Schadensformel, 0,3s I-Frames, Floating Text, Partikel |
-| Fähigkeiten | `abilities.js` | Dash (Shift), Whirlwind (Q), Execute (E) mit VFX |
-| Items | `items.js` | Item-Datenbank, Generator, Shop-System |
+| Spieler | `player.js` | Stats, Equipment (6 Slots), Inventar (20), Buffs, Blessings, Level-Up-Picks (1 of 3), Death Save (1×/Run), Assist Mode |
+| Gegner | `enemies.js` | 7 Normal-Typen (rat→dragon), Elite-Varianten (ab Floor 8), 5 Mini-Bosse, 4 Major-Bosse, Final-Boss (Malphas), Boss-Phasensystem (3 Phasen), Boss-Loot-Tabelle |
+| Kampf | `combat.js` | Schadensformel, 0,3s I-Frames, Floating Text, Partikel, Screenshake, Hitstop |
+| Fähigkeiten | `abilities.js` | Dash (Shift, 4s CD), Whirlwind (Q, 4s CD, 5 Mana), Execute (E, 6s CD, 10 Mana) mit VFX |
+| Items | `items.js` | Item-Datenbank (8 Waffen, 6 Rüstungen, 4 Helme, 4 Stiefel, 3 Ringe, 3 Amulette, 7 Tränke, 6 Essen), Generator, Shop-System |
 | UI-Panels | `ui.js` | Inventar- & Charakterbogen-Panel |
 
 ### Welt & Levels
 | System | Datei | Notizen |
 |---|---|---|
-| Dungeon-Generator | `dungeon.js` | BSP, 80×45 Map, FOV (6 Tiles + Blessing), 50 Floors |
-| Floor-Events | `events.js` | 5 Typen: Schrein, Händler, Verfluchte Truhe, Brunnen, Gefangener |
-| Village-Simulation | `village.js` | 14 Gebäudetypen, 12 Dorfbewohner, 30s Produktionszyklen, Raids |
+| Dungeon-Generator | `dungeon.js` | BSP, skalierte Maps (50×30 bis 80×45), FOV, 50 Floors, Arena-Räume für Bosse, Terrain-Features (Pillars 40%, Water 25%), Narrow Corridors (50%), Intentional Enemy Placement, Mixed Groups ab Floor 3 |
+| Floor-Events | `events.js` | 5 Typen: Schrein, Händler, Verfluchte Truhe, Brunnen, Gefangener. 80% Altar-Chance, 40% Extra-Event, Guaranteed Merchant ab Floor 3 |
+| Village-Simulation | `village.js` | 14 Gebäudetypen, 12 Dorfbewohner, 30s Produktionszyklen, Raids, Weapon Evolution (Smithy Lv2+), 5 Specialist-Shop-Definitionen (nicht interaktiv) |
 
 ### Szenen
 | Szene | Datei | Modi |
 |---|---|---|
 | Titel | `scenes/titleScene.js` | settings |
 | Dorf | `scenes/villageScene.js` | explore, paused, settings, build, manage, recruit, assign_villager, smithy, tavern, temple, warehouse |
-| Dungeon | `scenes/dungeonScene.js` | play, paused, settings, floorSelect, escapeConfirm, escapeSummary, eventPrompt, merchant, prisonerChoice |
+| Dungeon | `scenes/dungeonScene.js` | play, paused, settings, floorSelect, escapeConfirm, escapeSummary, eventPrompt, merchant, prisonerChoice, altarChoice, levelUpPick |
 | Shop | `scenes/shopScene.js` | — |
 
-### Interaktive Dorf-Gebäude (4 vorgebaut)
+### Interaktive Dorf-Gebäude (4 aktiv)
 | Gebäude | Position | Funktion |
 |---|---|---|
-| Smithy | (33,21) | Waffen/Rüstung kaufen + upgraden |
+| Smithy | (33,21) | Waffen/Rüstung kaufen + upgraden, Weapon Evolution (Lv2+, Lv3 → Tier 7) |
 | Tavern | (47,21) | 4 Run-Buffs für Gold |
 | Temple | (33,29) | 6 permanente Segnungen für Soul Shards |
 | Warehouse | (47,29) | Inventarübersicht & Ressourcen |
 
+Hinweis: 5 Specialist-Shops (Weaponsmith, Armorsmith, Jewelry, Pharmacy, Food Store) sind als Daten in `village.js` definiert, aber noch nicht interaktiv.
+
 ### Boss-Tier-System
-- 6 Boss-Stufen: miniBoss (Floors 5, 10, 15 …) und majorBoss + finalBoss (Malphas, Floor 50)
+- **Mini-Bosse** (alle 5 Floors): Orc Chief (F5), Dark Sorcerer (F15), Lich (F25), Inferno Drake (F35), Pit Fiend (F45)
+- **Major-Bosse** (alle 10 Floors): Cursed Knight (F10, Blink-Attack), Stone Golem (F20, Tremor-AoE), Shadow Dragon (F30), Chaos Titan (F40)
+- **Final-Boss**: Malphas the Demon Lord (F50)
+- Boss-Phasensystem: 3 Phasen bei 66%/33% HP, Invulnerability + Shockwave bei Phasenwechsel
+- Boss-Loot: 4 unique Items (Cursed Blade, Golem Core Shield, Shadow Fang, Titan Heart Amulet)
+- Arena-Räume: 14×12, versiegelte Türen, Stairs erscheinen nach Boss-Tod
 - Soul-Shard-Drops: miniBoss 5–10, majorBoss 15–25, finalBoss 40–60
 
+### Elite-Gegner
+- Ab Floor 8: 15% Chance, ab Floor 15: 25% Chance
+- 1.8× HP, 1.4× ATK, 1.3× DEF, 2.5× XP, goldene Farbe (#ffcc00)
+
+### Floor-Themes (5 Themes in `tileRenderer.js`)
+| Floors | Theme | Farbpalette |
+|---|---|---|
+| 1–10 | Stone | Braun/Beige |
+| 11–20 | Frost | Eisblau |
+| 21–30 | Magma | Orange/Rot |
+| 31–40 | Abyss | Dunkelviolett |
+| 41–50 | Infernal | Giftgrün |
+
 ### Permanente Progression
-- 4 Tavern-Buffs (`TAVERN_BUFFS` in player.js) — run-scoped
+- 4 Tavern-Buffs (`TAVERN_BUFFS` in player.js) — run-scoped, bei Tod geleert
 - 6 Temple-Blessings (`TEMPLE_BLESSINGS` in player.js) — permanent
 - `Game.state.maxFloorReached` → ab Floor 5 Stockwerkauswahl in 5er-Schritten (`unlockedFloors`)
+- Level-Up-Picks: Bei jedem Level-Up wählt der Spieler 1 von 3 zufälligen Upgrades (Stats, Heals, Ability-CDR, Perks)
+- Town-Hall-Boni: Lv2 → +2 DEF/Run, Lv3 → +20 Max HP/Run; Smithy-Level → ATK-Bonus/Run
+- Barracks-Intel: Lv2 → Enemy-HP-Bars + Namen, Lv3 → ATK-Werte sichtbar
+- Weapon Evolution: Smithy Lv2+ erlaubt Waffen-Tier-Upgrade gegen Gold + Iron
 
 ### Tile-IDs (Referenz)
 ```
 VOID=0, WALL=1, FLOOR=2, DOOR=3, STAIRS_DOWN=4, STAIRS_UP=5,
 WATER=6, CHEST=7, SHRINE=8, MERCHANT=9, CURSED_CHEST=10,
-FOUNTAIN=11, FOUNTAIN_DRY=12, PRISONER=13
+FOUNTAIN=11, FOUNTAIN_DRY=12, PRISONER=13, ARENA_WALL=14, PILLAR=15
 ```
 
 ---
 
 ## Aktueller Fokus
 
-**Status:** PROTOTYPE — Kampfgefühl, Pacing und Polish sind abgeschlossen. Nächster Schritt: Boss-Arenen und strategische Tiefe.
+**Status:** VERTICAL SLICE COMPLETE — Alle 5 Milestones der ersten Roadmap sind umgesetzt. Nächster Schritt: Neuer Masterplan (MASTERPLAN.md) für den Weg zum Alpha-Release.
 
 ### Vision
 
 DungeonTown ist ein 15-Minuten-Run Dungeon Crawler bei dem jeder Tod stärker macht. Hades meets Moonlighter — tight Combat, meaningful Deaths, eine Stadt die wächst weil man stirbt.
 
-### Roadmap (5 Milestones, priorisiert nach Game-Feel-Impact)
+### Abgeschlossen (Roadmap v1)
+- **M1 "The Arena"**: Arena-Räume, Boss-Phasensystem (3 Phasen), Arena-Sealing, Orc Chief Ground Slam, Victory Fanfare + Jingle
+- **M2 "Dangerous Rooms"**: Pillars (40%), Water Patches (25%), Intentional Enemy Placement, Mixed Groups ab Floor 3, Narrow Corridors (50%)
+- **M3 "Choices Every Minute"**: Level-Up-Picks (1 of 3), 80% Altar-Chance, Guaranteed Merchant ab Floor 3, Altar-Choice-System
+- **M4 "The Town Remembers"**: Weapon Evolution (Smithy Lv2+), Barracks Enemy-Intel, 5 Floor-Themes, Town-Hall-Run-Boni
+- **M5 "More to Fight"**: Elite-Gegner (ab Floor 8), Cursed Knight (F10, Blink), Stone Golem (F20, Tremor), 4 Boss-Loot-Items
+- **Fundament**: Kampfgefühl (Screenshake, Hitstop, Knockback, Kill-FX), Gegner-Verhalten (6 einzigartige KIs), Village-Streamlining (Quick-Reenter), Korridore, Polish, Audio
 
-**Milestone 1: "The Arena" (NÄCHSTER SCHRITT)**
-Floor-5-Boss wird Multi-Phasen Arena-Fight. Arena-Raum (12×10), Türen versiegeln sich, Boss hat 3 Phasen (66%/33% HP), Victory-Fanfare.
-- Changes: Arena-Raumgeneration (`dungeon.js`), Arena-Sealing (`dungeonScene.js`), Boss-Phasensystem (`enemies.js`), Orc-Chief-Phasen, Phase-Visuals (`spriteRenderer.js`, `combat.js`), Victory-Fanfare (`audio.js`)
-- Erfolgskriterium: "Der Floor-5-Boss hat mich getötet, aber ich weiß was ich falsch gemacht habe und will es nochmal versuchen."
-
-**Milestone 2: "Dangerous Rooms"**
-Jeder Raum in Floors 1-5 erfordert Positionierung. Pillar-Cover, Wasser-Slowdown, gemischte Gegnergruppen, 1-Tile-Korridore.
-- Changes: Terrain-Features in Räumen (`dungeon.js`, `tileRenderer.js`), intentionales Enemy-Placement, Mixed Groups ab Floor 3, schmale Korridore
-- Erfolgskriterium: "Ich musste überlegen WO ich kämpfe, nicht nur WANN ich angreife."
-
-**Milestone 3: "Choices Every Minute"**
-Spieler trifft alle 60-90 Sekunden eine Entscheidung. Level-Up = Pick 1 of 3 statt Stat-Punkte. Mehr Altäre (80%), garantierter Merchant ab Floor 3.
-- Changes: Level-Up-Picks (`player.js`, `dungeonScene.js`, `uiRenderer.js`), Altar-Frequenz, garantierter Merchant + Ability-Runes
-- Erfolgskriterium: "Ich will nochmal spielen um andere Upgrade-Picks zu probieren."
-
-**Milestone 4: "The Town Remembers"**
-Jedes Town-Upgrade verändert sichtbar den Dungeon. Smithy Lv2 → Waffen-Evolution, Barracks → Enemy-Intel, Town Hall → Floor-Themes, Specialist-Shops live.
-- Changes: Weapon Evolution (`village.js`, `items.js`), Enemy Intel (`spriteRenderer.js`), Floor-Themes (`dungeon.js`, `tileRenderer.js`), Specialist-Shops (`villageScene.js`)
-- Erfolgskriterium: "Ich upgrade Gebäude weil sie meine Dungeon-Runs besser machen."
-
-**Milestone 5: "More to Fight"**
-Floors 10-25 fühlen sich anders an als 1-9. Elite-Gegner ab Floor 8, Floor-10-Boss (Cursed Knight), Floor-15-Boss (Stone Golem), Unique Boss Loot.
-- Changes: Elite-Varianten (`enemies.js`), 2 neue Boss-Phasen-Designs, Projektil-System, Boss-Loot-Tabelle (`items.js`)
-- Erfolgskriterium: "Ich will tiefer pushen um zu sehen was der nächste Boss kann."
-
-### Abgeschlossen
-- Kampfgefühl: Screenshake, Hitstop, Enemy-Flash, Slash-Arc, Attack-Sound, Knockback, Kill-FX
-- Gegner-Dichte: Kleinere Maps, mehr Enemies, Cluster-Spawns, schnelleres Movement, größerer Aggro-Radius
-- Village-Streamlining: Quick-Reenter, Dungeon-Entrance-Glow, Soul-Shard-Drops vor Floor 5
-- Gegner-Verhalten: Bat erratisch, Skeleton Block, Orc Charge, Demon Blink, Dragon Breath, Telegraphing
-- Korridore & Progression: Kürzere Korridore, Corridor-Enemies, Level-skalierender Slash-Arc, Power-Aura
-- Polish: Kill-Sound, Loot-Glow, Smithy-Preise, Floor-abhängige Musik
-- Fundament: Soul & Death Loop, Interlocking Loops, Sprites, Asset-Loader, Escape-Summary, Audio-SFX
+### Bekannte Lücken
+- 5 Specialist-Shops definiert aber nicht interaktiv
+- Floor-Themes ändern nur Farben, keine Gameplay-Mechaniken (keine Hazard-Tiles)
+- Orc Chief hat kein Summon-Minions-Pattern (nur Ground Slam)
+- Kein Projektil-System (Stone Golem nutzt Tremor-AoE statt Projectile)
+- Stone Golem hat kein Split-Mechanic (nur Armor-Up in Phase 3)
+- Ground Slam hat keine Boden-Warnungs-Tiles (nur Floating Text)
+- Fehlende SFX: Skeleton-Block, Demon-Blink, Dragon-Breath
 
 ---
 
