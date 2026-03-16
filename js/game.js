@@ -56,9 +56,9 @@ const Game = {
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
             const aspect = window.innerWidth / window.innerHeight;
             if (aspect > 1.2) {
-                // Fewer rows = bigger tiles on screen (~36% zoom vs 18 rows)
-                viewRows = 12;
-                const canvasH = viewRows * 32 + 144; // 528
+                // Fewer rows = bigger tiles on screen
+                viewRows = 8;
+                const canvasH = viewRows * 32 + 144; // 400
                 viewCols = Math.ceil(canvasH * aspect / 32);
                 viewCols = Math.max(25, Math.min(50, viewCols));
             }
