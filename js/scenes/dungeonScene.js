@@ -1244,7 +1244,7 @@ const DungeonScene = {
                     for (const st of warn.tiles) {
                         const sx = (st.x - this.viewX) * 32;
                         const sy = (st.y - this.viewY) * 32;
-                        if (sx >= 0 && sx < ctx.canvas.width && sy >= 0 && sy < 576) {
+                        if (sx >= 0 && sx < ctx.canvas.width && sy >= 0 && sy < (ctx.canvas.height - 144)) {
                             ctx.fillRect(sx, sy, 32, 32);
                         }
                     }
@@ -1282,7 +1282,7 @@ const DungeonScene = {
             for (const ghost of Abilities._dashGhosts) {
                 const gx = (ghost.x - this.viewX) * 32;
                 const gy = (ghost.y - this.viewY) * 32;
-                if (gx >= 0 && gx < ctx.canvas.width && gy >= 0 && gy < 576) {
+                if (gx >= 0 && gx < ctx.canvas.width && gy >= 0 && gy < (ctx.canvas.height - 144)) {
                     ctx.save();
                     ctx.globalAlpha = ghost.alpha * 0.35;
                     ctx.fillStyle = '#44aaff';
@@ -1420,7 +1420,7 @@ const DungeonScene = {
             ctx.textAlign = 'right';
             ctx.shadowColor = '#000';
             ctx.shadowBlur = 3;
-            ctx.fillText(`× ${this._killStreak} KILLS`, 790, 28);
+            ctx.fillText(`× ${this._killStreak} KILLS`, ctx.canvas.width - 10, 28);
             ctx.textAlign = 'left';
             ctx.shadowBlur = 0;
             ctx.restore();
@@ -1725,57 +1725,7 @@ const DungeonScene = {
 
         // ── Level-up pick overlay ──
         if (this.mode === 'levelUpPick' && this._levelUpPicks) {
-            const ctx = r.getCtx();
-            const cw = ctx.canvas.width;
-            const ch = ctx.canvas.height;
-            // Dim background
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, 0, cw, ch);
-            // Panel
-            const pw = 400, ph = 240;
-            const px = Math.floor((cw - pw) / 2);
-            const py = Math.floor((ch - ph) / 2);
-            ctx.fillStyle = '#0a0a1a';
-            ctx.strokeStyle = '#ffd700';
-            ctx.lineWidth = 2;
-            ctx.fillRect(px, py, pw, ph);
-            ctx.strokeRect(px, py, pw, ph);
-            // Title
-            ctx.fillStyle = '#ffd700';
-            ctx.font = 'bold 16px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('★ LEVEL UP! ★', px + pw / 2, py + 28);
-            ctx.font = '12px monospace';
-            ctx.fillStyle = '#aaa';
-            ctx.fillText('Choose an upgrade:', px + pw / 2, py + 48);
-            // Options
-            for (let i = 0; i < 3; i++) {
-                const pick = this._levelUpPicks[i];
-                const oy = py + 70 + i * 52;
-                const selected = i === this._levelUpPickIndex;
-                // Option background
-                ctx.fillStyle = selected ? '#1a1a30' : '#0d0d18';
-                ctx.strokeStyle = selected ? pick.color : '#333';
-                ctx.lineWidth = selected ? 2 : 1;
-                ctx.fillRect(px + 16, oy, pw - 32, 44);
-                ctx.strokeRect(px + 16, oy, pw - 32, 44);
-                // Label
-                ctx.fillStyle = selected ? pick.color : '#888';
-                ctx.font = selected ? 'bold 14px monospace' : '14px monospace';
-                ctx.textAlign = 'left';
-                const marker = selected ? '▸ ' : '  ';
-                ctx.fillText(marker + pick.label, px + 28, oy + 18);
-                // Description
-                ctx.fillStyle = selected ? '#ccc' : '#555';
-                ctx.font = '11px monospace';
-                ctx.fillText('  ' + pick.desc, px + 28, oy + 36);
-            }
-            // Hint
-            ctx.fillStyle = '#555';
-            ctx.font = '11px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('[W/S] Choose  [Enter] Select', px + pw / 2, py + ph - 14);
-            ctx.textAlign = 'left';
+            r.drawLevelUpPicks(this._levelUpPicks, this._levelUpPickIndex);
         }
 
         // ── Escape confirmation overlay ──

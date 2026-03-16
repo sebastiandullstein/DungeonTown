@@ -50,18 +50,20 @@ const Game = {
         // Load all sprite/image assets (shows loading screen)
         await Assets.loadAll(canvas);
 
-        // On touch devices in landscape, widen viewport to fill screen
+        // On touch devices in landscape, reduce rows for zoom + widen to fill screen
         let viewCols = 25;
+        let viewRows = 18;
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
             const aspect = window.innerWidth / window.innerHeight;
             if (aspect > 1.2) {
-                // Match screen aspect ratio: canvas.width / canvas.height = aspect
-                // canvas.height = 18*32 + 144 = 720, so width = 720 * aspect
-                viewCols = Math.ceil(720 * aspect / 32);
+                // Fewer rows = bigger tiles on screen (~36% zoom vs 18 rows)
+                viewRows = 12;
+                const canvasH = viewRows * 32 + 144; // 528
+                viewCols = Math.ceil(canvasH * aspect / 32);
                 viewCols = Math.max(25, Math.min(50, viewCols));
             }
         }
-        this.renderer = new Renderer(canvas, viewCols, 18);
+        this.renderer = new Renderer(canvas, viewCols, viewRows);
         Input.init(canvas);
         canvas.focus();
 

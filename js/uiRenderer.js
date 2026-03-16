@@ -210,10 +210,10 @@ const UIRenderer = {
     },
 
     drawHUD(ctx, player, currentFloor, mapTile, gold, time = 0) {
-        const HY = 576, W = ctx.canvas.width;
+        const HY = ctx.canvas.height - 144, W = ctx.canvas.width;
 
         // Sprite-based HUD background
-        Assets.drawImage(ctx, 'hud_bg', 0, 576, W, 144);
+        Assets.drawImage(ctx, 'hud_bg', 0, HY, W, 144);
 
         // Panel background (wood grain)
         const bgGrad = ctx.createLinearGradient(0, HY, 0, HY + 144);
@@ -300,11 +300,12 @@ const UIRenderer = {
         ctx.shadowBlur = 4;
         ctx.font = 'bold 12px "Courier New"';
         ctx.textAlign = 'left';
-        ctx.fillText(`Floor ${currentFloor}`, 610, HY + 21);
+        const floorX = Math.min(610, W - 200);
+        ctx.fillText(`Floor ${currentFloor}`, floorX, HY + 21);
         ctx.shadowBlur = 0;
         ctx.fillStyle = thLv >= 2 ? themeColor : '#2a7878';
         ctx.font = '9px "Courier New"';
-        ctx.fillText(this._getFloorName(currentFloor), 610, HY + 33);
+        ctx.fillText(this._getFloorName(currentFloor), floorX, HY + 33);
         ctx.textAlign = 'left';
 
         // ── Row B: Weapon / stats / gold ──
@@ -461,7 +462,8 @@ const UIRenderer = {
 
     drawCombatLog(ctx, combatLog) {
         if (!combatLog || combatLog.length === 0) return;
-        const LX = 604, LY = 8, LW = 190, LH = 148;
+        const LW = 190, LH = 148;
+        const LX = ctx.canvas.width - LW - 6, LY = 8;
 
         // Parchment-dark background with subtle border
         ctx.save();
@@ -527,7 +529,9 @@ const UIRenderer = {
     // ─── MINIMAP ─────────────────────────────────────────────────────────────
 
     drawMinimap(ctx, dungeonMap, playerX, playerY) {
-        const MX = 610, MY = 580, MW = 184, MH = 134;
+        const W = ctx.canvas.width, HY = ctx.canvas.height - 144;
+        const MW = 184, MH = 134;
+        const MX = W - MW - 6, MY = HY + 4;
 
         // Parchment background
         ctx.save();
@@ -970,7 +974,7 @@ const UIRenderer = {
     // ─── VILLAGE HUD ─────────────────────────────────────────────────────────
 
     drawVillageHUD(ctx, village, player) {
-        const HY = 576, W = ctx.canvas.width;
+        const HY = ctx.canvas.height - 144, W = ctx.canvas.width;
 
         // Background — same wood strip as dungeon HUD
         const bgGrad = ctx.createLinearGradient(0, HY, 0, HY + 144);
@@ -2554,6 +2558,61 @@ const UIRenderer = {
 
     // ─── TUTORIAL HINT ──────────────────────────────────────────────────────────
 
+    drawLevelUpPicks(ctx, picks, selectedIndex) {
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
+        const gameH = ch - 144;
+        // Dim background
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, cw, ch);
+        // Panel sized to game area
+        const pw = Math.min(420, cw - 40);
+        const ph = Math.min(260, gameH - 20);
+        const px = Math.floor((cw - pw) / 2);
+        const py = Math.floor((gameH - ph) / 2);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeRect(px, py, pw, ph);
+        // Title
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('\u2605 LEVEL UP! \u2605', px + pw / 2, py + 28);
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#aaa';
+        ctx.fillText('Choose an upgrade:', px + pw / 2, py + 48);
+        // Options — distribute evenly in remaining space
+        const optAreaY = py + 60;
+        const optAreaH = ph - 80;
+        const optH = Math.floor(optAreaH / 3);
+        for (let i = 0; i < 3; i++) {
+            const pick = picks[i];
+            const oy = optAreaY + i * optH;
+            const oH = optH - 6;
+            const selected = i === selectedIndex;
+            ctx.fillStyle = selected ? '#1a1a30' : '#0d0d18';
+            ctx.strokeStyle = selected ? pick.color : '#333';
+            ctx.lineWidth = selected ? 2 : 1;
+            ctx.fillRect(px + 16, oy, pw - 32, oH);
+            ctx.strokeRect(px + 16, oy, pw - 32, oH);
+            ctx.fillStyle = selected ? pick.color : '#888';
+            ctx.font = selected ? 'bold 14px monospace' : '14px monospace';
+            ctx.textAlign = 'left';
+            const marker = selected ? '\u25b8 ' : '  ';
+            ctx.fillText(marker + pick.label, px + 28, oy + Math.floor(oH * 0.4));
+            ctx.fillStyle = selected ? '#ccc' : '#555';
+            ctx.font = '11px monospace';
+            ctx.fillText('  ' + pick.desc, px + 28, oy + Math.floor(oH * 0.75));
+        }
+        // Hint
+        ctx.fillStyle = '#555';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[W/S] Choose  [Enter] Select', px + pw / 2, py + ph - 10);
+        ctx.textAlign = 'left';
+    },
+
     drawTutorialHint(ctx, text, alpha) {
         if (alpha <= 0) return;
         ctx.save();
@@ -2572,7 +2631,7 @@ const UIRenderer = {
         ctx.fillStyle = '#ffd850';
         ctx.font = '13px "Courier New"';
         ctx.textAlign = 'center';
-        ctx.fillText(text, 400, y + 20);
+        ctx.fillText(text, ctx.canvas.width / 2, y + 20);
         ctx.textAlign = 'left';
         ctx.restore();
     },

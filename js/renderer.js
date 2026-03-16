@@ -336,6 +336,10 @@ class Renderer {
         UIRenderer.drawPrisonerPanel(this._uiLayer.ctx, selectedIndex);
     }
 
+    drawLevelUpPicks(picks, selectedIndex) {
+        UIRenderer.drawLevelUpPicks(this._uiLayer.ctx, picks, selectedIndex);
+    }
+
     drawPauseMenu(selectedIndex, options) {
         UIRenderer.drawPauseMenu(this._uiLayer.ctx, selectedIndex, options);
     }
