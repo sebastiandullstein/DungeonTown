@@ -531,7 +531,7 @@ const VillageScene = {
             this._quickReenterTimer -= dt;
             if (this._quickReenterTimer <= 0) {
                 this._quickReenter = false;
-            } else if (Input.wasPressed('r') || Input.wasPressed('R')) {
+            } else if (Input.wasPressed('r') || Input.wasPressed('R') || (Input._isTouchDevice && Input.mouse.clicked)) {
                 this._quickReenter = false;
                 this._enterDungeon();
                 return;

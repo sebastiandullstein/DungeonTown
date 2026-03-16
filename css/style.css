@@ -3,16 +3,25 @@
 body {
     background: #0a0a0a;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
     overflow: hidden;
     font-family: 'Courier New', monospace;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 #gameCanvas {
     border: 2px solid #333;
     cursor: default;
+    max-width: 100vw;
+    max-height: 100vh;
+    max-height: 100dvh;
 }
 
 #gameCanvas:focus {
@@ -28,3 +37,113 @@ body {
     height: 100vh;
     object-fit: contain;
 }
+
+/* ── Mobile Touch Controls ─────────────────────────────────────── */
+#touchControls {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Show touch controls only on touch devices */
+@media (pointer: coarse) {
+    #gameCanvas {
+        border: none;
+        width: 100vw;
+        height: 60dvh;
+        object-fit: contain;
+    }
+
+    #touchControls {
+        display: block;
+    }
+}
+
+.touch-btn {
+    position: absolute;
+    pointer-events: auto;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.05s;
+}
+
+.touch-btn.active {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* D-Pad */
+.touch-dpad {
+    position: absolute;
+    bottom: 8dvh;
+    left: 5vw;
+    width: 44vw;
+    height: 44vw;
+    max-width: 200px;
+    max-height: 200px;
+    pointer-events: auto;
+}
+
+/* Action buttons (right side) */
+.touch-btn-attack {
+    bottom: 12dvh;
+    right: 8vw;
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 80, 80, 0.3);
+    border: 2px solid rgba(255, 80, 80, 0.5);
+    font-size: 14px;
+}
+
+.touch-btn-dash {
+    bottom: 22dvh;
+    right: 24vw;
+    width: 54px;
+    height: 54px;
+    background: rgba(80, 180, 255, 0.3);
+    border: 2px solid rgba(80, 180, 255, 0.5);
+    font-size: 11px;
+}
+
+.touch-btn-q {
+    bottom: 28dvh;
+    right: 8vw;
+    width: 54px;
+    height: 54px;
+    background: rgba(255, 140, 220, 0.3);
+    border: 2px solid rgba(255, 140, 220, 0.5);
+    font-size: 11px;
+}
+
+.touch-btn-e {
+    bottom: 4dvh;
+    right: 24vw;
+    width: 54px;
+    height: 54px;
+    background: rgba(255, 200, 60, 0.3);
+    border: 2px solid rgba(255, 200, 60, 0.5);
+    font-size: 11px;
+}
+
+/* Small utility buttons (top area) */
+.touch-btn-sm {
+    width: 40px;
+    height: 40px;
+    background: rgba(100, 100, 100, 0.3);
+    border: 2px solid rgba(100, 100, 100, 0.5);
+    font-size: 10px;
+}
+
+.touch-btn-inv { top: 2dvh; right: 8vw; }
+.touch-btn-char { top: 2dvh; right: 22vw; }
+.touch-btn-esc { top: 2dvh; left: 4vw; }
+.touch-btn-pot1 { bottom: 4dvh; left: 50%; margin-left: -60px; }
+.touch-btn-pot2 { bottom: 4dvh; left: 50%; margin-left: 0px; }
