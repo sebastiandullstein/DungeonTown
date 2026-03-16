@@ -1,3 +1,27 @@
+// Boss Loot Table — unique items dropped by major bosses
+const BOSS_LOOT = {
+    cursedKnightSword: {
+        name: 'Cursed Blade', _category: 'weapons',
+        stats: { atk: 12 }, tier: 3, char: '/', fg: '#8888ff', value: 200,
+        description: 'A blade wreathed in spectral flame. ATK +12',
+    },
+    golemShield: {
+        name: 'Golem Core Shield', _category: 'armors',
+        stats: { def: 10 }, tier: 4, char: '[', fg: '#ccaa88', value: 280,
+        description: 'Impossibly dense stone armor. DEF +10',
+    },
+    dragonFang: {
+        name: 'Shadow Fang', _category: 'weapons',
+        stats: { atk: 22 }, tier: 6, char: '/', fg: '#cc44ff', value: 520,
+        description: 'Drips with shadow essence. ATK +22',
+    },
+    titanHeart: {
+        name: 'Titan Heart Amulet', _category: 'amulets',
+        stats: { hp: 50, def: 4 }, tier: 2, char: '"', fg: '#ff4444', value: 400,
+        description: 'Pulses with chaotic energy. HP +50, DEF +4',
+    },
+};
+
 // Enemy Types and AI
 const EnemyTypes = {
     types: {
@@ -81,27 +105,18 @@ const EnemyTypes = {
             ],
         },
         {
-            name: 'Cursed Knight', char: 'K', fg: '#88f', bg: null,
-            hp: 130, atk: 18, def: 9, speed: 0.9,
-            xp: 120, detection: 7, minFloor: 15, isBoss: true,
+            name: 'Dark Sorcerer', char: 'S', fg: '#c060ff', bg: null,
+            hp: 160, atk: 20, def: 8, speed: 0.8,
+            xp: 150, detection: 10, minFloor: 15, isBoss: true,
             loot: [
-                { type: 'gold', chance: 1.0, min: 60, max: 120 },
-                { type: 'resource', chance: 0.6, resource: 'iron', min: 4, max: 8 },
-            ],
-        },
-        {
-            name: 'Stone Golem', char: 'G', fg: '#aaa', bg: null,
-            hp: 200, atk: 22, def: 14, speed: 1.3,
-            xp: 180, detection: 5, minFloor: 25, isBoss: true,
-            loot: [
-                { type: 'gold', chance: 1.0, min: 90, max: 160 },
-                { type: 'resource', chance: 0.8, resource: 'iron', min: 6, max: 12 },
+                { type: 'gold', chance: 1.0, min: 70, max: 130 },
+                { type: 'resource', chance: 0.6, resource: 'herbs', min: 5, max: 10 },
             ],
         },
         {
             name: 'Lich', char: 'L', fg: '#c0f', bg: null,
             hp: 260, atk: 28, def: 10, speed: 0.8,
-            xp: 250, detection: 10, minFloor: 35, isBoss: true,
+            xp: 250, detection: 10, minFloor: 25, isBoss: true,
             loot: [
                 { type: 'gold', chance: 1.0, min: 130, max: 220 },
                 { type: 'resource', chance: 0.9, resource: 'herbs', min: 8, max: 14 },
@@ -110,10 +125,19 @@ const EnemyTypes = {
         {
             name: 'Inferno Drake', char: 'W', fg: '#ff2200', bg: null,
             hp: 340, atk: 34, def: 16, speed: 1.0,
-            xp: 350, detection: 9, minFloor: 45, isBoss: true,
+            xp: 350, detection: 9, minFloor: 35, isBoss: true,
             loot: [
                 { type: 'gold', chance: 1.0, min: 180, max: 300 },
                 { type: 'resource', chance: 1.0, resource: 'iron', min: 10, max: 18 },
+            ],
+        },
+        {
+            name: 'Pit Fiend', char: 'F', fg: '#ff4400', bg: null,
+            hp: 400, atk: 38, def: 18, speed: 0.9,
+            xp: 420, detection: 10, minFloor: 45, isBoss: true,
+            loot: [
+                { type: 'gold', chance: 1.0, min: 220, max: 380 },
+                { type: 'resource', chance: 1.0, resource: 'iron', min: 12, max: 20 },
             ],
         },
     ],
@@ -121,42 +145,48 @@ const EnemyTypes = {
     // Major boss types — every 10th floor
     majorBosses: [
         {
-            name: 'Warlord Grak', char: 'W', fg: '#f80', bg: null,
-            hp: 220, atk: 20, def: 12, speed: 1.0,
-            xp: 200, detection: 8, minFloor: 10, isBoss: true, isMajorBoss: true,
+            name: 'Cursed Knight', char: 'K', fg: '#8888ff', bg: null,
+            hp: 240, atk: 20, def: 14, speed: 0.8,
+            xp: 220, detection: 8, minFloor: 10, isBoss: true, isMajorBoss: true,
+            bossType: 'cursedKnight',
             loot: [
                 { type: 'gold', chance: 1.0, min: 80, max: 150 },
-                { type: 'resource', chance: 1.0, resource: 'iron', min: 6, max: 10 },
+                { type: 'resource', chance: 1.0, resource: 'iron', min: 8, max: 14 },
             ],
+            bossLoot: 'cursedKnightSword',
         },
         {
-            name: 'Vampire Lord', char: 'V', fg: '#c00', bg: null,
-            hp: 320, atk: 26, def: 14, speed: 0.7,
-            xp: 320, detection: 10, minFloor: 20, isBoss: true, isMajorBoss: true,
+            name: 'Stone Golem', char: 'G', fg: '#ccaa88', bg: null,
+            hp: 400, atk: 24, def: 20, speed: 1.4,
+            xp: 350, detection: 6, minFloor: 20, isBoss: true, isMajorBoss: true,
+            bossType: 'stoneGolem',
             loot: [
-                { type: 'gold', chance: 1.0, min: 130, max: 230 },
-                { type: 'resource', chance: 1.0, resource: 'herbs', min: 10, max: 16 },
+                { type: 'gold', chance: 1.0, min: 140, max: 250 },
+                { type: 'resource', chance: 1.0, resource: 'iron', min: 12, max: 20 },
             ],
+            bossLoot: 'golemShield',
         },
         {
             name: 'Shadow Dragon', char: 'W', fg: '#606', bg: null,
-            hp: 450, atk: 32, def: 18, speed: 1.1,
+            hp: 500, atk: 32, def: 18, speed: 1.1,
             xp: 480, detection: 10, minFloor: 30, isBoss: true, isMajorBoss: true,
             loot: [
                 { type: 'gold', chance: 1.0, min: 200, max: 350 },
                 { type: 'resource', chance: 1.0, resource: 'iron', min: 12, max: 20 },
                 { type: 'resource', chance: 0.8, resource: 'herbs', min: 8, max: 14 },
             ],
+            bossLoot: 'dragonFang',
         },
         {
             name: 'Chaos Titan', char: 'T', fg: '#f44', bg: null,
-            hp: 600, atk: 40, def: 22, speed: 1.2,
+            hp: 700, atk: 40, def: 22, speed: 1.2,
             xp: 700, detection: 9, minFloor: 40, isBoss: true, isMajorBoss: true,
             loot: [
                 { type: 'gold', chance: 1.0, min: 300, max: 500 },
                 { type: 'resource', chance: 1.0, resource: 'iron', min: 15, max: 25 },
                 { type: 'resource', chance: 1.0, resource: 'herbs', min: 12, max: 20 },
             ],
+            bossLoot: 'titanHeart',
         },
     ],
 
@@ -197,29 +227,33 @@ const EnemyTypes = {
 };
 
 class Enemy {
-    static create(x, y, type) {
+    static create(x, y, type, isElite) {
         // Bosses do not scale with floor — they are pre-tuned
         const isBoss = type.isBoss || false;
         const floorScale = isBoss ? 1.0 : 1 + (Game.state.currentFloor - type.minFloor) * 0.1;
+        const eliteMult = isElite ? 1.8 : 1.0;
         // Normalize name to simple key for sprite dispatch (take first word, lowercase)
         const typeKey = type.name.split(' ')[0].toLowerCase();
         return {
             x, y,
             type: typeKey,
-            name: type.name,
+            name: isElite ? `Elite ${type.name}` : type.name,
             char: type.char,
-            fg: type.fg,
-            hp: Math.floor(type.hp * floorScale),
-            maxHp: Math.floor(type.hp * floorScale),
-            atk: Math.floor(type.atk * floorScale),
-            def: Math.floor(type.def * floorScale),
-            speed: type.speed,
-            xp: Math.floor(type.xp * floorScale),
-            detection: type.detection,
+            fg: isElite ? '#ffcc00' : type.fg,
+            hp: Math.floor(type.hp * floorScale * eliteMult),
+            maxHp: Math.floor(type.hp * floorScale * eliteMult),
+            atk: Math.floor(type.atk * floorScale * (isElite ? 1.4 : 1.0)),
+            def: Math.floor(type.def * floorScale * (isElite ? 1.3 : 1.0)),
+            speed: isElite ? type.speed * 0.85 : type.speed,
+            xp: Math.floor(type.xp * floorScale * (isElite ? 2.5 : 1.0)),
+            detection: type.detection + (isElite ? 2 : 0),
             loot: type.loot,
+            isElite: isElite || false,
             isBoss: isBoss,
             isMajorBoss: type.isMajorBoss || false,
             isFinalBoss: type.isFinalBoss || false,
+            bossType: type.bossType || null,
+            bossLoot: type.bossLoot || null,
             attackDelay: isBoss ? 1.2 : 0.8,
             state: 'idle',
             moveTimer: 0,
@@ -254,7 +288,10 @@ class Enemy {
 
     static spawn(floor, x, y) {
         const type = EnemyTypes.getForFloor(floor);
-        return Enemy.create(x, y, type);
+        // Elite chance: 15% from Floor 8+, 25% from Floor 15+
+        const eliteChance = floor >= 15 ? 0.25 : floor >= 8 ? 0.15 : 0;
+        const isElite = eliteChance > 0 && Math.random() < eliteChance;
+        return Enemy.create(x, y, type, isElite);
     }
 
     static update(enemy, dt, dungeonMap, player) {
@@ -438,6 +475,70 @@ class Enemy {
                     enemy.telegraphTimer = 0.6;
                     Combat.addFloatingText(enemy.x, enemy.y, '!SLAM!', '#ff6600');
                     return;
+                }
+            }
+
+            // ── Cursed Knight: spectral dash (Phase 2+) ──
+            if (enemy.bossType === 'cursedKnight' && enemy.bossPhase >= 2) {
+                enemy._blinkTimer = (enemy._blinkTimer || 3.0) - dt;
+                if (enemy._blinkTimer <= 0) {
+                    enemy._blinkTimer = enemy.bossPhase >= 3 ? 2.0 : 3.0;
+                    // Teleport behind the player
+                    const behindX = player.x + (player.x > enemy.x ? 1 : -1);
+                    const behindY = player.y + (player.y > enemy.y ? 1 : -1);
+                    if (dungeonMap.isWalkable(behindX, behindY)) {
+                        // Flash at old position
+                        Combat.addHitParticles(enemy.x, enemy.y, '#8888ff');
+                        enemy.x = behindX;
+                        enemy.y = behindY;
+                        Combat.addHitParticles(enemy.x, enemy.y, '#8888ff');
+                        Combat.addFloatingText(enemy.x, enemy.y, 'BLINK!', '#8888ff');
+                        Audio.play('dash');
+                        // Immediate attack after blink
+                        enemy.attackTimer = 0;
+                        enemy.state = 'attack';
+                    }
+                }
+            }
+
+            // ── Stone Golem: tremor wave (Phase 2+) ──
+            if (enemy.bossType === 'stoneGolem' && enemy.bossPhase >= 2) {
+                enemy._tremorTimer = (enemy._tremorTimer || 5.0) - dt;
+                if (enemy._tremorTimer <= 0) {
+                    enemy._tremorTimer = enemy.bossPhase >= 3 ? 3.5 : 5.0;
+                    // Tremor: damage in a cross pattern (3 tiles each direction)
+                    const tremorTiles = [];
+                    for (let d = 1; d <= 3; d++) {
+                        tremorTiles.push({ x: enemy.x + d, y: enemy.y });
+                        tremorTiles.push({ x: enemy.x - d, y: enemy.y });
+                        tremorTiles.push({ x: enemy.x, y: enemy.y + d });
+                        tremorTiles.push({ x: enemy.x, y: enemy.y - d });
+                    }
+                    for (const st of tremorTiles) {
+                        Combat.addHitParticles(st.x, st.y, '#ccaa88');
+                        if (player.x === st.x && player.y === st.y) {
+                            const damage = player.takeDamage(Math.floor(enemy.atk * 0.8));
+                            if (damage > 0) {
+                                if (Game.state.runStats) {
+                                    Game.state.runStats.damageTaken += damage;
+                                    Game.state.runStats.deathCause = enemy.name;
+                                }
+                                Audio.play('playerHurt');
+                                Combat.addFloatingText(player.x, player.y, `-${damage} TREMOR!`, '#ccaa88');
+                                Game.renderer.shake(8, 0.3);
+                            }
+                        }
+                    }
+                    Combat.addFloatingText(enemy.x, enemy.y, 'TREMOR!', '#ccaa88');
+                    Audio.play('dragonBreath');
+                    Game.renderer.shake(6, 0.4);
+                }
+                // Phase 3: Stone Golem gets +50% DEF (armor up)
+                if (enemy.bossPhase >= 3 && !enemy._armoredUp) {
+                    enemy._armoredUp = true;
+                    enemy.def = Math.floor(enemy.def * 1.5);
+                    Combat.addFloatingText(enemy.x, enemy.y, 'ARMOR UP!', '#aaaaaa');
+                    Game.renderer.shake(4, 0.2);
                 }
             }
 
@@ -824,6 +925,33 @@ class Enemy {
                 }
             }
         }
+        // Elite enemies drop bonus loot
+        if (enemy.isElite) {
+            const bonusGold = 15 + Math.floor(Math.random() * 30);
+            player.gold = (player.gold || 0) + bonusGold;
+            Game.notify(`+${bonusGold} Elite Gold`, '#ffcc00');
+            // 30% chance for a potion drop
+            if (Math.random() < 0.3 && player.inventory.length < player.maxInventory) {
+                const potion = ItemGenerator.generatePotion(Math.min(4, Math.floor(Game.state.currentFloor / 3)));
+                player.addToInventory(potion);
+                Game.notify(`Elite dropped ${potion.name}!`, '#ff88ff');
+            }
+        }
+
+        // Boss-specific unique loot drops
+        if (enemy.bossLoot && BOSS_LOOT[enemy.bossLoot]) {
+            const lootDef = BOSS_LOOT[enemy.bossLoot];
+            if (player.inventory.length < player.maxInventory) {
+                const item = ItemGenerator.createItem(lootDef, lootDef._category);
+                player.addToInventory(item);
+                Game.notify(`★ ${item.name} dropped! ★`, '#ffd700');
+                Combat.addFloatingText(player.x, player.y, item.name, '#ffd700');
+                Audio.play('chestOpen');
+            } else {
+                Game.notify(`Inventory full! ${lootDef.name} was lost!`, '#ff4444');
+            }
+        }
+
         // Soul Shard drops from bosses
         if (enemy.isBoss) {
             let shards;
