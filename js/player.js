@@ -140,6 +140,8 @@ class Player {
             }
         }
         if (defMult !== 0) def = Math.max(0, Math.floor(def * (1 + defMult)));
+        // Run bonuses (from town buildings)
+        if (this._runBonuses && this._runBonuses.def) def += this._runBonuses.def;
         return def;
     }
 

@@ -699,7 +699,10 @@ const VillageScene = {
         let listLen;
         if (this._panelTab === 0) listLen = items.weapons.length;
         else if (this._panelTab === 1) listLen = items.armors.length;
-        else listLen = 1; // upgrade option
+        else {
+            const smithyB = Game.state.village.getBuilding('smithy');
+            listLen = (smithyB && smithyB.level >= 2) ? 2 : 1; // upgrade + evolution
+        }
 
         if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
             this.selectedOption = Math.max(0, this.selectedOption - 1);
@@ -711,19 +714,49 @@ const VillageScene = {
         if (Input.wasPressed('Enter') || Input.wasPressed(' ')) {
             const player = Game.state.player;
             if (this._panelTab === 2) {
-                // Upgrade weapon
                 const wep = player.equipment.weapon;
                 if (!wep) { Game.notify('No weapon equipped!', '#f00'); return; }
-                const goldCost = 10 + (wep.stats.atk || 0) * 5;
-                const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
                 const village = Game.state.village;
-                if (player.gold < goldCost) { Game.notify(`Need ${goldCost} gold!`, '#f00'); return; }
-                if ((village.resources.iron || 0) < ironCost) { Game.notify(`Need ${ironCost} iron ore!`, '#f00'); return; }
-                player.gold -= goldCost;
-                village.resources.iron -= ironCost;
-                wep.stats.atk = (wep.stats.atk || 0) + 1;
-                wep.name = wep.name.replace(/ \+\d+$/, '') + ` +${wep.stats.atk - 3}`;
-                Game.notify(`Weapon upgraded! ATK +1`, '#0f0');
+                const smithyBuilding = village.getBuilding('smithy');
+                const smithyLevel = smithyBuilding ? smithyBuilding.level : 1;
+
+                if (this.selectedOption === 0) {
+                    // Basic upgrade: +1 ATK
+                    const goldCost = 10 + (wep.stats.atk || 0) * 5;
+                    const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
+                    if (player.gold < goldCost) { Game.notify(`Need ${goldCost} gold!`, '#f00'); return; }
+                    if ((village.resources.iron || 0) < ironCost) { Game.notify(`Need ${ironCost} iron ore!`, '#f00'); return; }
+                    player.gold -= goldCost;
+                    village.resources.iron -= ironCost;
+                    wep.stats.atk = (wep.stats.atk || 0) + 1;
+                    wep.name = wep.name.replace(/ \+\d+$/, '') + ` +${(wep._upgradeCount = (wep._upgradeCount || 0) + 1)}`;
+                    Game.notify(`Weapon upgraded! ATK +1`, '#0f0');
+                    Audio.play('menuSelect');
+                } else if (this.selectedOption === 1 && smithyLevel >= 2) {
+                    // Weapon Evolution: tier up to next weapon
+                    const currentTier = wep.tier || 0;
+                    const maxEvolveTier = smithyLevel >= 3 ? 7 : 4;
+                    if (currentTier >= maxEvolveTier) { Game.notify('Max evolution reached!', '#f80'); return; }
+                    const nextWeapon = ItemDB.weapons.find(w => w.tier === currentTier + 1);
+                    if (!nextWeapon) { Game.notify('No evolution available!', '#f80'); return; }
+                    const goldCost = nextWeapon.value;
+                    const ironCost = 5 + currentTier * 5;
+                    if (player.gold < goldCost) { Game.notify(`Need ${goldCost} gold!`, '#f00'); return; }
+                    if ((village.resources.iron || 0) < ironCost) { Game.notify(`Need ${ironCost} iron!`, '#f00'); return; }
+                    player.gold -= goldCost;
+                    village.resources.iron -= ironCost;
+                    // Preserve upgrade bonuses
+                    const bonusAtk = (wep.stats.atk || 0) - (ItemDB.weapons.find(w => w.tier === currentTier)?.stats.atk || 0);
+                    wep.name = nextWeapon.name + (bonusAtk > 0 ? ` +${bonusAtk}` : '');
+                    wep.stats.atk = nextWeapon.stats.atk + Math.max(0, bonusAtk);
+                    wep.tier = nextWeapon.tier;
+                    wep.char = nextWeapon.char;
+                    wep.fg = nextWeapon.fg;
+                    wep.value = nextWeapon.value;
+                    Game.notify(`Weapon evolved to ${nextWeapon.name}!`, '#ffd700');
+                    Audio.play('levelUp');
+                    Combat.addKillBurst(player.x, player.y, '#ffd700');
+                }
             } else {
                 const list = this._panelTab === 0 ? items.weapons : items.armors;
                 const item = list[this.selectedOption];

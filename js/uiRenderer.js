@@ -188,6 +188,14 @@ const UIRenderer = {
 
     // ─── DUNGEON HUD ─────────────────────────────────────────────────────────
 
+    _getThemeColor(floor) {
+        if (floor <= 10) return '#c8a060'; // stone - warm brown
+        if (floor <= 20) return '#60b0e0'; // frost - icy blue
+        if (floor <= 30) return '#e06030'; // magma - fiery orange
+        if (floor <= 40) return '#a060c0'; // abyss - dark purple
+        return '#80c040'; // infernal - sickly green
+    },
+
     _getFloorName(floor) {
         if (floor <= 5)  return 'The Depths';
         if (floor <= 10) return 'Stone Caverns';
@@ -284,14 +292,17 @@ const UIRenderer = {
         ctx.shadowBlur = 0;
 
         // Floor — atmospheric two-line indicator
-        ctx.fillStyle = '#40b8b8';
-        ctx.shadowColor = '#00ffff';
+        // Town Hall Lv2+: theme-colored floor indicator
+        const thLv = Game.state.village ? (Game.state.village.getBuilding('townhall')?.level || 0) : 0;
+        const themeColor = thLv >= 2 ? this._getThemeColor(currentFloor) : '#40b8b8';
+        ctx.fillStyle = themeColor;
+        ctx.shadowColor = themeColor;
         ctx.shadowBlur = 4;
         ctx.font = 'bold 12px "Courier New"';
         ctx.textAlign = 'left';
         ctx.fillText(`Floor ${currentFloor}`, 610, HY + 21);
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#2a7878';
+        ctx.fillStyle = thLv >= 2 ? themeColor : '#2a7878';
         ctx.font = '9px "Courier New"';
         ctx.fillText(this._getFloorName(currentFloor), 610, HY + 33);
         ctx.textAlign = 'left';
@@ -1709,6 +1720,10 @@ const UIRenderer = {
         } else {
             // Upgrade tab
             const wep = player.equipment.weapon;
+            const village = Game.state.village;
+            const smithyBuilding = village.getBuilding('smithy');
+            const smithyLevel = smithyBuilding ? smithyBuilding.level : 1;
+
             ctx.fillStyle = '#c8a050';
             ctx.font = 'bold 13px "Courier New"';
             ctx.fillText('Upgrade Equipped Weapon', x + 30, listY + 16);
@@ -1719,32 +1734,71 @@ const UIRenderer = {
                 ctx.font = 'italic 12px "Courier New"';
                 ctx.fillText('No weapon equipped.', x + 30, listY + 14);
             } else {
-                const selected = selectedIndex === 0;
-                const goldCost = 10 + (wep.stats.atk || 0) * 5;
-                const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
-                const village = Game.state.village;
-                const canAfford = player.gold >= goldCost && (village.resources.iron || 0) >= ironCost;
-
-                const bg = selected ? '#4a2e10' : '#1e1208';
-                this._roundRect(ctx, x + 20, listY, w - 40, 60, 4);
-                ctx.fillStyle = bg;
-                ctx.fill();
-                ctx.strokeStyle = selected ? '#c8a030' : '#2e1808';
-                ctx.lineWidth = selected ? 2 : 1;
-                ctx.stroke();
-
+                // Current weapon display
                 ctx.fillStyle = wep.fg || '#aaa';
                 ctx.font = 'bold 14px "Courier New"';
-                ctx.fillText(`${wep.name}  (ATK ${wep.stats.atk})`, x + 30, listY + 22);
+                ctx.fillText(`${wep.name}  (ATK ${wep.stats.atk})`, x + 30, listY + 16);
+                listY += 28;
 
-                ctx.fillStyle = '#c8a050';
-                ctx.font = '12px "Courier New"';
-                ctx.fillText(`Upgrade to ATK ${(wep.stats.atk || 0) + 1}`, x + 30, listY + 42);
-
+                // Option 0: Basic upgrade (+1 ATK)
+                const goldCost = 10 + (wep.stats.atk || 0) * 5;
+                const ironCost = 2 + Math.floor((wep.stats.atk || 0) / 2);
+                const canAfford = player.gold >= goldCost && (village.resources.iron || 0) >= ironCost;
+                const sel0 = selectedIndex === 0;
+                this._roundRect(ctx, x + 20, listY, w - 40, 50, 4);
+                ctx.fillStyle = sel0 ? '#4a2e10' : '#1e1208';
+                ctx.fill();
+                ctx.strokeStyle = sel0 ? '#c8a030' : '#2e1808';
+                ctx.lineWidth = sel0 ? 2 : 1;
+                ctx.stroke();
+                ctx.fillStyle = canAfford ? (sel0 ? '#ffd060' : '#ccccaa') : '#5a4a38';
+                ctx.font = sel0 ? 'bold 13px "Courier New"' : '13px "Courier New"';
+                ctx.fillText(`Sharpen: ATK ${wep.stats.atk} → ${(wep.stats.atk || 0) + 1}`, x + 30, listY + 22);
                 ctx.fillStyle = canAfford ? '#ffd020' : '#6a4a20';
+                ctx.font = '11px "Courier New"';
                 ctx.textAlign = 'right';
-                ctx.fillText(`${goldCost}g + ${ironCost} iron`, x + w - 24, listY + 42);
+                ctx.fillText(`${goldCost}g + ${ironCost} iron`, x + w - 24, listY + 40);
                 ctx.textAlign = 'left';
+                listY += 58;
+
+                // Option 1: Weapon Evolution (Smithy Lv2+)
+                if (smithyLevel >= 2) {
+                    const currentTier = wep.tier || 0;
+                    const maxEvolveTier = smithyLevel >= 3 ? 7 : 4;
+                    const nextWeapon = ItemDB.weapons.find(w => w.tier === currentTier + 1);
+                    const canEvolve = nextWeapon && currentTier < maxEvolveTier;
+                    const evoGoldCost = nextWeapon ? nextWeapon.value : 0;
+                    const evoIronCost = 5 + currentTier * 5;
+                    const canAffordEvo = canEvolve && player.gold >= evoGoldCost && (village.resources.iron || 0) >= evoIronCost;
+                    const sel1 = selectedIndex === 1;
+
+                    this._roundRect(ctx, x + 20, listY, w - 40, 50, 4);
+                    ctx.fillStyle = sel1 ? '#2a1040' : '#1a0820';
+                    ctx.fill();
+                    ctx.strokeStyle = sel1 ? '#ffd700' : '#4a2808';
+                    ctx.lineWidth = sel1 ? 2 : 1;
+                    ctx.stroke();
+
+                    if (canEvolve) {
+                        ctx.fillStyle = canAffordEvo ? (sel1 ? '#ffd700' : '#ccaa66') : '#5a4a38';
+                        ctx.font = sel1 ? 'bold 13px "Courier New"' : '13px "Courier New"';
+                        ctx.fillText(`★ Evolve → ${nextWeapon.name} (ATK ${nextWeapon.stats.atk})`, x + 30, listY + 22);
+                        ctx.fillStyle = canAffordEvo ? '#ffd700' : '#6a4a20';
+                        ctx.font = '11px "Courier New"';
+                        ctx.textAlign = 'right';
+                        ctx.fillText(`${evoGoldCost}g + ${evoIronCost} iron`, x + w - 24, listY + 40);
+                        ctx.textAlign = 'left';
+                    } else {
+                        ctx.fillStyle = '#5a4030';
+                        ctx.font = 'italic 12px "Courier New"';
+                        ctx.fillText('Max evolution reached!', x + 30, listY + 28);
+                    }
+                } else {
+                    listY += 10;
+                    ctx.fillStyle = '#4a3020';
+                    ctx.font = 'italic 11px "Courier New"';
+                    ctx.fillText('Upgrade Smithy to Lv2 to unlock Weapon Evolution', x + 30, listY + 14);
+                }
             }
         }
 

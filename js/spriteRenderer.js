@@ -344,16 +344,24 @@ const SpriteRenderer = {
         }
 
         // HP bar at original position (not affected by animation bob)
-        if (enemy.hp > 0 && (enemy.isBoss || enemy.hp < enemy.maxHp)) {
+        // Barracks Lv2+ shows HP bars for all enemies; otherwise only bosses/damaged
+        const barracksLv = Game.state.village ? (Game.state.village.getBuilding('barracks')?.level || 0) : 0;
+        const hasIntel = barracksLv >= 2;
+        if (enemy.hp > 0 && (enemy.isBoss || enemy.hp < enemy.maxHp || hasIntel)) {
             this._drawHPBar(ctx, origX, origY, w, enemy.hp / enemy.maxHp, enemy.isBoss);
         }
 
-        // Boss name label at original position
-        if (enemy.isBoss && enemy.hp > 0) {
-            ctx.fillStyle = enemy.isFinalBoss ? '#ff0044' : '#ffaa00';
-            ctx.font = 'bold 7px Courier New';
+        // Enemy name label (bosses always, regular enemies with Barracks Lv2+)
+        if (enemy.hp > 0 && (enemy.isBoss || hasIntel)) {
+            ctx.fillStyle = enemy.isFinalBoss ? '#ff0044' : enemy.isBoss ? '#ffaa00' : '#aaa';
+            ctx.font = enemy.isBoss ? 'bold 7px Courier New' : '6px Courier New';
             ctx.textAlign = 'center';
-            ctx.fillText(enemy.name, origX + w / 2, origY - 2);
+            let label = enemy.name;
+            // Barracks Lv3: show enemy ATK value
+            if (barracksLv >= 3 && !enemy.isBoss && enemy.atk) {
+                label += ` [${enemy.atk}]`;
+            }
+            ctx.fillText(label, origX + w / 2, origY - 2);
             ctx.textAlign = 'left';
         }
 

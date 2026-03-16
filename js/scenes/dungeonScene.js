@@ -112,6 +112,33 @@ const DungeonScene = {
         if (floor === 1) {
             p._runBonuses = {};
             p._deathSaveUsed = false;
+            p._bonusMaxHp = 0;
+            p._goldBonus = 0;
+            p._xpBonus = 0;
+
+            // Town Hall bonuses: the town's development aids dungeon runs
+            const village = Game.state.village;
+            if (village) {
+                const thLevel = village.getBuilding('townhall')?.level || 0;
+                if (thLevel >= 2) {
+                    // Town intel: start with a small defense boost
+                    p._runBonuses.def = 2;
+                    Game.notify('Town scouts report: +2 DEF', '#aaccff');
+                }
+                if (thLevel >= 3) {
+                    // Town backing: start with bonus HP
+                    p._bonusMaxHp = 20;
+                    p.maxHp = p.getMaxHp();
+                    p.hp = p.maxHp;
+                    Game.notify('Town blessing: +20 Max HP', '#ffcc44');
+                }
+                // Smithy bonus: equipped weapon gets a small ATK buff per smithy level
+                const smLevel = village.getBuilding('smithy')?.level || 0;
+                if (smLevel >= 2) {
+                    p._runBonuses.atk = smLevel;
+                    Game.notify(`Smithy forging: +${smLevel} ATK`, '#ff8844');
+                }
+            }
         }
 
         Audio.startMusic('dungeon', floor);
