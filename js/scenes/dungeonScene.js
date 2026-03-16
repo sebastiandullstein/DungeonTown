@@ -494,7 +494,7 @@ const DungeonScene = {
 
         // Stairs
         if (this.map.get(player.x, player.y) === TILE.STAIRS_DOWN) {
-            if (Input.wasPressed('Enter') || Input.wasPressed('>') || Input.wasPressed('.')) {
+            if (Input.wasPressed('Enter') || Input.wasPressed('>') || Input.wasPressed('.') || Input.wasPressed('e') || Input.wasPressed('E')) {
                 Game.state.currentFloor++;
                 if (Game.state.currentFloor > Game.state.maxFloorReached)
                     Game.state.maxFloorReached = Game.state.currentFloor;
@@ -503,7 +503,7 @@ const DungeonScene = {
             }
         }
         if (this.map.get(player.x, player.y) === TILE.STAIRS_UP) {
-            if (Input.wasPressed('Enter') || Input.wasPressed('<') || Input.wasPressed(',')) {
+            if (Input.wasPressed('Enter') || Input.wasPressed('<') || Input.wasPressed(',') || Input.wasPressed('e') || Input.wasPressed('E')) {
                 if (Game.state.currentFloor > 1) {
                     this.mode = 'escapeConfirm';
                     return;
@@ -851,7 +851,7 @@ const DungeonScene = {
         const bgFade = Math.min(0.75, elapsed * 1.5);
         ctx.save();
         ctx.fillStyle = `rgba(0,8,4,${bgFade})`;
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.textAlign = 'center';
         const cx = 400;
 
@@ -1244,7 +1244,7 @@ const DungeonScene = {
                     for (const st of warn.tiles) {
                         const sx = (st.x - this.viewX) * 32;
                         const sy = (st.y - this.viewY) * 32;
-                        if (sx >= 0 && sx < 800 && sy >= 0 && sy < 576) {
+                        if (sx >= 0 && sx < ctx.canvas.width && sy >= 0 && sy < 576) {
                             ctx.fillRect(sx, sy, 32, 32);
                         }
                     }
@@ -1260,7 +1260,7 @@ const DungeonScene = {
             ctx.textAlign = 'center';
             ctx.fillStyle = '#000';
             ctx.globalAlpha = 0.5;
-            ctx.fillRect(0, 280, 800, 80);
+            ctx.fillRect(0, 280, ctx.canvas.width, 80);
             ctx.globalAlpha = 1;
             ctx.shadowColor = '#ffd700';
             ctx.shadowBlur = 20;
@@ -1282,7 +1282,7 @@ const DungeonScene = {
             for (const ghost of Abilities._dashGhosts) {
                 const gx = (ghost.x - this.viewX) * 32;
                 const gy = (ghost.y - this.viewY) * 32;
-                if (gx >= 0 && gx < 800 && gy >= 0 && gy < 576) {
+                if (gx >= 0 && gx < ctx.canvas.width && gy >= 0 && gy < 576) {
                     ctx.save();
                     ctx.globalAlpha = ghost.alpha * 0.35;
                     ctx.fillStyle = '#44aaff';
@@ -1344,7 +1344,7 @@ const DungeonScene = {
             const ctx = r.getCtx();
             ctx.save();
             ctx.fillStyle = 'rgba(255,215,0,' + Math.min(0.5, this._deathSaveFlash) + ')';
-            ctx.fillRect(0, 0, 800, 720);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.restore();
         }
 
@@ -1372,7 +1372,7 @@ const DungeonScene = {
                 grd.addColorStop(0, 'rgba(255,0,0,0)');
                 grd.addColorStop(1, `rgba(255,20,0,${alpha})`);
                 ctx.fillStyle = grd;
-                ctx.fillRect(0, 0, 800, 720);
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 ctx.restore();
             }
         }
@@ -1480,7 +1480,7 @@ const DungeonScene = {
             vg.addColorStop(0, 'rgba(40,0,0,' + (0.3 * deathFade) + ')');
             vg.addColorStop(1, 'rgba(120,0,0,' + (0.85 * deathFade) + ')');
             ctx.fillStyle = vg;
-            ctx.fillRect(0, 0, 800, 720);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             ctx.save();
             ctx.textAlign = 'center';
             const cx = 400;
@@ -1646,13 +1646,13 @@ const DungeonScene = {
             const barH = 80;
             const barSlide = Math.min(1, elapsed / 0.4);
             ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, 800, barH * barSlide);
-            ctx.fillRect(0, 720 - barH * barSlide, 800, barH * barSlide);
+            ctx.fillRect(0, 0, ctx.canvas.width, barH * barSlide);
+            ctx.fillRect(0, ctx.canvas.height - barH * barSlide, ctx.canvas.width, barH * barSlide);
 
             // Dark vignette overlay
             const fade = Math.min(1, elapsed / 0.6);
             ctx.fillStyle = `rgba(0,0,0,${0.5 * fade})`;
-            ctx.fillRect(0, 0, 800, 720);
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
             // Name card — fade in, hold, then slide out
             const nameAlpha = elapsed < 0.5 ? elapsed / 0.5

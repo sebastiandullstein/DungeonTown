@@ -210,10 +210,10 @@ const UIRenderer = {
     },
 
     drawHUD(ctx, player, currentFloor, mapTile, gold, time = 0) {
-        const HY = 576, W = 800;
+        const HY = 576, W = ctx.canvas.width;
 
         // Sprite-based HUD background
-        Assets.drawImage(ctx, 'hud_bg', 0, 576, 800, 144);
+        Assets.drawImage(ctx, 'hud_bg', 0, 576, W, 144);
 
         // Panel background (wood grain)
         const bgGrad = ctx.createLinearGradient(0, HY, 0, HY + 144);
@@ -742,10 +742,10 @@ const UIRenderer = {
     drawInventoryPanel(ctx, player, selectedIndex) {
         // Overlay
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 480, h = 530;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'Inventory');
 
         // Equipment section
@@ -853,10 +853,10 @@ const UIRenderer = {
 
     drawCharacterPanel(ctx, player, selectedIndex) {
         ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 360, h = 380;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'Character');
 
         let ry = y + 52;
@@ -970,7 +970,7 @@ const UIRenderer = {
     // ─── VILLAGE HUD ─────────────────────────────────────────────────────────
 
     drawVillageHUD(ctx, village, player) {
-        const HY = 576, W = 800;
+        const HY = 576, W = ctx.canvas.width;
 
         // Background — same wood strip as dungeon HUD
         const bgGrad = ctx.createLinearGradient(0, HY, 0, HY + 144);
@@ -1114,10 +1114,10 @@ const UIRenderer = {
         const level = building ? building.level : 1;
 
         ctx.fillStyle = '#0d0a06';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 620, h = 580;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, `${shopName}  (Level ${level})`);
 
         // Gold indicator top right
@@ -1236,7 +1236,7 @@ const UIRenderer = {
     // ─── TITLE SCREEN ────────────────────────────────────────────────────────
 
     drawTitleScreen(ctx, titleAnim, selectedOption, hasSave) {
-        const W = 800, H = 720;
+        const W = ctx.canvas.width, H = ctx.canvas.height;
 
         // Background: deep dark radial
         const bgGrad = ctx.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 520);
@@ -1427,7 +1427,7 @@ const UIRenderer = {
 
     drawNotification(ctx, text, color, alpha, slot) {
         if (alpha <= 0) return;
-        const W = 800;
+        const W = ctx.canvas.width;
         const tw = ctx.measureText(text).width + 30;
         const nx = (W - tw) / 2;
         const ny = 30 + slot * 36;
@@ -1503,7 +1503,7 @@ const UIRenderer = {
     drawManageMenu(ctx, target, options, selectedOption) {
         if (!target) return;
         const w = 340, h = options.length * 36 + 110;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, target.def.name);
 
         ctx.fillStyle = '#8a6030';
@@ -1540,7 +1540,7 @@ const UIRenderer = {
 
     drawAssignMenu(ctx, villagers, selectedOption) {
         const w = 380, h = Math.min(420, villagers.length * 30 + 80);
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'Assign Worker');
 
         if (villagers.length === 0) {
@@ -1575,7 +1575,7 @@ const UIRenderer = {
 
     drawRecruitMenu(ctx, recruits, villagers, maxVillagers, selectedOption, gold) {
         const w = 420, h = Math.max(160, recruits.length * 36 + 100);
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'Recruit Villagers');
 
         ctx.fillStyle = '#8a6030';
@@ -1620,8 +1620,8 @@ const UIRenderer = {
     drawInfoTooltip(ctx, text, lines, x, y) {
         const w = 240, h = lines.length * 18 + 20;
         // Clamp to screen
-        const px = Math.min(x, 800 - w - 8);
-        const py = Math.min(y, 720 - h - 8);
+        const px = Math.min(x, ctx.canvas.width - w - 8);
+        const py = Math.min(y, ctx.canvas.height - h - 8);
         this._drawPanel(ctx, px, py, w, h, '');
         ctx.fillStyle = '#c8a050';
         ctx.font = 'bold 12px "Courier New"';
@@ -1637,10 +1637,10 @@ const UIRenderer = {
 
     drawSmithyPanel(ctx, player, items, tab, selectedIndex) {
         ctx.fillStyle = '#0d0a06';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 640, h = 580;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'The Forge');
 
         // Flavor text
@@ -1812,10 +1812,10 @@ const UIRenderer = {
 
     drawTavernPanel(ctx, player, selectedIndex) {
         ctx.fillStyle = '#0d0a06';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 560, h = 480;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'The Broken Flagon');
 
         // Flavor text
@@ -1913,10 +1913,10 @@ const UIRenderer = {
 
     drawTemplePanel(ctx, player, selectedIndex) {
         ctx.fillStyle = '#0d0a06';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 580, h = 560;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'The Obsidian Shrine');
 
         // Flavor text
@@ -1998,10 +1998,10 @@ const UIRenderer = {
 
     drawWarehousePanel(ctx, player, village, selectedIndex) {
         ctx.fillStyle = '#0d0a06';
-        ctx.fillRect(0, 0, 800, 720);
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const w = 640, h = 600;
-        const x = (800 - w) / 2, y = (720 - h) / 2;
+        const x = (ctx.canvas.width - w) / 2, y = (ctx.canvas.height - h) / 2;
         this._drawPanel(ctx, x, y, w, h, 'The Stockpile');
 
         // Flavor text
@@ -2146,7 +2146,7 @@ const UIRenderer = {
     // ─── Phase 1: Dungeon Event Panels ──────────────────────────────────────
 
     drawFloorSelectPanel(ctx, floors, selectedIndex) {
-        const cw = 800, ch = 720;
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
         const w = 360, h = 340;
         const x = (cw - w) / 2, y = (ch - h) / 2;
 
@@ -2205,7 +2205,7 @@ const UIRenderer = {
     },
 
     drawEscapeConfirm(ctx, floor) {
-        const cw = 800, ch = 720;
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
         const w = 380, h = 120;
         const x = (cw - w) / 2, y = (ch - h) / 2;
 
@@ -2236,7 +2236,7 @@ const UIRenderer = {
 
     drawEventPrompt(ctx, evDef) {
         if (!evDef) return;
-        const cw = 800, ch = 720;
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
         const w = 420, h = 130;
         const x = (cw - w) / 2, y = (ch - h) / 2;
 
@@ -2269,7 +2269,7 @@ const UIRenderer = {
     },
 
     drawMerchantPanel(ctx, player, items, selectedIndex) {
-        const cw = 800, ch = 720;
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
         const w = 440, h = 280;
         const x = (cw - w) / 2, y = (ch - h) / 2;
 
@@ -2339,7 +2339,7 @@ const UIRenderer = {
     },
 
     drawPrisonerPanel(ctx, selectedIndex) {
-        const cw = 800, ch = 720;
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
         const w = 420, h = 260;
         const x = (cw - w) / 2, y = (ch - h) / 2;
 
@@ -2393,8 +2393,8 @@ const UIRenderer = {
     // ─── Pause Menu ─────────────────────────────────────────────────────────
 
     drawPauseMenu(ctx, selectedIndex, customOptions) {
-        const cw = 800;
-        const ch = 720;
+        const cw = ctx.canvas.width;
+        const ch = ctx.canvas.height;
 
         // Dark overlay
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -2438,8 +2438,8 @@ const UIRenderer = {
     // ─── Settings Panel ───────────────────────────────────────────────────────
 
     drawSettingsPanel(ctx, settings, selectedIndex) {
-        const cw = 800;
-        const ch = 720;
+        const cw = ctx.canvas.width;
+        const ch = ctx.canvas.height;
 
         // Dark overlay
         ctx.fillStyle = 'rgba(0,0,0,0.65)';
@@ -2559,7 +2559,7 @@ const UIRenderer = {
         ctx.save();
         ctx.globalAlpha = alpha;
         const w = Math.min(text.length * 9 + 40, 600);
-        const x = (800 - w) / 2;
+        const x = (ctx.canvas.width - w) / 2;
         const y = 10;
         const h = 32;
         // Background

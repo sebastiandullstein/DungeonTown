@@ -101,7 +101,7 @@ class Renderer {
         this.ctx.drawImage(this._uiLayer.canvas,     0, 0);
 
         // Ornate border frame overlay (drawn last, on top of everything)
-        Assets.drawImage(this.ctx, 'ui_frame', 0, 0, 800, 720);
+        Assets.drawImage(this.ctx, 'ui_frame', 0, 0, this.canvas.width, this.canvas.height);
     }
 
     // ── Tile layer ─────────────────────────────────────────────────────────

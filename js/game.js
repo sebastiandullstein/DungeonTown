@@ -50,7 +50,18 @@ const Game = {
         // Load all sprite/image assets (shows loading screen)
         await Assets.loadAll(canvas);
 
-        this.renderer = new Renderer(canvas, 25, 18);
+        // On touch devices in landscape, widen viewport to fill screen
+        let viewCols = 25;
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            const aspect = window.innerWidth / window.innerHeight;
+            if (aspect > 1.2) {
+                // Match screen aspect ratio: canvas.width / canvas.height = aspect
+                // canvas.height = 18*32 + 144 = 720, so width = 720 * aspect
+                viewCols = Math.ceil(720 * aspect / 32);
+                viewCols = Math.max(25, Math.min(50, viewCols));
+            }
+        }
+        this.renderer = new Renderer(canvas, viewCols, 18);
         Input.init(canvas);
         canvas.focus();
 
