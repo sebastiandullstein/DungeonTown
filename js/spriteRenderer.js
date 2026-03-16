@@ -284,6 +284,15 @@ const SpriteRenderer = {
             ctx.fill();
         }
 
+        // Rat pack frenzy: red pulsing glow when 3+ rats nearby
+        if (enemy.frenzied) {
+            const fp = 0.4 + 0.3 * Math.sin(time * 8);
+            ctx.fillStyle = `rgba(255,60,30,${fp})`;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
         // Sprite-based enemy rendering (individual files with direction)
         let _eDir = 'south';
         if (enemy.dx !== undefined && enemy.dy !== undefined) {

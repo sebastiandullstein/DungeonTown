@@ -283,6 +283,7 @@ class Enemy {
             _groundSlamTimer: 0,      // cooldown for ground slam attack
             _groundSlamWarning: null, // { tiles: [...], timer } telegraph before slam
             _summonedThisPhase: false, // prevent repeated summons
+            frenzied: false,           // rat: pack frenzy active (3+ rats nearby)
         };
     }
 
@@ -699,6 +700,18 @@ class Enemy {
             return;
         }
 
+        // Rat pack frenzy: 3+ rats within 3 tiles = +40% attack speed
+        if (enemy.type === 'rat' && !enemy.isBoss) {
+            let nearbyRats = 0;
+            for (const other of dungeonMap.enemies) {
+                if (other === enemy || other.hp <= 0 || other.type !== 'rat') continue;
+                const rdx = other.x - enemy.x;
+                const rdy = other.y - enemy.y;
+                if (Math.abs(rdx) <= 3 && Math.abs(rdy) <= 3) nearbyRats++;
+            }
+            enemy.frenzied = nearbyRats >= 2; // 2 others + self = 3 total
+        }
+
         // State transitions
         if (dist <= 1.5 && enemy.state !== 'attack') {
             enemy.state = 'attack';
@@ -833,8 +846,10 @@ class Enemy {
                         player.knockX = (kbDx / kbDist) * kbMult;
                         player.knockY = (kbDy / kbDist) * kbMult;
                     }
-                    // Boss Phase 3: faster attacks
-                    const delay = (enemy.isBoss && enemy.bossPhase >= 3) ? enemy.attackDelay * 0.7 : enemy.attackDelay;
+                    // Attack speed modifiers: boss phase 3, rat frenzy
+                    let delay = enemy.attackDelay;
+                    if (enemy.isBoss && enemy.bossPhase >= 3) delay *= 0.7;
+                    if (enemy.frenzied) delay *= 0.6;
                     enemy.attackTimer = delay;
                 }
                 break;
