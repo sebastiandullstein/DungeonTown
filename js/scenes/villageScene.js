@@ -585,6 +585,12 @@ const VillageScene = {
                 if (panel === 'smithy') this._refreshSmithyItems();
                 return;
             }
+            // E key also opens shop buildings
+            const shopTarget = this.getBuildingAtCursor();
+            if (shopTarget && shopTarget.building && shopTarget.def && shopTarget.def.isShop) {
+                Game.switchScene('shop', { buildingType: shopTarget.type });
+                return;
+            }
             // Also allow E for dungeon entrance
             if (this.getBuildingAtCursor()?.type === 'dungeon_entrance') {
                 this._enterDungeon();
@@ -1119,7 +1125,9 @@ const VillageScene = {
         // ── Interaction prompt ──
         if (this.mode === 'explore') {
             const iTarget = this._getInteractiveTarget();
-            if (iTarget) {
+            const shopTarget = !iTarget ? this.getBuildingAtCursor() : null;
+            const canEnter = iTarget || (shopTarget && shopTarget.building && shopTarget.def && shopTarget.def.isShop);
+            if (canEnter) {
                 // "Press [E] to enter" prompt above player
                 ctx.save();
                 const promptX = cursorCol * r.tileW + r.tileW / 2;
@@ -1138,7 +1146,7 @@ const VillageScene = {
                 ctx.restore();
             } else {
                 // Standard tooltip for non-interactive buildings
-                const target = this.getBuildingAtCursor();
+                const target = shopTarget || this.getBuildingAtCursor();
                 if (target) {
                     let lines = [];
                     if (target.type === 'dungeon_entrance') {
