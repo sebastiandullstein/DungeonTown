@@ -286,7 +286,11 @@ const DungeonScene = {
 
         // Event prompt mode (shrine, fountain, cursed chest)
         if (this.mode === 'eventPrompt') {
-            if (Input.wasPressed('Enter') || Input.wasPressed('y') || Input.wasPressed('Y')) {
+            if (this._eventDelay > 0) {
+                this._eventDelay -= dt;
+                return;
+            }
+            if (Input.wasPressed('Enter') || Input.wasPressed('y') || Input.wasPressed('Y') || Input.wasPressed(' ')) {
                 const result = DungeonEvents.resolve(this._eventTarget, Game.state.player, Game.state.currentFloor);
                 if (result) {
                     Game.notify(result.text, result.color);
@@ -549,6 +553,7 @@ const DungeonScene = {
                         Game.notify('You lack the soul shards to break the seal... (Need 5)', '#888');
                     }
                 } else {
+                    this._eventDelay = 1.0;
                     this.mode = 'eventPrompt';
                 }
                 return;

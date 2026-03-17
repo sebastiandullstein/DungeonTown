@@ -2268,7 +2268,7 @@ const UIRenderer = {
 
         ctx.fillStyle = '#666050';
         ctx.font = '11px "Courier New"';
-        ctx.fillText('[Enter/Y] Accept    [Esc/N] Decline', x + w / 2, y + h - 14);
+        ctx.fillText('[ATK/Enter] Accept    [Esc/N] Decline', x + w / 2, y + h - 14);
         ctx.textAlign = 'left';
     },
 
