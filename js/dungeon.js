@@ -71,7 +71,8 @@ class DungeonMap {
 
     isWalkable(x, y) {
         const t = this.get(x, y);
-        return t === TILE.FLOOR || t === TILE.DOOR || t === TILE.STAIRS_DOWN || t === TILE.STAIRS_UP || t === TILE.CHEST || t === TILE.WATER;
+        return t === TILE.FLOOR || t === TILE.DOOR || t === TILE.STAIRS_DOWN || t === TILE.STAIRS_UP || t === TILE.CHEST || t === TILE.WATER
+            || t === TILE.SHRINE || t === TILE.MERCHANT || t === TILE.CURSED_CHEST || t === TILE.FOUNTAIN || t === TILE.FOUNTAIN_DRY || t === TILE.PRISONER;
     }
 
     isWater(x, y) {
