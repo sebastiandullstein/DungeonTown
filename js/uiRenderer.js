@@ -124,7 +124,7 @@ const UIRenderer = {
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold ${Math.floor(h * 0.7)}px "Courier New"`;
             ctx.textAlign = 'center';
-            ctx.fillText(`${current}/${max}`, x + w / 2, y + h - 3);
+            ctx.fillText(`${Math.floor(current)}/${Math.floor(max)}`, x + w / 2, y + h - 3);
             ctx.textAlign = 'left';
         }
     },

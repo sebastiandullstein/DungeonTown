@@ -209,6 +209,14 @@ const DungeonScene = {
 
         // Level-up pick mode
         if (this.mode === 'levelUpPick') {
+            // Freeze timer — ignore all input for 1s to prevent accidental picks
+            if (this._levelUpFreezeTimer > 0) {
+                this._levelUpFreezeTimer -= dt;
+                // Consume any presses during freeze so they don't carry over
+                Input.wasPressed('Enter'); Input.wasPressed(' ');
+                Input.wasPressed('w'); Input.wasPressed('s');
+                return;
+            }
             if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
                 this._levelUpPickIndex = Math.max(0, this._levelUpPickIndex - 1);
                 Audio.play('menuMove');
@@ -723,6 +731,7 @@ const DungeonScene = {
             player._pendingLevelUpPick = false;
             this._levelUpPicks = Player.generateLevelUpPicks(player.level);
             this._levelUpPickIndex = 0;
+            this._levelUpFreezeTimer = 1.0; // 1s freeze before input accepted
             this.mode = 'levelUpPick';
             return;
         }
@@ -1406,7 +1415,6 @@ const DungeonScene = {
             this.map.get(player.x, player.y),
             player.gold || 0);
         r.drawMinimap(this.map, player.x, player.y);
-        r.drawCombatLog(this.combatLog);
 
         // ── Kill streak HUD ──
         if (this._killStreak >= 3) {
@@ -1704,13 +1712,15 @@ const DungeonScene = {
         if (this.mode === 'play' && this._nearEvent && !this._nearEvent.used) {
             const ctx = r.getCtx();
             ctx.save();
+            const gameH = r.canvas.height - 144;
+            const hintY = gameH - 28;
             ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(r.canvas.width / 2 - 100, 540, 200, 24);
+            ctx.fillRect(r.canvas.width / 2 - 100, hintY, 200, 24);
             ctx.fillStyle = '#ffd700';
             ctx.font = '13px "Courier New"';
             ctx.textAlign = 'center';
             const evDef = DungeonEvents.EVENTS[this._nearEvent.id];
-            ctx.fillText('Press [E] ' + (evDef ? evDef.name : ''), r.canvas.width / 2, 557);
+            ctx.fillText('Press [E] ' + (evDef ? evDef.name : ''), r.canvas.width / 2, hintY + 17);
             ctx.textAlign = 'left';
             ctx.restore();
         }

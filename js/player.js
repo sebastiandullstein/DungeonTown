@@ -171,7 +171,7 @@ class Player {
     }
 
     getSpeed() {
-        return Math.max(0.04, 0.08 - this.stats.dex * 0.002);
+        return Math.max(0.08, 0.16 - this.stats.dex * 0.004);
     }
 
     getAttackSpeed() {
