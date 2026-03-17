@@ -375,6 +375,10 @@ const DungeonScene = {
 
         // Altar choice mode (room-clear mini-event)
         if (this.mode === 'altarChoice') {
+            if (this._altarDelay > 0) {
+                this._altarDelay -= dt;
+                return;
+            }
             if (Input.wasPressed('ArrowUp') || Input.wasPressed('w') || Input.wasPressed('W')) {
                 this._altarIndex = 0;
             }
@@ -755,6 +759,7 @@ const DungeonScene = {
                         if (Math.random() < 0.80) {
                             this._altarOffering = DungeonEvents.generateAltarOffering();
                             this._altarIndex = 0;
+                            this._altarDelay = 1.0;
                             this.mode = 'altarChoice';
                             Audio.play('chestOpen');
                             return;
