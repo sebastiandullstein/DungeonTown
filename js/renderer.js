@@ -339,6 +339,9 @@ class Renderer {
     drawLevelUpPicks(picks, selectedIndex) {
         UIRenderer.drawLevelUpPicks(this._uiLayer.ctx, picks, selectedIndex);
     }
+    drawAltarChoice(offering, selectedIndex) {
+        UIRenderer.drawAltarChoice(this._uiLayer.ctx, offering, selectedIndex);
+    }
 
     drawPauseMenu(selectedIndex, options) {
         UIRenderer.drawPauseMenu(this._uiLayer.ctx, selectedIndex, options);

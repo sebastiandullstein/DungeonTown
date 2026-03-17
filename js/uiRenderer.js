@@ -2613,6 +2613,40 @@ const UIRenderer = {
         ctx.textAlign = 'left';
     },
 
+    drawAltarChoice(ctx, offering, selectedIndex) {
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
+        const gameH = ch - 144;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(0, 0, cw, ch);
+        const pw = Math.min(360, cw - 40);
+        const ph = Math.min(140, gameH - 20);
+        const px = Math.floor((cw - pw) / 2);
+        const py = Math.floor((gameH - ph) / 2);
+        ctx.fillStyle = '#1a1020';
+        ctx.strokeStyle = '#c080ff';
+        ctx.lineWidth = 2;
+        ctx.fillRect(px, py, pw, ph);
+        ctx.strokeRect(px, py, pw, ph);
+        ctx.fillStyle = '#c080ff';
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(offering.desc, px + pw / 2, py + 24);
+        for (let i = 0; i < offering.options.length; i++) {
+            const opt = offering.options[i];
+            const oy = py + 52 + i * 32;
+            const selected = i === selectedIndex;
+            ctx.fillStyle = selected ? '#ffffff' : '#888888';
+            ctx.font = selected ? 'bold 13px monospace' : '13px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText((selected ? '> ' : '  ') + opt.label, px + 20, oy);
+        }
+        ctx.fillStyle = '#666';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[W/S] Choose  [Enter] Accept  [Esc] Skip', px + pw / 2, py + ph - 12);
+        ctx.textAlign = 'left';
+    },
+
     drawTutorialHint(ctx, text, alpha) {
         if (alpha <= 0) return;
         ctx.save();

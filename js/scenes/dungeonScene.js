@@ -1766,43 +1766,7 @@ const DungeonScene = {
 
         // ── Altar choice overlay (room-clear mini-event) ──
         if (this.mode === 'altarChoice' && this._altarOffering) {
-            const ctx = r.ctx;
-            const cw = ctx.canvas.width;
-            const ch = ctx.canvas.height;
-            // Dim background
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(0, 0, cw, ch);
-            // Panel
-            const pw = 360, ph = 140;
-            const px = Math.floor((cw - pw) / 2);
-            const py = Math.floor((ch - ph) / 2);
-            ctx.fillStyle = '#1a1020';
-            ctx.strokeStyle = '#c080ff';
-            ctx.lineWidth = 2;
-            ctx.fillRect(px, py, pw, ph);
-            ctx.strokeRect(px, py, pw, ph);
-            // Title
-            ctx.fillStyle = '#c080ff';
-            ctx.font = '14px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(this._altarOffering.desc, px + pw / 2, py + 24);
-            // Options
-            for (let i = 0; i < this._altarOffering.options.length; i++) {
-                const opt = this._altarOffering.options[i];
-                const oy = py + 52 + i * 32;
-                const selected = i === this._altarIndex;
-                ctx.fillStyle = selected ? '#ffffff' : '#888888';
-                ctx.font = selected ? 'bold 13px monospace' : '13px monospace';
-                ctx.textAlign = 'left';
-                const marker = selected ? '> ' : '  ';
-                ctx.fillText(marker + opt.label, px + 20, oy);
-            }
-            // Hint
-            ctx.fillStyle = '#666';
-            ctx.font = '11px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('[W/S] Choose  [Enter] Accept  [Esc] Skip', px + pw / 2, py + ph - 12);
-            ctx.textAlign = 'left';
+            r.drawAltarChoice(this._altarOffering, this._altarIndex);
         }
 
         // ── Pause menu overlay ──
