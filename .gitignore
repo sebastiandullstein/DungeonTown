@@ -2,3 +2,11 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# Secrets & lokale Einstellungen (Olymp-Prüfung 2026-10-29)
+.env
+.env.*
+.mcp.json
+.claude/settings.local.json
+desktop.ini
+Thumbs.db
