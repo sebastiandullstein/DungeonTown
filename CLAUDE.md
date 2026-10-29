@@ -303,3 +303,6 @@ Hinweis: E auf Event-Tile im Dungeon löst Event aus (überschreibt Execute-Abil
 - `build/icon.png` — 512×512 Placeholder-Icon
 - App-ID: `com.dungeontown.game`
 - Scripts: `npm start` (Dev), `npm run build:win/mac/linux/all` (Dist)
+
+## Olymp
+Am Session-Ende /ingest DungeonTown. Ist /ingest hier nicht verfügbar: `E:\olymp\vault\.claude\skills\ingest\SKILL.md` lesen und für dieses Projekt befolgen.
